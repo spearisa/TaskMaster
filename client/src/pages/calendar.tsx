@@ -112,11 +112,11 @@ export default function CalendarPage() {
         <h1 className="text-xl font-semibold">Calendar</h1>
       </header>
 
-      <div className="px-5 py-2">
+      <div className="px-3 sm:px-5 py-2">
         <Tabs defaultValue="calendar" className="mb-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="calendar">Calendar</TabsTrigger>
-            <TabsTrigger value="deadlines">Deadlines</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="calendar" className="text-sm sm:text-base py-2">Calendar</TabsTrigger>
+            <TabsTrigger value="deadlines" className="text-sm sm:text-base py-2">Deadlines</TabsTrigger>
           </TabsList>
           
           <TabsContent value="calendar">
@@ -130,7 +130,28 @@ export default function CalendarPage() {
                 onSelect={(date) => date && setDate(date)}
                 month={month}
                 onMonthChange={setMonth}
-                className="rounded-xl border p-3"
+                className="rounded-xl border p-3 mx-auto"
+                classNames={{
+                  month: "space-y-4",
+                  caption: "flex justify-center pt-1 relative items-center",
+                  caption_label: "text-sm font-medium",
+                  nav: "space-x-1 flex items-center",
+                  nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
+                  nav_button_previous: "absolute left-1",
+                  nav_button_next: "absolute right-1",
+                  table: "w-full border-collapse space-y-1",
+                  head_row: "flex w-full",
+                  head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] flex-1 text-center",
+                  row: "flex w-full mt-2",
+                  cell: "text-center text-sm p-0 relative first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 flex-1 h-9",
+                  day: "h-9 w-9 mx-auto p-0 font-normal aria-selected:opacity-100 flex items-center justify-center rounded-md",
+                  day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                  day_today: "bg-accent text-accent-foreground",
+                  day_outside: "text-muted-foreground opacity-50",
+                  day_disabled: "text-muted-foreground opacity-50",
+                  day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                  day_hidden: "invisible",
+                }}
                 modifiers={{
                   hasTasks: (date) => {
                     const dateStr = format(date, 'yyyy-MM-dd');
@@ -211,16 +232,20 @@ export default function CalendarPage() {
               ) : todaysTasks && todaysTasks.length > 0 ? (
                 <div className="space-y-2">
                   {todaysTasks.map(task => (
-                    <Card key={task.id} className="p-3 border-red-100 bg-red-50">
+                    <Card 
+                      key={task.id} 
+                      className="p-3 border-red-100 bg-red-50 cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => navigate(`/task/${task.id}`)}
+                    >
                       <div className="flex justify-between items-center">
-                        <div>
-                          <h4 className="font-medium">{task.title}</h4>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-medium truncate">{task.title}</h4>
                           <div className="text-sm text-red-600 flex items-center">
-                            <Clock className="h-3 w-3 mr-1" />
-                            <span>Due today</span>
+                            <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
+                            <span className="truncate">Due today</span>
                           </div>
                         </div>
-                        <Badge variant="outline" className="bg-red-100 text-red-600 border-red-200">
+                        <Badge variant="outline" className="bg-red-100 text-red-600 border-red-200 ml-2 whitespace-nowrap flex-shrink-0">
                           {task.priority}
                         </Badge>
                       </div>
@@ -274,25 +299,35 @@ export default function CalendarPage() {
                     return (
                       <Card 
                         key={task.id} 
-                        className={`p-3 ${borderColor} ${bgColor}`}
+                        className={`p-3 ${borderColor} ${bgColor} cursor-pointer hover:shadow-md transition-shadow`}
                         onClick={() => {
-                          if (task.dueDate) {
-                            const dueDate = new Date(task.dueDate);
-                            setDate(dueDate);
-                            setMonth(dueDate);
-                            document.querySelector('[value="calendar"]')?.dispatchEvent(new MouseEvent('click'));
-                          }
+                          // Allow clicking to navigate to task detail
+                          const showTaskDetail = (e: React.MouseEvent) => {
+                            if (e.shiftKey || e.metaKey || e.ctrlKey) {
+                              // If modifier key pressed, just navigate to calendar view of this date
+                              if (task.dueDate) {
+                                const dueDate = new Date(task.dueDate);
+                                setDate(dueDate);
+                                setMonth(dueDate);
+                                document.querySelector('[value="calendar"]')?.dispatchEvent(new MouseEvent('click'));
+                              }
+                            } else {
+                              // Otherwise go to task detail page
+                              navigate(`/task/${task.id}`);
+                            }
+                          };
+                          showTaskDetail(window.event as any);
                         }}
                       >
                         <div className="flex justify-between items-center">
-                          <div>
-                            <h4 className="font-medium">{task.title}</h4>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-medium truncate">{task.title}</h4>
                             <div className={`text-sm ${urgencyColor} flex items-center`}>
-                              <Clock className="h-3 w-3 mr-1" />
-                              <span>{formatRelativeDate(task.dueDate)}</span>
+                              <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
+                              <span className="truncate">{formatRelativeDate(task.dueDate)}</span>
                             </div>
                           </div>
-                          <Badge variant="outline" className={`${bgColor} ${urgencyColor}`}>
+                          <Badge variant="outline" className={`${bgColor} ${urgencyColor} ml-2 whitespace-nowrap flex-shrink-0`}>
                             {task.priority}
                           </Badge>
                         </div>
