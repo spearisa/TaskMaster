@@ -3,6 +3,9 @@ import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
 import { scrypt } from "crypto";
 import { promisify } from "util";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
 const scryptAsync = promisify(scrypt);
 
@@ -18,12 +21,24 @@ export interface IStorage {
   updateTask(id: number, task: Partial<InsertTask>): Promise<Task | undefined>;
   deleteTask(id: number): Promise<boolean>;
   completeTask(id: number): Promise<Task | undefined>;
+  
+  sessionStore: session.Store;
 }
 
 /**
  * Database-backed storage implementation
  */
 export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
+  
+  constructor() {
+    const PostgresSessionStore = connectPg(session);
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true
+    });
+  }
+  
   /**
    * Hash a password with a salt
    */
