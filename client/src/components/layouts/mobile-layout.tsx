@@ -57,26 +57,28 @@ export function MobileLayout({ children }: MobileLayoutProps) {
             // Special styling for Add button
             if (item.label === 'Add') {
               return (
-                <Link key={item.path} href={item.path}>
-                  <a className="py-3 px-5 flex flex-col items-center relative">
+                <div key={item.path} onClick={() => window.location.href = item.path} className="cursor-pointer">
+                  <div className="py-3 px-5 flex flex-col items-center relative">
                     <div className="absolute -top-5 w-12 h-12 rounded-full bg-primary flex items-center justify-center shadow-lg">
                       <Icon className="h-6 w-6 text-white" />
                     </div>
                     <span className="text-xs mt-7 text-transparent">Add</span>
-                  </a>
-                </Link>
+                  </div>
+                </div>
               );
             }
             
             return (
-              <Link key={item.path} href={item.path}>
-                <a className={`py-3 px-5 flex flex-col items-center ${
+              <div 
+                key={item.path} 
+                onClick={() => window.location.href = item.path}
+                className={`py-3 px-5 flex flex-col items-center cursor-pointer ${
                   active ? 'text-primary' : 'text-neutral-500'
-                }`}>
-                  <Icon className="h-6 w-6" />
-                  <span className="text-xs mt-1">{item.label}</span>
-                </a>
-              </Link>
+                }`}
+              >
+                <Icon className="h-6 w-6" />
+                <span className="text-xs mt-1">{item.label}</span>
+              </div>
             );
           })}
         </div>

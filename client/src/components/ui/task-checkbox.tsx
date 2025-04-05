@@ -8,7 +8,7 @@ interface TaskCheckboxProps {
 
 export function TaskCheckbox({ checked, onChange, disabled = false }: TaskCheckboxProps) {
   return (
-    <label className="relative flex-shrink-0 mr-3 mt-0.5 h-6 w-6 cursor-pointer">
+    <label className="relative flex-shrink-0 h-5 w-5 cursor-pointer block">
       <input 
         type="checkbox" 
         checked={checked} 
@@ -17,14 +17,28 @@ export function TaskCheckbox({ checked, onChange, disabled = false }: TaskCheckb
         className="opacity-0 h-0 w-0 absolute"
       />
       <span className={`
-        absolute top-0 left-0 h-6 w-6 rounded-full 
+        absolute top-0 left-0 h-5 w-5 rounded-full 
         border-2 border-primary 
-        ${checked ? 'bg-primary' : 'bg-transparent'}
+        ${checked ? 'bg-primary' : 'bg-white'}
         transition-colors duration-200
         ${disabled ? 'opacity-50' : ''}
+        flex items-center justify-center
       `}>
         {checked && (
-          <span className="absolute left-2 top-1 w-1.5 h-3 border-r-2 border-b-2 border-white transform rotate-45"></span>
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="12" 
+            height="12" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="white" 
+            strokeWidth="3" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+            className="absolute"
+          >
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
         )}
       </span>
     </label>
