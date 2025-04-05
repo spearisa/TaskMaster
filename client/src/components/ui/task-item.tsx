@@ -131,16 +131,18 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
             {/* AI Delegate Button for incomplete tasks */}
             {!task.completed && (
               <div className="mt-3" onClick={stopPropagation}>
-                <Link href={`/task/${task.id}`}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-primary border border-primary/20 bg-primary/5 hover:bg-primary/10 px-2 py-1 h-auto"
-                  >
-                    <Sparkles className="h-3 w-3 mr-1" />
-                    Delegate to AI
-                  </Button>
-                </Link>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-primary border border-primary/20 bg-primary/5 hover:bg-primary/10 px-2 py-1 h-auto"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.location.href = `/task/${task.id}`;
+                  }}
+                >
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Delegate to AI
+                </Button>
               </div>
             )}
           </div>
