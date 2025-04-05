@@ -50,21 +50,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new task
   app.post("/api/tasks", async (req, res) => {
     try {
-      const validationResult = insertTaskSchema.safeParse(req.body);
+      // Log the incoming request body for debugging
+      console.log("Task creation request body:", JSON.stringify(req.body));
+      
+      // First handle the dueDate conversion manually
+      let taskData = { ...req.body };
+      
+      // Convert all date fields explicitly before validation
+      const taskWithConvertedDates = {
+        ...taskData,
+        dueDate: taskData.dueDate ? new Date(taskData.dueDate) : undefined,
+      };
+      
+      console.log("Task with converted dates:", taskWithConvertedDates);
+      
+      // Now validate with the schema
+      const validationResult = insertTaskSchema.safeParse(taskWithConvertedDates);
       
       if (!validationResult.success) {
         const validationError = fromZodError(validationResult.error);
+        console.error("Task validation error:", validationError.message);
         return res.status(400).json({ message: validationError.message });
       }
       
-      const taskData = validationResult.data;
+      // Get the validated data
+      const validatedTaskData = validationResult.data;
       
-      // Convert string dates to Date objects
-      if (taskData.dueDate && typeof taskData.dueDate === 'string') {
-        taskData.dueDate = new Date(taskData.dueDate);
-      }
+      console.log("Validated task data:", validatedTaskData);
       
-      const newTask = await storage.createTask(taskData);
+      // Create the task with the validated data
+      const newTask = await storage.createTask(validatedTaskData);
       
       return res.status(201).json({
         ...newTask,

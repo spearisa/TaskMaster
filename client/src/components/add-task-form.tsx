@@ -57,11 +57,17 @@ export function AddTaskForm() {
     try {
       setIsSubmitting(true);
       
+      console.log("Form data before submission:", data);
+      
       // Create a new object with the same data but convert date to ISO string if it exists
       const taskData = {
         ...data,
         dueDate: data.dueDate ? data.dueDate.toISOString() : undefined,
+        estimatedTime: typeof data.estimatedTime === 'number' ? data.estimatedTime : undefined,
+        description: data.description || '', // Ensure description is never undefined
       };
+      
+      console.log("Task data being sent to API:", taskData);
       
       const response = await apiRequest("POST", "/api/tasks", taskData);
       
@@ -76,6 +82,7 @@ export function AddTaskForm() {
         navigate("/");
       } else {
         const errorData = await response.json();
+        console.error("Server error response:", errorData);
         toast({
           title: "Error",
           description: errorData.message || "Failed to create task",

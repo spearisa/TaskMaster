@@ -26,9 +26,16 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
 });
 
-export const insertTaskSchema = createInsertSchema(tasks).omit({
-  id: true,
-  completedAt: true,
+// Create a custom insert schema for tasks with proper validation
+export const insertTaskSchema = z.object({
+  title: z.string().min(1, { message: "Title is required" }),
+  description: z.string().optional().nullable(),
+  dueDate: z.date().optional().nullable(),
+  completed: z.boolean().default(false),
+  priority: z.enum(["high", "medium", "low"]),
+  category: z.string(),
+  estimatedTime: z.number().int().positive().optional().nullable(),
+  userId: z.number().optional().nullable(),
 });
 
 export const taskSchema = z.object({
