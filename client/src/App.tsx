@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { MobileLayout } from "@/components/layouts/mobile-layout";
 import HomePage from "@/pages/home";
 import NewTaskPage from "@/pages/new-task";
-import CalendarPage from "@/pages/calendar";
+import CalendarSimplePage from "@/pages/calendar-simple";
 import AIAssistantPage from "@/pages/ai-assistant";
 import CompletedPage from "@/pages/completed";
 import TaskDetailPage from "@/pages/task-detail";
@@ -16,7 +16,7 @@ function Router() {
     <Switch>
       <Route path="/" component={HomePage} />
       <Route path="/new-task" component={NewTaskPage} />
-      <Route path="/calendar" component={CalendarPage} />
+      <Route path="/calendar" component={CalendarSimplePage} />
       <Route path="/ai-assistant" component={AIAssistantPage} />
       <Route path="/completed" component={CompletedPage} />
       <Route path="/task/:id" component={TaskDetailPage} />
