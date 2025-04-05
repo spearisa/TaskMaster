@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { useLocation, Link } from 'wouter';
-import { Home, ListTodo, Calendar, LightbulbIcon, Plus } from 'lucide-react';
+import { Home, ListTodo, Calendar, LightbulbIcon, Plus, User } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 
 interface MobileLayoutProps {
   children: ReactNode;
@@ -8,6 +9,7 @@ interface MobileLayoutProps {
 
 export function MobileLayout({ children }: MobileLayoutProps) {
   const [location] = useLocation();
+  const { user } = useAuth();
 
   const navItems = [
     { label: 'Home', path: '/', icon: Home },
@@ -25,20 +27,14 @@ export function MobileLayout({ children }: MobileLayoutProps) {
 
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen relative pb-20">
-      {/* iOS Status Bar */}
-      <div className="h-11 flex justify-between px-5 items-center bg-white">
-        <div className="font-semibold">9:41</div>
-        <div className="flex space-x-1">
-          {/* Status icons (Battery, WiFi, etc.) */}
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m-8 6H4m0 0l4 4m-4-4l4-4" />
-          </svg>
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01" />
-          </svg>
+      {/* Header Bar with Profile */}
+      <div className="h-16 flex justify-between px-5 items-center bg-white shadow-sm">
+        <div className="text-xl font-bold">Task Manager</div>
+        <div 
+          className="p-2 rounded-full hover:bg-gray-100 cursor-pointer" 
+          onClick={() => window.location.href = '/profile'}
+        >
+          <User className="h-5 w-5" />
         </div>
       </div>
 

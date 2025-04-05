@@ -4,8 +4,11 @@ import { storage } from "./storage";
 import { insertTaskSchema, taskSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { getTaskSuggestions, generateTaskReminder, generateDailySchedule, delegateTaskToAI } from "./openai-service";
+import { setupAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication routes
+  setupAuth(app);
   // All routes are prefixed with /api
   
   // Get all tasks
