@@ -42,7 +42,8 @@ export function TaskDelegation({ task, onDone }: TaskDelegationProps) {
       const response = await apiRequest(
         "POST", 
         `/api/tasks/${task.id}/delegate`, 
-        { context: context.trim() || undefined }
+        { context: context.trim() || undefined },
+        { redirectToAuthOnUnauthorized: false } // Important: prevent automatic redirect
       );
       
       if (response.ok) {
@@ -53,12 +54,23 @@ export function TaskDelegation({ task, onDone }: TaskDelegationProps) {
           description: "AI assistant is helping you with this task",
         });
       } else {
-        const errorData = await response.json();
-        toast({
-          title: "Error",
-          description: errorData.message || "Failed to delegate task to AI",
-          variant: "destructive",
-        });
+        // Check if it's an auth error
+        if (response.status === 401) {
+          toast({
+            title: "Authentication required",
+            description: "Please log in again to continue",
+            variant: "destructive",
+          });
+          // You could redirect manually here if needed
+          // window.location.href = "/auth";
+        } else {
+          const errorData = await response.json();
+          toast({
+            title: "Error",
+            description: errorData.message || "Failed to delegate task to AI",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       console.error("Error delegating task:", error);

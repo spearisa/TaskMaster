@@ -323,6 +323,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delegate a task to AI for detailed completion assistance
   app.post("/api/tasks/:id/delegate", async (req, res) => {
     try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const taskId = parseInt(req.params.id);
       if (isNaN(taskId)) {
         return res.status(400).json({ message: "Invalid task ID" });
@@ -348,19 +353,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If the OpenAI API key is set, use the AI service
       if (process.env.OPENAI_API_KEY) {
         try {
+          console.log("Delegating task to AI with OpenAI API");
           const delegationResult = await delegateTaskToAI(taskWithStringDates, context);
           return res.json(delegationResult);
         } catch (error) {
           console.error("Error delegating task to AI:", error);
-          return res.status(500).json({ message: "Failed to delegate task to AI" });
+          return res.status(500).json({ message: "Failed to delegate task to AI: " + (error as Error).message });
         }
       } else {
         // Return an error if no OpenAI API key
+        console.error("OpenAI API key not found");
         return res.status(400).json({ message: "OpenAI API key is required for this feature" });
       }
     } catch (error) {
       console.error("Error in task delegation route:", error);
-      return res.status(500).json({ message: "Failed to delegate task" });
+      return res.status(500).json({ message: "Failed to delegate task: " + (error as Error).message });
     }
   });
 

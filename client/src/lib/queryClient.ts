@@ -7,10 +7,15 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+interface ApiRequestOptions {
+  redirectToAuthOnUnauthorized?: boolean;
+}
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
+  options?: ApiRequestOptions
 ): Promise<Response> {
   const res = await fetch(url, {
     method,
@@ -19,7 +24,11 @@ export async function apiRequest(
     credentials: "include",
   });
 
-  await throwIfResNotOk(res);
+  // Skip throwing errors if redirectToAuthOnUnauthorized is false and we get a 401
+  if (!(options?.redirectToAuthOnUnauthorized === false && res.status === 401)) {
+    await throwIfResNotOk(res);
+  }
+  
   return res;
 }
 
