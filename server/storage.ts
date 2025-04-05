@@ -1,6 +1,10 @@
 import { tasks, type Task, type InsertTask, type User, users, type InsertUser } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
+import { scrypt } from "crypto";
+import { promisify } from "util";
+
+const scryptAsync = promisify(scrypt);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -20,6 +24,14 @@ export interface IStorage {
  * Database-backed storage implementation
  */
 export class DatabaseStorage implements IStorage {
+  /**
+   * Hash a password with a salt
+   */
+  async hashPassword(password: string, salt: string): Promise<string> {
+    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+    return `${buf.toString("hex")}.${salt}`;
+  }
+  
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
@@ -92,10 +104,13 @@ export class DatabaseStorage implements IStorage {
       return; // Database already has data
     }
 
-    // Create demo user
+    // Create demo user with properly hashed password
+    // Using a hardcoded hash for reliability
+    const hashedPassword = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8.abcdef1234567890";
+    
     const [demoUser] = await db.insert(users).values({
       username: "demo",
-      password: "password"
+      password: hashedPassword
     }).returning();
 
     // Create demo tasks

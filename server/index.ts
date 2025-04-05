@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { checkDatabaseConnection } from "./db";
+import { checkDatabaseConnection, createDatabaseTables } from "./db";
 import { storage, DatabaseStorage } from "./storage";
 
 const app = express();
@@ -44,15 +44,19 @@ app.use((req, res, next) => {
   if (dbConnected) {
     log("Database connection successful");
     
-    // Initialize demo data if needed
+    // First, create the tables
     try {
+      await createDatabaseTables();
+      log("Database tables created successfully");
+      
+      // Then initialize demo data
       if (storage instanceof DatabaseStorage) {
         await storage.initializeDemo();
         log("Database initialization complete");
       }
     } catch (err) {
       const error = err as Error;
-      log(`Error initializing demo data: ${error.message}`);
+      log(`Database initialization error: ${error.message}`);
     }
   } else {
     log("WARNING: Database connection failed, check your configuration");

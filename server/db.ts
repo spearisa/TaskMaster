@@ -1,4 +1,5 @@
 import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
 import pg from "pg";
 import * as schema from "../shared/schema";
 
@@ -21,6 +22,42 @@ export async function checkDatabaseConnection() {
     return true;
   } catch (error) {
     console.error("Error connecting to database:", error);
+    return false;
+  }
+}
+
+// Create database tables if they don't exist
+export async function createDatabaseTables() {
+  try {
+    // Create users table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL
+      );
+    `);
+    
+    // Create tasks table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS tasks (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        due_date TIMESTAMP,
+        completed BOOLEAN NOT NULL DEFAULT false,
+        priority TEXT NOT NULL,
+        category TEXT NOT NULL,
+        completed_at TIMESTAMP,
+        estimated_time INTEGER,
+        user_id INTEGER REFERENCES users(id)
+      );
+    `);
+    
+    console.log("Database tables created successfully");
+    return true;
+  } catch (error) {
+    console.error("Error creating database tables:", error);
     return false;
   }
 }
