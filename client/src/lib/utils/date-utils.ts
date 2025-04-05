@@ -1,139 +1,171 @@
-import { format, differenceInDays, differenceInHours, isValid, parseISO } from 'date-fns';
+import { format, formatDistance, differenceInDays, isToday, isTomorrow, isYesterday, addDays } from 'date-fns';
 
 /**
- * Format a date string in a human-readable format
- * @param dateString ISO date string, null, or undefined
+ * Format a date string to a readable format
+ * @param dateString ISO date string
+ * @param formatStr Optional format string (defaults to 'PPP')
+ * @returns Formatted date string
  */
-export function formatDate(dateString: string | null | undefined): string {
-  if (!dateString) return 'No date';
+export function formatDate(dateString: string | undefined, formatStr: string = 'PPP'): string {
+  if (!dateString) return 'No date set';
   
   try {
-    const date = parseISO(dateString);
-    if (!isValid(date)) return 'Invalid date';
-    
-    return format(date, 'MMM dd, yyyy');
+    const date = new Date(dateString);
+    return format(date, formatStr);
   } catch (error) {
-    console.error("Error formatting date:", error);
+    console.error('Error formatting date:', error);
     return 'Invalid date';
   }
 }
 
 /**
- * Format a date string as a relative time (today, tomorrow, in X days)
- * @param dateString ISO date string, null, or undefined
+ * Format a date string to a time format
+ * @param dateString ISO date string
+ * @returns Formatted time string
  */
-export function formatRelativeDate(dateString: string | null | undefined): string {
+export function formatTime(dateString: string | undefined): string {
+  if (!dateString) return 'No time set';
+  
+  try {
+    const date = new Date(dateString);
+    return format(date, 'h:mm a');
+  } catch (error) {
+    console.error('Error formatting time:', error);
+    return 'Invalid time';
+  }
+}
+
+/**
+ * Format a date as a relative date (e.g., "today", "yesterday", "in 2 days", "2 days ago")
+ * @param dateString ISO date string
+ * @returns Formatted relative date string
+ */
+export function formatRelativeDate(dateString: string | undefined): string {
+  if (!dateString) return 'No date set';
+  
+  try {
+    const date = new Date(dateString);
+    
+    // Check for common relative dates
+    if (isToday(date)) {
+      return 'Due today';
+    }
+    
+    if (isTomorrow(date)) {
+      return 'Due tomorrow';
+    }
+    
+    if (isYesterday(date)) {
+      return 'Due yesterday (overdue)';
+    }
+    
+    // Use format distance for other dates
+    return `Due ${formatDistance(date, new Date(), { addSuffix: true })}`;
+  } catch (error) {
+    console.error('Error formatting relative date:', error);
+    return 'Invalid date';
+  }
+}
+
+/**
+ * Calculate days until the deadline
+ * @param dateString ISO date string
+ * @returns Number of days until the deadline (positive if in the future, negative if in the past)
+ */
+export function getDaysUntilDeadline(dateString: string | undefined): number | null {
+  if (!dateString) return null;
+  
+  try {
+    const dueDate = new Date(dateString);
+    const today = new Date();
+    
+    // Reset time parts to get accurate day differences
+    today.setHours(0, 0, 0, 0);
+    const dueDateWithoutTime = new Date(dueDate);
+    dueDateWithoutTime.setHours(0, 0, 0, 0);
+    
+    return differenceInDays(dueDateWithoutTime, today);
+  } catch (error) {
+    console.error('Error calculating days until deadline:', error);
+    return null;
+  }
+}
+
+/**
+ * Get a descriptive string based on due date urgency
+ * @param dateString ISO date string
+ * @returns String describing the urgency
+ */
+export function getUrgencyString(dateString: string | undefined): string {
   if (!dateString) return 'No deadline';
   
-  try {
-    const date = parseISO(dateString);
-    if (!isValid(date)) return 'Invalid date';
-    
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const dueDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    
-    const daysDiff = differenceInDays(dueDate, today);
-    
-    if (daysDiff === 0) return 'Today';
-    if (daysDiff === 1) return 'Tomorrow';
-    if (daysDiff > 1) return `In ${daysDiff} days`;
-    if (daysDiff === -1) return 'Yesterday';
-    return `${Math.abs(daysDiff)} days ago`;
-  } catch (error) {
-    console.error("Error formatting relative date:", error);
-    return 'Invalid date';
-  }
-}
-
-/**
- * Get days remaining until a deadline
- * @param dateString ISO date string, null, or undefined
- * @returns Number of days until deadline or null if invalid date
- */
-export function getDaysUntilDeadline(dateString: string | null | undefined): number | null {
-  if (!dateString) return null;
+  const daysUntil = getDaysUntilDeadline(dateString);
   
-  try {
-    const date = parseISO(dateString);
-    if (!isValid(date)) return null;
-    
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const dueDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    
-    return differenceInDays(dueDate, today);
-  } catch (error) {
-    console.error("Error calculating days until deadline:", error);
-    return null;
+  if (daysUntil === null) return 'Unknown deadline';
+  
+  if (daysUntil < 0) {
+    return `Overdue by ${Math.abs(daysUntil)} day${Math.abs(daysUntil) !== 1 ? 's' : ''}`;
   }
+  
+  if (daysUntil === 0) return 'Due today';
+  if (daysUntil === 1) return 'Due tomorrow';
+  
+  return `Due in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}`;
 }
 
 /**
- * Check if a date is today
- * @param dateString ISO date string, null, or undefined
+ * Get CSS class for urgency styling
+ * @param dateString ISO date string
+ * @returns CSS class name for styling
  */
-export function isToday(dateString: string | null | undefined): boolean {
+export function getUrgencyClass(dateString: string | undefined): string {
+  if (!dateString) return 'text-gray-500';
+  
+  const daysUntil = getDaysUntilDeadline(dateString);
+  
+  if (daysUntil === null) return 'text-gray-500';
+  
+  if (daysUntil < 0) return 'text-red-500';  // Overdue
+  if (daysUntil === 0) return 'text-red-500'; // Due today
+  if (daysUntil === 1) return 'text-orange-500'; // Due tomorrow
+  if (daysUntil <= 3) return 'text-amber-500'; // Due soon
+  
+  return 'text-green-500'; // Due in more than 3 days
+}
+
+/**
+ * Generate dates for the next 7 days
+ * @returns Array of dates for the next 7 days
+ */
+export function getNext7Days(): Date[] {
+  const dates: Date[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  for (let i = 0; i < 7; i++) {
+    dates.push(addDays(today, i));
+  }
+  
+  return dates;
+}
+
+/**
+ * Check if a date is past (before today)
+ * @param dateString ISO date string
+ * @returns Boolean indicating if the date is in the past
+ */
+export function isPastDate(dateString: string | undefined): boolean {
   if (!dateString) return false;
   
   try {
-    const date = parseISO(dateString);
-    if (!isValid(date)) return false;
+    const date = new Date(dateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    date.setHours(0, 0, 0, 0);
     
-    const now = new Date();
-    
-    return (
-      date.getDate() === now.getDate() &&
-      date.getMonth() === now.getMonth() &&
-      date.getFullYear() === now.getFullYear()
-    );
+    return date < today;
   } catch (error) {
-    console.error("Error checking if date is today:", error);
+    console.error('Error checking if date is past:', error);
     return false;
-  }
-}
-
-/**
- * Check if a date is tomorrow
- * @param dateString ISO date string, null, or undefined
- */
-export function isTomorrow(dateString: string | null | undefined): boolean {
-  if (!dateString) return false;
-  
-  try {
-    const date = parseISO(dateString);
-    if (!isValid(date)) return false;
-    
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    return (
-      date.getDate() === tomorrow.getDate() &&
-      date.getMonth() === tomorrow.getMonth() &&
-      date.getFullYear() === tomorrow.getFullYear()
-    );
-  } catch (error) {
-    console.error("Error checking if date is tomorrow:", error);
-    return false;
-  }
-}
-
-/**
- * Format hours until deadline
- * @param dateString ISO date string, null, or undefined
- */
-export function getHoursUntilDeadline(dateString: string | null | undefined): number | null {
-  if (!dateString) return null;
-  
-  try {
-    const date = parseISO(dateString);
-    if (!isValid(date)) return null;
-    
-    const now = new Date();
-    
-    return Math.max(0, differenceInHours(date, now));
-  } catch (error) {
-    console.error("Error calculating hours until deadline:", error);
-    return null;
   }
 }

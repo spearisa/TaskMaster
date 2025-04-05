@@ -9,6 +9,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'wouter';
 import { Button } from './button';
+import { getDaysUntilDeadline } from '@/lib/utils/date-utils';
 
 interface TaskItemProps {
   task: TaskWithStringDates;
@@ -120,11 +121,14 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
               <CategoryBadge category={task.category} />
               
               {/* Deadline warning for upcoming tasks with close deadlines */}
-              {!task.completed && task.dueDate && getDaysLeft(task.dueDate) <= 2 && (
+              {!task.completed && task.dueDate && 
+               (getDaysUntilDeadline(task.dueDate) !== null) && 
+               (getDaysUntilDeadline(task.dueDate) as number) <= 2 && 
+               (getDaysUntilDeadline(task.dueDate) as number) >= 0 && (
                 <>
                   <span className="mx-2">•</span>
                   <span className="px-2 py-0.5 bg-red-50 text-red-500 rounded-lg text-xs">
-                    {getDaysLeft(task.dueDate)} days left
+                    {getDaysUntilDeadline(task.dueDate)} days left
                   </span>
                 </>
               )}
@@ -154,15 +158,4 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
   );
 }
 
-function getDaysLeft(dateString: string): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const dueDate = new Date(dateString);
-  dueDate.setHours(0, 0, 0, 0);
-  
-  const diffTime = dueDate.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  return diffDays;
-}
+
