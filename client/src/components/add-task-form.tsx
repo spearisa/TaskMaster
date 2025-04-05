@@ -6,7 +6,6 @@ import { useLocation } from "wouter";
 import { ChevronLeft } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { insertTaskSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -16,18 +15,21 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 
-// Extend the insert schema with additional validation
-const formSchema = insertTaskSchema.extend({
+// Create client-side form schema 
+const formSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
+  description: z.string().optional().nullable(),
+  dueDate: z.date().optional(),
+  completed: z.boolean().default(false),
   priority: z.enum(["high", "medium", "low"], {
     required_error: "Please select a priority level",
   }),
   category: z.string({
     required_error: "Please select a category",
   }),
-  dueDate: z.date().optional(),
-  description: z.string().optional(),
-}).omit({ id: true, completedAt: true });
+  estimatedTime: z.number().optional(),
+  userId: z.number().optional(),
+});
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -45,6 +47,9 @@ export function AddTaskForm() {
       priority: "medium",
       category: "Work",
       completed: false,
+      dueDate: undefined,
+      estimatedTime: undefined,
+      userId: 1, // Using the demo user ID
     },
   });
 
@@ -52,7 +57,13 @@ export function AddTaskForm() {
     try {
       setIsSubmitting(true);
       
-      const response = await apiRequest("POST", "/api/tasks", data);
+      // Create a new object with the same data but convert date to ISO string if it exists
+      const taskData = {
+        ...data,
+        dueDate: data.dueDate ? data.dueDate.toISOString() : undefined,
+      };
+      
+      const response = await apiRequest("POST", "/api/tasks", taskData);
       
       if (response.ok) {
         queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
@@ -106,6 +117,27 @@ export function AddTaskForm() {
                       placeholder="Task title"
                       className="p-3 border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary"
                       {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium text-neutral-500">Description</FormLabel>
+                  <FormControl>
+                    <textarea
+                      placeholder="Task description"
+                      className="w-full p-3 border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary min-h-[80px]"
+                      onChange={(e) => field.onChange(e.target.value)}
+                      value={field.value ?? ''}
+                      name={field.name}
+                      ref={field.ref}
                     />
                   </FormControl>
                   <FormMessage />
@@ -198,6 +230,26 @@ export function AddTaskForm() {
                       <SelectItem value="Health">Health</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="estimatedTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium text-neutral-500">Estimated Time (minutes)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="e.g., 30"
+                      className="p-3 border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary"
+                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                      value={field.value || ''}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
