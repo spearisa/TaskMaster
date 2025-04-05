@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { checkDatabaseConnection } from "./db";
+import { storage, DatabaseStorage } from "./storage";
 
 const app = express();
 app.use(express.json());
@@ -37,6 +39,25 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Check database connection
+  const dbConnected = await checkDatabaseConnection();
+  if (dbConnected) {
+    log("Database connection successful");
+    
+    // Initialize demo data if needed
+    try {
+      if (storage instanceof DatabaseStorage) {
+        await storage.initializeDemo();
+        log("Database initialization complete");
+      }
+    } catch (err) {
+      const error = err as Error;
+      log(`Error initializing demo data: ${error.message}`);
+    }
+  } else {
+    log("WARNING: Database connection failed, check your configuration");
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

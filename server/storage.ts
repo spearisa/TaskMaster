@@ -1,4 +1,6 @@
 import { tasks, type Task, type InsertTask, type User, users, type InsertUser } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -14,30 +16,89 @@ export interface IStorage {
   completeTask(id: number): Promise<Task | undefined>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private tasks: Map<number, Task>;
-  private userIdCounter: number;
-  private taskIdCounter: number;
-
-  constructor() {
-    this.users = new Map();
-    this.tasks = new Map();
-    this.userIdCounter = 1;
-    this.taskIdCounter = 1;
-    
-    // Initialize with demo tasks
-    this.initializeDemoTasks();
+/**
+ * Database-backed storage implementation
+ */
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
-  private initializeDemoTasks() {
-    const demoUser: User = {
-      id: this.userIdCounter++,
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  async getTasks(): Promise<Task[]> {
+    return await db.select().from(tasks).orderBy(desc(tasks.id));
+  }
+
+  async getTaskById(id: number): Promise<Task | undefined> {
+    const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
+    return task;
+  }
+
+  async getTasksByUserId(userId: number): Promise<Task[]> {
+    return await db.select().from(tasks).where(eq(tasks.userId, userId)).orderBy(desc(tasks.id));
+  }
+
+  async createTask(insertTask: InsertTask): Promise<Task> {
+    const [task] = await db.insert(tasks).values(insertTask).returning();
+    return task;
+  }
+
+  async updateTask(id: number, updatedTask: Partial<InsertTask>): Promise<Task | undefined> {
+    const [task] = await db.update(tasks)
+      .set(updatedTask)
+      .where(eq(tasks.id, id))
+      .returning();
+    
+    return task;
+  }
+
+  async deleteTask(id: number): Promise<boolean> {
+    const [deletedTask] = await db.delete(tasks)
+      .where(eq(tasks.id, id))
+      .returning();
+    
+    return !!deletedTask;
+  }
+
+  async completeTask(id: number): Promise<Task | undefined> {
+    const [task] = await db.update(tasks)
+      .set({ 
+        completed: true,
+        completedAt: new Date() 
+      })
+      .where(eq(tasks.id, id))
+      .returning();
+    
+    return task;
+  }
+
+  /**
+   * Initialize demo data if the database is empty
+   */
+  async initializeDemo(): Promise<void> {
+    // Check if there are any users
+    const existingUsers = await db.select().from(users);
+    if (existingUsers.length > 0) {
+      return; // Database already has data
+    }
+
+    // Create demo user
+    const [demoUser] = await db.insert(users).values({
       username: "demo",
       password: "password"
-    };
-    this.users.set(demoUser.id, demoUser);
+    }).returning();
 
+    // Create demo tasks
     const demoTasks: InsertTask[] = [
       {
         title: "Design new icons",
@@ -57,7 +118,6 @@ export class MemStorage implements IStorage {
         priority: "medium",
         category: "Personal",
         userId: demoUser.id,
-        completedAt: new Date(Date.now() - 3600000), // 1 hour ago
         estimatedTime: 60
       },
       {
@@ -91,81 +151,10 @@ export class MemStorage implements IStorage {
         estimatedTime: 60
       }
     ];
-
-    demoTasks.forEach(task => {
-      const id = this.taskIdCounter++;
-      this.tasks.set(id, { ...task, id });
-    });
-  }
-
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
-  }
-
-  async getTasks(): Promise<Task[]> {
-    return Array.from(this.tasks.values());
-  }
-
-  async getTaskById(id: number): Promise<Task | undefined> {
-    return this.tasks.get(id);
-  }
-
-  async getTasksByUserId(userId: number): Promise<Task[]> {
-    return Array.from(this.tasks.values()).filter(
-      (task) => task.userId === userId,
-    );
-  }
-
-  async createTask(insertTask: InsertTask): Promise<Task> {
-    const id = this.taskIdCounter++;
-    const task: Task = { ...insertTask, id };
-    this.tasks.set(id, task);
-    return task;
-  }
-
-  async updateTask(id: number, updatedTask: Partial<InsertTask>): Promise<Task | undefined> {
-    const task = this.tasks.get(id);
-    if (!task) {
-      return undefined;
-    }
     
-    const updatedTaskObj: Task = { ...task, ...updatedTask };
-    this.tasks.set(id, updatedTaskObj);
-    return updatedTaskObj;
-  }
-
-  async deleteTask(id: number): Promise<boolean> {
-    return this.tasks.delete(id);
-  }
-
-  async completeTask(id: number): Promise<Task | undefined> {
-    const task = this.tasks.get(id);
-    if (!task) {
-      return undefined;
-    }
-    
-    const updatedTask: Task = { 
-      ...task, 
-      completed: true, 
-      completedAt: new Date() 
-    };
-    
-    this.tasks.set(id, updatedTask);
-    return updatedTask;
+    // Insert all demo tasks
+    await db.insert(tasks).values(demoTasks);
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
