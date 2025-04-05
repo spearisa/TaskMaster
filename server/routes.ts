@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertTaskSchema, taskSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
-import { getTaskSuggestions, generateTaskReminder, generateDailySchedule } from "./openai-service";
+import { getTaskSuggestions, generateTaskReminder, generateDailySchedule, delegateTaskToAI } from "./openai-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // All routes are prefixed with /api
@@ -314,6 +314,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error in schedule route:", error);
       return res.status(500).json({ message: "Failed to generate daily schedule" });
+    }
+  });
+  
+  // Delegate a task to AI for detailed completion assistance
+  app.post("/api/tasks/:id/delegate", async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.id);
+      if (isNaN(taskId)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
+      
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Convert Date objects to strings for AI processing
+      const taskWithStringDates = {
+        ...task,
+        dueDate: task.dueDate ? task.dueDate.toISOString() : null,
+        completedAt: task.completedAt ? task.completedAt.toISOString() : null,
+        // Ensure proper type for priority
+        priority: task.priority as "high" | "medium" | "low"
+      };
+      
+      // Get any additional context from the request body
+      const { context } = req.body;
+      
+      // If the OpenAI API key is set, use the AI service
+      if (process.env.OPENAI_API_KEY) {
+        try {
+          const delegationResult = await delegateTaskToAI(taskWithStringDates, context);
+          return res.json(delegationResult);
+        } catch (error) {
+          console.error("Error delegating task to AI:", error);
+          return res.status(500).json({ message: "Failed to delegate task to AI" });
+        }
+      } else {
+        // Return an error if no OpenAI API key
+        return res.status(400).json({ message: "OpenAI API key is required for this feature" });
+      }
+    } catch (error) {
+      console.error("Error in task delegation route:", error);
+      return res.status(500).json({ message: "Failed to delegate task" });
     }
   });
 

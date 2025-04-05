@@ -8,28 +8,30 @@ import NewTaskPage from "@/pages/new-task";
 import CalendarPage from "@/pages/calendar";
 import AIAssistantPage from "@/pages/ai-assistant";
 import CompletedPage from "@/pages/completed";
+import TaskDetailPage from "@/pages/task-detail";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
-    <MobileLayout>
-      <Switch>
-        <Route path="/" component={HomePage} />
-        <Route path="/new-task" component={NewTaskPage} />
-        <Route path="/calendar" component={CalendarPage} />
-        <Route path="/ai-assistant" component={AIAssistantPage} />
-        <Route path="/completed" component={CompletedPage} />
-        <Route component={NotFound} />
-      </Switch>
-    </MobileLayout>
+    <Switch>
+      <Route path="/" component={HomePage} />
+      <Route path="/new-task" component={NewTaskPage} />
+      <Route path="/calendar" component={CalendarPage} />
+      <Route path="/ai-assistant" component={AIAssistantPage} />
+      <Route path="/completed" component={CompletedPage} />
+      <Route path="/task/:id" component={TaskDetailPage} />
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
+      <div className="app-container">
+        <Router />
+        <Toaster />
+      </div>
     </QueryClientProvider>
   );
 }

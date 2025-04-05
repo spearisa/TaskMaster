@@ -1,0 +1,237 @@
+import { useState, useEffect } from "react";
+import { useRoute, useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { MobileLayout } from "@/components/layouts/mobile-layout";
+import { ChevronLeft, AlertCircle, Sparkles, Calendar, Clock } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
+import { format } from "date-fns";
+import { TaskDelegation } from "@/components/task-delegation";
+import { PriorityBadge } from "@/components/ui/priority-badge";
+import { CategoryBadge } from "@/components/ui/category-badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { TaskWithStringDates } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+
+export default function TaskDetailPage() {
+  const [, params] = useRoute("/task/:id");
+  const [, navigate] = useLocation();
+  const taskId = params?.id ? parseInt(params.id) : null;
+  
+  const [task, setTask] = useState<TaskWithStringDates | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!taskId) {
+      navigate("/");
+      return;
+    }
+
+    async function fetchTask() {
+      try {
+        setIsLoading(true);
+        const response = await apiRequest("GET", `/api/tasks/${taskId}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setTask(data);
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to fetch task details",
+            variant: "destructive",
+          });
+          navigate("/");
+        }
+      } catch (error) {
+        console.error("Error fetching task:", error);
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred",
+          variant: "destructive",
+        });
+        navigate("/");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchTask();
+  }, [taskId, navigate, toast]);
+
+  const handleCompleteTask = async () => {
+    if (!task || task.completed) return;
+    
+    try {
+      setIsCompleting(true);
+      const response = await apiRequest("POST", `/api/tasks/${task.id}/complete`, null);
+      
+      if (response.ok) {
+        const updatedTask = await response.json();
+        setTask(updatedTask);
+        toast({
+          title: "Task completed",
+          description: `"${task.title}" has been marked as complete.`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to complete task. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error completing task:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  const handleGoBack = () => {
+    navigate("/");
+  };
+
+  const formatDueDate = (dateString: string | null | undefined) => {
+    if (!dateString) return "No due date";
+    
+    const date = new Date(dateString);
+    return format(date, "EEEE, MMMM d, yyyy");
+  };
+
+  if (isLoading) {
+    return (
+      <MobileLayout>
+        <div className="px-5 py-4">
+          <div className="flex items-center mb-6">
+            <Button variant="ghost" size="icon" onClick={handleGoBack} className="mr-2">
+              <ChevronLeft className="h-6 w-6" />
+            </Button>
+            <Skeleton className="h-6 w-48" />
+          </div>
+          
+          <div className="space-y-6">
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-40 w-full" />
+          </div>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  if (!task) {
+    return (
+      <MobileLayout>
+        <div className="flex flex-col items-center justify-center h-[80vh] px-5">
+          <AlertCircle className="h-16 w-16 text-gray-400 mb-4" />
+          <h2 className="text-xl font-medium mb-2">Task Not Found</h2>
+          <p className="text-gray-500 text-center mb-6">
+            The task you're looking for doesn't exist or was deleted.
+          </p>
+          <Button onClick={handleGoBack}>Go Back Home</Button>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  return (
+    <MobileLayout>
+      <div>
+        <header className="px-5 py-4 border-b sticky top-0 bg-white z-10">
+          <div className="flex items-center">
+            <Button variant="ghost" size="icon" onClick={handleGoBack} className="mr-2">
+              <ChevronLeft className="h-6 w-6" />
+            </Button>
+            <h1 className={`text-xl font-semibold ${task.completed ? 'line-through text-gray-500' : ''}`}>
+              {task.title}
+            </h1>
+          </div>
+        </header>
+
+        <div className="p-5">
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <PriorityBadge priority={task.priority} />
+            <CategoryBadge category={task.category} />
+            {task.completed ? (
+              <div className="px-2 py-1 rounded-full text-xs text-green-500 bg-green-50">
+                Completed
+              </div>
+            ) : task.dueDate && new Date(task.dueDate) < new Date() ? (
+              <div className="px-2 py-1 rounded-full text-xs text-red-500 bg-red-50">
+                Overdue
+              </div>
+            ) : null}
+          </div>
+
+          <div className="space-y-4 mb-6">
+            <div className="flex items-center text-gray-500 text-sm">
+              <Calendar className="h-4 w-4 mr-2" />
+              <span>Due: {formatDueDate(task.dueDate)}</span>
+            </div>
+            
+            {task.estimatedTime && (
+              <div className="flex items-center text-gray-500 text-sm">
+                <Clock className="h-4 w-4 mr-2" />
+                <span>Estimated time: {task.estimatedTime} minutes</span>
+              </div>
+            )}
+            
+            {task.description && (
+              <div className="mt-4">
+                <h3 className="text-sm font-medium mb-2">Description</h3>
+                <p className="text-gray-600 text-sm whitespace-pre-wrap p-3 bg-gray-50 rounded-lg">
+                  {task.description}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <Separator className="my-6" />
+
+          <Tabs defaultValue="delegate" className="space-y-6">
+            <TabsList className="grid grid-cols-2">
+              <TabsTrigger value="delegate" className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                <span>AI Delegate</span>
+              </TabsTrigger>
+              <TabsTrigger value="reminders">Reminders</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="delegate" className="mt-4">
+              <TaskDelegation 
+                task={task} 
+                onDone={handleCompleteTask}
+              />
+            </TabsContent>
+            
+            <TabsContent value="reminders">
+              <div className="p-4 border rounded-lg text-center text-gray-500">
+                Reminders functionality coming soon
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          {!task.completed && (
+            <div className="mt-8">
+              <Button 
+                onClick={handleCompleteTask} 
+                disabled={isCompleting}
+                className="w-full"
+              >
+                {isCompleting ? "Marking as Complete..." : "Mark as Complete"}
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </MobileLayout>
+  );
+}

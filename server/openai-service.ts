@@ -229,3 +229,80 @@ export async function generateDailySchedule(tasks: TaskWithStringDates[]) {
     throw new Error("Failed to generate schedule");
   }
 }
+
+/**
+ * Delegate a task to AI assistant to provide detailed completion steps and content
+ */
+export async function delegateTaskToAI(task: TaskWithStringDates, context?: string) {
+  try {
+    // Prepare task data for the AI
+    const taskData = {
+      id: task.id,
+      title: task.title,
+      description: task.description || "",
+      dueDate: task.dueDate || "",
+      priority: task.priority as "high" | "medium" | "low",
+      category: task.category,
+      estimatedTime: task.estimatedTime || null
+    };
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are an AI assistant specialized in completing delegated tasks.
+          You've been assigned a task and need to help the user complete it effectively.
+          Analyze the task details and provide a detailed response that will help the user
+          complete this task efficiently.
+          
+          Respond with JSON in this format:
+          {
+            "taskTitle": string,
+            "analysisAndContext": string,
+            "completionSteps": [
+              { "stepNumber": number, "description": string, "estimatedMinutes": number }
+            ],
+            "draftContent": string,
+            "resourceSuggestions": [string],
+            "totalEstimatedTime": number,
+            "nextActions": string
+          }`
+        },
+        {
+          role: "user",
+          content: `I need help completing this task:
+          ${JSON.stringify(taskData)}
+          
+          ${context ? `Additional context: ${context}` : ''}
+          
+          Please help me complete this efficiently by providing detailed steps, draft content, 
+          and anything else that would make this task easier to accomplish.`
+        }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    // Default response in case of parsing error
+    const defaultResponse = {
+      taskTitle: task.title,
+      analysisAndContext: "This task requires careful planning and execution.",
+      completionSteps: [
+        { stepNumber: 1, description: "Review task requirements", estimatedMinutes: 10 },
+        { stepNumber: 2, description: "Gather necessary information", estimatedMinutes: 15 },
+        { stepNumber: 3, description: "Complete the task", estimatedMinutes: 30 }
+      ],
+      draftContent: "Here's a draft to help you get started...",
+      resourceSuggestions: ["Google Docs for document creation", "Project management tool for tracking"],
+      totalEstimatedTime: 55,
+      nextActions: "Begin by reviewing the task requirements in detail."
+    };
+
+    return response.choices[0].message.content ? 
+      safeJsonParse(response.choices[0].message.content, defaultResponse) : 
+      defaultResponse;
+  } catch (error) {
+    console.error("Error delegating task to AI:", error);
+    throw new Error("Failed to delegate task to AI");
+  }
+}

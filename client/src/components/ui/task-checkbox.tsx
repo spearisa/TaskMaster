@@ -1,8 +1,8 @@
-import { ChangeEvent } from 'react';
+import { ReactNode } from 'react';
 
 interface TaskCheckboxProps {
   checked: boolean;
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  onChange: (e: any) => void;
   disabled?: boolean;
 }
 
