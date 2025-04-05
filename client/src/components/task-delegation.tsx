@@ -5,10 +5,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2, Send, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
-import { apiRequest } from "@/lib/queryClient";
 import { TaskWithStringDates } from "@shared/schema";
 import { AccordionTrigger, AccordionContent, AccordionItem, Accordion } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
 
 interface TaskDelegationProps {
   task: TaskWithStringDates;
@@ -34,17 +35,32 @@ export function TaskDelegation({ task, onDone }: TaskDelegationProps) {
   const [context, setContext] = useState("");
   const [result, setResult] = useState<DelegationResult | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [_, navigate] = useLocation();
 
   const delegateTask = async () => {
     try {
+      // First check if the user is logged in
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "You must be logged in to use this feature",
+          variant: "destructive",
+        });
+        navigate("/auth");
+        return;
+      }
+
       setIsLoading(true);
       
-      const response = await apiRequest(
-        "POST", 
-        `/api/tasks/${task.id}/delegate`, 
-        { context: context.trim() || undefined },
-        { redirectToAuthOnUnauthorized: false } // Important: prevent automatic redirect
-      );
+      const response = await fetch(`/api/tasks/${task.id}/delegate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ context: context.trim() || undefined }),
+        credentials: "include" // Important: include credentials for session cookie
+      });
       
       if (response.ok) {
         const data = await response.json();
@@ -57,17 +73,23 @@ export function TaskDelegation({ task, onDone }: TaskDelegationProps) {
         // Check if it's an auth error
         if (response.status === 401) {
           toast({
-            title: "Authentication required",
-            description: "Please log in again to continue",
+            title: "Session expired",
+            description: "Your session has expired. Please log in again.",
             variant: "destructive",
           });
-          // You could redirect manually here if needed
-          // window.location.href = "/auth";
+          navigate("/auth");
         } else {
-          const errorData = await response.json();
+          let errorMessage = "Failed to delegate task to AI";
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch (e) {
+            console.error("Could not parse error response", e);
+          }
+          
           toast({
             title: "Error",
-            description: errorData.message || "Failed to delegate task to AI",
+            description: errorMessage,
             variant: "destructive",
           });
         }
