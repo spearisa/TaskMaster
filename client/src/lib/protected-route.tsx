@@ -13,7 +13,11 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
 
+  console.log("Protected route at path:", path);
+  console.log("Authentication state:", { user, isLoading });
+
   if (isLoading) {
+    console.log("Auth is loading...");
     return (
       <Route path={path}>
         <div className="flex items-center justify-center min-h-screen">
@@ -26,7 +30,13 @@ export function ProtectedRoute({
   return (
     <Route path={path}>
       {(params) => {
-        return user ? <Component params={params} /> : <Redirect to="/auth" />;
+        if (!user) {
+          console.log("User not authenticated, redirecting to /auth");
+          return <Redirect to="/auth" />;
+        }
+        
+        console.log("User authenticated, rendering component");
+        return <Component params={params} />;
       }}
     </Route>
   );

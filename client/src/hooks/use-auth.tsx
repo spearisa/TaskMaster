@@ -49,20 +49,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/user"],
     queryFn: async () => {
       try {
-        const res = await fetch("/api/user");
+        console.log("Fetching authenticated user");
+        const res = await fetch("/api/user", {
+          credentials: "include" // Important: include credentials for session cookie
+        });
+        
+        console.log("User fetch response status:", res.status);
+        
         if (res.status === 401) {
+          console.log("User not authenticated (401)");
           return null;
         }
+        
         if (!res.ok) {
           throw new Error("Failed to fetch user");
         }
-        return await res.json();
+        
+        const userData = await res.json();
+        console.log("User authenticated:", userData);
+        return userData;
       } catch (error) {
         console.error("Error fetching user:", error);
         return null;
       }
     },
     initialData: null,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   // Login mutation

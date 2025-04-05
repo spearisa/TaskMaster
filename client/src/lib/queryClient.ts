@@ -17,6 +17,8 @@ export async function apiRequest(
   data?: unknown | undefined,
   options?: ApiRequestOptions
 ): Promise<Response> {
+  console.log(`[API] Making ${method} request to ${url}`, data ? { dataKeys: Object.keys(data) } : 'no data');
+  
   const res = await fetch(url, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
@@ -24,9 +26,16 @@ export async function apiRequest(
     credentials: "include",
   });
 
+  console.log(`[API] Response from ${url}:`, { status: res.status, statusText: res.statusText });
+  
   // Skip throwing errors if redirectToAuthOnUnauthorized is false and we get a 401
   if (!(options?.redirectToAuthOnUnauthorized === false && res.status === 401)) {
-    await throwIfResNotOk(res);
+    try {
+      await throwIfResNotOk(res);
+    } catch (error) {
+      console.error(`[API] Error in request to ${url}:`, error);
+      throw error;
+    }
   }
   
   return res;
@@ -38,29 +47,43 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
+    const url = queryKey[0] as string;
+    console.log(`[QueryFn] Fetching ${url} (on401: ${unauthorizedBehavior})`);
+    
+    const res = await fetch(url, {
       credentials: "include",
     });
+    
+    console.log(`[QueryFn] Response from ${url}:`, { status: res.status, statusText: res.statusText });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      console.log(`[QueryFn] Returning null for 401 response from ${url}`);
       return null;
     }
 
-    await throwIfResNotOk(res);
-    return await res.json();
+    try {
+      await throwIfResNotOk(res);
+      const data = await res.json();
+      console.log(`[QueryFn] Successfully fetched data from ${url}`);
+      return data;
+    } catch (error) {
+      console.error(`[QueryFn] Error in query to ${url}:`, error);
+      throw error;
+    }
   };
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      refetchInterval: 60000, // Refetch every minute
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      staleTime: 30000, // Consider data stale after 30 seconds
+      retry: 1, // Retry once on failure
     },
     mutations: {
-      retry: false,
+      retry: 1, // Retry once on failure
     },
   },
 });
