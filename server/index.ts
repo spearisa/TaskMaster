@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { checkDatabaseConnection, createDatabaseTables } from "./db";
 import { storage, DatabaseStorage } from "./storage";
+import { Server } from 'socket.io'; // Added import for Socket.IO
 
 const app = express();
 app.use(express.json());
@@ -43,12 +44,12 @@ app.use((req, res, next) => {
   const dbConnected = await checkDatabaseConnection();
   if (dbConnected) {
     log("Database connection successful");
-    
+
     // First, create the tables
     try {
       await createDatabaseTables();
       log("Database tables created successfully");
-      
+
       // Then initialize demo data
       if (storage instanceof DatabaseStorage) {
         await storage.initializeDemo();
@@ -63,6 +64,34 @@ app.use((req, res, next) => {
   }
 
   const server = await registerRoutes(app);
+
+  // Setup Socket.io
+  const io = new Server(server, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+    }
+  });
+
+  io.on('connection', (socket) => {
+    console.log('User connected:', socket.id);
+
+    socket.on('join_room', (room) => {
+      socket.join(room);
+      console.log(`User ${socket.id} joined room: ${room}`);
+    });
+
+    socket.on('send_message', (data) => {
+      io.to(data.room).emit('receive_message', {
+        ...data,
+        timestamp: new Date().toISOString()
+      });
+    });
+
+    socket.on('disconnect', () => {
+      console.log('User disconnected:', socket.id);
+    });
+  });
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

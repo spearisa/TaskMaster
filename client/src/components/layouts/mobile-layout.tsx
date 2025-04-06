@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { useLocation, Link } from 'wouter';
-import { Home, ListTodo, Calendar, LightbulbIcon, Plus, User } from 'lucide-react';
+import { Home, ListTodo, Calendar, LightbulbIcon, Plus, User, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 
 interface MobileLayoutProps {
