@@ -13,6 +13,7 @@ import CompletedPage from "@/pages/completed";
 import TaskDetailPage from "@/pages/task-detail";
 import AuthPage from "@/pages/auth-page";
 import ProfilePage from "@/pages/profile";
+import MessengerPage from "@/pages/messenger";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -25,6 +26,7 @@ function Router() {
       <ProtectedRoute path="/completed" component={CompletedPage} />
       <ProtectedRoute path="/task/:id" component={TaskDetailPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
+      <ProtectedRoute path="/messenger" component={MessengerPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
