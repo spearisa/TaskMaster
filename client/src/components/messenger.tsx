@@ -6,7 +6,10 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
 
-const socket = io('/', { autoConnect: true });
+const socket = io('/', { 
+  autoConnect: true,
+  withCredentials: true 
+});
 
 export function Messenger() {
   const [message, setMessage] = useState('');

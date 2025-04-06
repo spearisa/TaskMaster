@@ -68,8 +68,8 @@ app.use((req, res, next) => {
   // Setup Socket.io
   const io = new Server(server, {
     cors: {
-      origin: "*",
-      methods: ["GET", "POST"]
+      origin: true,
+      credentials: true
     }
   });
 
