@@ -15,6 +15,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
     { label: 'Home', path: '/', icon: Home },
     { label: 'Tasks', path: '/completed', icon: ListTodo },
     { label: 'Add', path: '/new-task', icon: Plus },
+    { label: 'Messages', path: '/messenger', icon: MessageSquare },
     { label: 'Calendar', path: '/calendar', icon: Calendar },
     { label: 'AI', path: '/ai-assistant', icon: LightbulbIcon },
   ];
