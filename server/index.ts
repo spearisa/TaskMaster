@@ -69,8 +69,10 @@ app.use((req, res, next) => {
   const io = new Server(server, {
     cors: {
       origin: true,
-      credentials: true
-    }
+      credentials: true,
+      methods: ["GET", "POST"]
+    },
+    cookie: true
   });
 
   io.on('connection', (socket) => {

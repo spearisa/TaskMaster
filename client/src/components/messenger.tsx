@@ -6,9 +6,13 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
 
-const socket = io('/', { 
+// Initialize socket with auth headers
+const socket = io('/', {
   autoConnect: true,
-  withCredentials: true 
+  withCredentials: true,
+  extraHeaders: {
+    'Cookie': document.cookie
+  }
 });
 
 export function Messenger() {
