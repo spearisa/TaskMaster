@@ -232,9 +232,36 @@ export class DatabaseStorage implements IStorage {
 
   async getTasksByUserId(userId: number): Promise<Task[]> {
     try {
-      // Use a SQL query using the proper Drizzle SQL builder
-      const result = await db.execute(sql`SELECT * FROM tasks WHERE user_id = ${userId} ORDER BY id DESC`);
-      return result.rows as Task[];
+      // First try with direct pool query which has better error reporting
+      const pool = await import("./db").then(m => m.pool);
+      console.log(`Executing raw SQL query to get tasks for user ${userId}`);
+      
+      const result = await pool.query(
+        `SELECT * FROM tasks WHERE user_id = $1 ORDER BY id DESC`, 
+        [userId]
+      );
+      
+      console.log(`Raw SQL query returned ${result.rows.length} tasks for user ${userId}`);
+      
+      // Map the snake_case column names from SQL to camelCase for JS
+      const tasks = result.rows.map(row => {
+        return {
+          id: row.id,
+          title: row.title,
+          description: row.description,
+          dueDate: row.due_date,
+          completed: row.completed,
+          completedAt: row.completed_at,
+          priority: row.priority,
+          category: row.category,
+          estimatedTime: row.estimated_time,
+          userId: row.user_id,
+          assignedToUserId: row.assigned_to_user_id,
+          isPublic: row.is_public
+        } as Task;
+      });
+      
+      return tasks;
     } catch (error) {
       console.error("Error in getTasksByUserId with raw SQL:", error);
       return [];

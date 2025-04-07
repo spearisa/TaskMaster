@@ -47,6 +47,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get tasks for this specific user
       const tasks = await storage.getTasksByUserId(userId);
       
+      console.log(`Found ${tasks.length} tasks for user ID ${userId}:`, JSON.stringify(tasks));
+      
       return res.json(tasks.map(task => ({
         ...task,
         dueDate: task.dueDate ? task.dueDate.toISOString() : null,
