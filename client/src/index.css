@@ -11,3 +11,22 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Fix for text overlay issues */
+.task-item-text {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+/* Fixes for mobile navigation */
+.bottom-nav {
+  backdrop-filter: blur(10px);
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Fix for page content */
+.page-content {
+  padding-bottom: 120px !important; /* Ensure enough space for bottom navigation */
+}

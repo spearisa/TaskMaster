@@ -64,7 +64,7 @@ export function MobileNavigation() {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-1 py-2 z-50">
+    <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 px-1 py-2 z-50 bottom-nav">
       <div className="grid grid-cols-5 gap-1">
         <Link href="/">
           <div className={cn(
@@ -82,7 +82,7 @@ export function MobileNavigation() {
             isActive('/calendar') ? "text-primary" : "text-gray-500"
           )}>
             <Calendar size={18} />
-            <span className="text-xs mt-1">Calendar</span>
+            <span className="text-xs mt-1">Cal</span>
           </div>
         </Link>
         
@@ -91,7 +91,7 @@ export function MobileNavigation() {
             <div className="flex items-center justify-center bg-primary text-primary-foreground rounded-full w-12 h-12">
               <Plus size={24} />
             </div>
-            <span className="text-xs mt-1">New</span>
+            <span className="text-xs mt-1">Add</span>
           </div>
         </Link>
         

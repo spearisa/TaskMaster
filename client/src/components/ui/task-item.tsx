@@ -92,7 +92,7 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
           </div>
           <div className="flex-grow overflow-hidden">
             <div className="flex justify-between items-start">
-              <h3 className={`font-medium text-base mr-2 ${task.completed ? 'line-through text-neutral-500' : ''}`}>
+              <h3 className={`font-medium text-base mr-2 task-item-text ${task.completed ? 'line-through text-neutral-500' : ''}`}>
                 {task.title}
               </h3>
               {task.completed ? (
@@ -127,7 +127,7 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
                (getDaysUntilDeadline(task.dueDate) as number) >= 0 && (
                 <>
                   <span className="mx-2">•</span>
-                  <span className="px-2 py-0.5 bg-red-50 text-red-500 rounded-lg text-xs">
+                  <span className="px-2 py-0.5 bg-red-50 text-red-500 rounded-lg text-xs task-item-text">
                     {getDaysUntilDeadline(task.dueDate)} days left
                   </span>
                 </>
