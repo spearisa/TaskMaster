@@ -42,7 +42,18 @@ export function Messenger() {
 
     // Listen for incoming messages
     socket.on('receive_message', (data: Message) => {
-      setMessages((prev) => [...prev, data]);
+      // Check if this message is from the current user and already in the list
+      // This prevents duplicate messages
+      const isDuplicate = prev => prev.some(
+        msg => 
+          msg.author === data.author && 
+          msg.message === data.message && 
+          // Use approximate time matching (within 2 seconds)
+          msg.timestamp && data.timestamp && 
+          Math.abs(new Date(msg.timestamp).getTime() - new Date(data.timestamp).getTime()) < 2000
+      );
+      
+      setMessages((prev) => isDuplicate(prev) ? prev : [...prev, data]);
     });
 
     // Handle connection events
