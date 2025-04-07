@@ -49,6 +49,14 @@ export function TaskDelegation({ task, onDone }: TaskDelegationProps) {
         return;
       }
 
+      const userResponse = await fetch('/api/user', {
+        credentials: 'include'
+      });
+
+      if (!userResponse.ok) {
+        throw new Error('Session expired');
+      }
+
       setIsLoading(true);
       
       const response = await fetch(`/api/tasks/${task.id}/delegate`, {
