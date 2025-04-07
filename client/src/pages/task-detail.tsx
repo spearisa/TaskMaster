@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { MobileLayout } from "@/components/layouts/mobile-layout";
@@ -12,84 +12,77 @@ import { CategoryBadge } from "@/components/ui/category-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { TaskWithStringDates } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function TaskDetailPage() {
   const [, params] = useRoute("/task/:id");
   const [, navigate] = useLocation();
   const taskId = params?.id ? parseInt(params.id) : null;
+  const { user } = useAuth();
   
-  const [task, setTask] = useState<TaskWithStringDates | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  console.log("TaskDetailPage - User authenticated:", !!user);
+  console.log("TaskDetailPage - Task ID:", taskId);
+  
   const [isCompleting, setIsCompleting] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (!taskId) {
-      navigate("/");
-      return;
-    }
-
-    async function fetchTask() {
-      try {
-        setIsLoading(true);
-        const response = await apiRequest("GET", `/api/tasks/${taskId}`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          setTask(data);
-        } else {
-          toast({
-            title: "Error",
-            description: "Failed to fetch task details",
-            variant: "destructive",
-          });
-          navigate("/");
-        }
-      } catch (error) {
-        console.error("Error fetching task:", error);
-        toast({
-          title: "Error",
-          description: "An unexpected error occurred",
-          variant: "destructive",
-        });
-        navigate("/");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchTask();
-  }, [taskId, navigate, toast]);
-
-  const handleCompleteTask = async () => {
-    if (!task || task.completed) return;
-    
-    try {
-      setIsCompleting(true);
-      const response = await apiRequest("POST", `/api/tasks/${task.id}/complete`, null);
+  // Use TanStack Query to fetch the task
+  const { 
+    data: task,
+    isLoading,
+    error 
+  } = useQuery<TaskWithStringDates>({ 
+    queryKey: ['/api/tasks', taskId],
+    queryFn: async () => {
+      if (!taskId) throw new Error("Task ID is required");
+      const response = await apiRequest("GET", `/api/tasks/${taskId}`);
+      return await response.json();
+    },
+    enabled: !!taskId && !!user,
+    retry: 1,
+    staleTime: 30000,
+  });
+  
+  // Use TanStack Query Mutation for completing a task
+  const completeMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest("POST", `/api/tasks/${id}/complete`, null);
+      return await response.json();
+    },
+    onSuccess: (updatedTask) => {
+      // Update the cache with the new task data
+      queryClient.setQueryData(['/api/tasks', taskId], updatedTask);
+      // Invalidate the tasks list to refetch
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
       
-      if (response.ok) {
-        const updatedTask = await response.json();
-        setTask(updatedTask);
-        toast({
-          title: "Task completed",
-          description: `"${task.title}" has been marked as complete.`,
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to complete task. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
+      toast({
+        title: "Task completed",
+        description: `"${updatedTask.title}" has been marked as complete.`,
+      });
+    },
+    onError: (error) => {
       console.error("Error completing task:", error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        description: "Failed to complete task. Please try again.",
         variant: "destructive",
       });
+    }
+  });
+
+  if (!taskId) {
+    navigate("/");
+    return null;
+  }
+
+  const handleCompleteTask = async () => {
+    if (!task || task.completed) return;
+    setIsCompleting(true);
+    
+    try {
+      await completeMutation.mutateAsync(task.id);
     } finally {
       setIsCompleting(false);
     }

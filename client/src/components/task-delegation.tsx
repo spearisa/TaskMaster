@@ -10,6 +10,8 @@ import { AccordionTrigger, AccordionContent, AccordionItem, Accordion } from "@/
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface TaskDelegationProps {
   task: TaskWithStringDates;
@@ -31,91 +33,69 @@ interface DelegationResult {
 }
 
 export function TaskDelegation({ task, onDone }: TaskDelegationProps) {
-  const [isLoading, setIsLoading] = useState(false);
   const [context, setContext] = useState("");
   const [result, setResult] = useState<DelegationResult | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const [_, navigate] = useLocation();
+  
+  console.log("TaskDelegation component - User authenticated:", !!user);
 
-  const delegateTask = async () => {
-    try {
-      if (!user) {
-        toast({
-          title: "Authentication required",
-          description: "Please log in to use this feature",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const userResponse = await fetch('/api/user', {
-        credentials: 'include'
+  // Use TanStack Query mutation for delegation
+  const delegateMutation = useMutation({
+    mutationFn: async (taskContext: string) => {
+      console.log(`Delegating task ${task.id} with context:`, taskContext || "None");
+      const response = await apiRequest(
+        "POST", 
+        `/api/tasks/${task.id}/delegate`,
+        { context: taskContext.trim() || undefined }
+      );
+      return await response.json();
+    },
+    onSuccess: (data: DelegationResult) => {
+      console.log("Task delegation successful");
+      setResult(data);
+      toast({
+        title: "Task delegated",
+        description: "AI assistant is helping you with this task",
       });
-
-      if (!userResponse.ok) {
-        throw new Error('Session expired');
-      }
-
-      setIsLoading(true);
+    },
+    onError: (error: Error) => {
+      console.error("Error delegating task:", error);
       
-      const response = await fetch(`/api/tasks/${task.id}/delegate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ context: context.trim() || undefined }),
-        credentials: "include" // Important: include credentials for session cookie
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setResult(data);
-        toast({
-          title: "Task delegated",
-          description: "AI assistant is helping you with this task",
-        });
-      } else if (response.status === 401) {
-        // Handle expired session during request
+      // Check if the error message includes session expired indicators
+      if (error.message.includes("401")) {
         toast({
           title: "Session expired",
-          description: "Please log in again to continue",
+          description: "Your session has expired. Please log in again.",
           variant: "destructive",
         });
+        navigate("/auth");
       } else {
-        // Check if it's an auth error
-        if (response.status === 401) {
-          toast({
-            title: "Session expired",
-            description: "Your session has expired. Please log in again.",
-            variant: "destructive",
-          });
-          navigate("/auth");
-        } else {
-          let errorMessage = "Failed to delegate task to AI";
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData.message || errorMessage;
-          } catch (e) {
-            console.error("Could not parse error response", e);
-          }
-          
-          toast({
-            title: "Error",
-            description: errorMessage,
-            variant: "destructive",
-          });
-        }
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delegate task to AI",
+          variant: "destructive",
+        });
       }
-    } catch (error) {
-      console.error("Error delegating task:", error);
+    }
+  });
+
+  const delegateTask = async () => {
+    if (!user) {
       toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: "Authentication required",
+        description: "Please log in to use this feature",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
+      navigate("/auth");
+      return;
+    }
+    
+    try {
+      await delegateMutation.mutateAsync(context);
+    } catch (err) {
+      // Error handling already in mutation callbacks
     }
   };
 
@@ -150,10 +130,10 @@ export function TaskDelegation({ task, onDone }: TaskDelegationProps) {
           <CardFooter>
             <Button 
               onClick={delegateTask} 
-              disabled={isLoading}
+              disabled={delegateMutation.isPending}
               className="w-full"
             >
-              {isLoading ? (
+              {delegateMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Processing...
