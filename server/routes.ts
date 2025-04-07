@@ -829,19 +829,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     // Otherwise broadcast to all connected clients
-    for (const [userId, sockets] of connectedClients.entries()) {
-      sockets.forEach(socket => {
+    // Using Array.from to convert the Map entries to an array that can be iterated safely
+    Array.from(connectedClients.entries()).forEach(([userId, sockets]) => {
+      // Using Array.from to convert the Set to an array that can be iterated safely
+      Array.from(sockets).forEach(socket => {
         if (socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify(data));
         }
       });
-    }
+    });
   }
   
   // WebSocket connection handler
   wss.on('connection', (ws, req) => {
     console.log('WebSocket client connected');
     let userId: number | null = null;
+    let heartbeatInterval: NodeJS.Timeout | null = null;
+    
+    // Setup ping/pong for connection health check
+    heartbeatInterval = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.ping();
+      }
+    }, 30000); // Send ping every 30 seconds
     
     ws.on('message', (message) => {
       try {
@@ -856,13 +866,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
             connectedClients.set(userId, new Set());
           }
           
+          // Remove any existing dead connections for this user
+          const userSockets = connectedClients.get(userId);
+          if (userSockets) {
+            // Using Array.from to convert the Set to an array that can be iterated safely
+            Array.from(userSockets).forEach(socket => {
+              if (socket.readyState !== WebSocket.OPEN) {
+                userSockets.delete(socket);
+                console.log(`Removed dead connection for user ${userId}`);
+              }
+            });
+          }
+          
           connectedClients.get(userId)?.add(ws);
-          console.log(`User ${userId} registered with WebSocket`);
+          console.log(`User ${userId} registered with WebSocket. Total connections for user: ${connectedClients.get(userId)?.size}`);
           
           // Acknowledge registration
           ws.send(JSON.stringify({ 
             type: 'registration_successful',
-            userId
+            userId,
+            connectionsCount: connectedClients.get(userId)?.size || 1
           }));
           
           return;
@@ -900,15 +923,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on('close', () => {
       console.log('WebSocket client disconnected');
       
+      // Clear the heartbeat interval
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
+      
       // Remove this connection from tracked clients
       if (userId && connectedClients.has(userId)) {
         const userSockets = connectedClients.get(userId);
         if (userSockets) {
           userSockets.delete(ws);
+          console.log(`User ${userId} connection removed. Remaining connections: ${userSockets.size}`);
           
           // If no more sockets for this user, remove the user entry
           if (userSockets.size === 0) {
             connectedClients.delete(userId);
+            console.log(`All connections for user ${userId} closed. User removed from tracking.`);
           }
         }
       }

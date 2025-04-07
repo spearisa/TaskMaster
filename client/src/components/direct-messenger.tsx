@@ -11,6 +11,7 @@ import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { useWebSocket } from '@/lib/websocket-service';
 
 interface DirectMessage {
   id: number;
@@ -44,9 +45,20 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [message, setMessage] = useState('');
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttemptsRef = useRef<number>(0);
+  
+  // Use the WebSocket service
+  const wsService = useWebSocket(user?.id);
+  
+  // Send message directly through WebSocket for better real-time experience
+  const sendDirectMessage = (text: string) => {
+    if (user && wsService.getStatus() === 'connected') {
+      wsService.send({
+        type: 'direct_message',
+        receiverId: recipientId, 
+        content: text
+      });
+    }
+  };
 
   // Get recipient profile
   const { data: recipient } = useQuery<UserProfile>({
@@ -94,129 +106,41 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
     }
   });
 
-  // Set up WebSocket connection
+  // Set up WebSocket listener and connection status
   useEffect(() => {
     if (!user) return;
-
-    // Create WebSocket connection
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    const socket = new WebSocket(wsUrl);
-    wsRef.current = socket;
-
-    socket.onopen = () => {
-      console.log('WebSocket connected');
-      setConnectionStatus('connected');
-      reconnectAttemptsRef.current = 0;
-      
-      // Register with the WebSocket server
-      socket.send(JSON.stringify({
-        type: 'register',
-        userId: user.id
-      }));
-    };
-
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log('WebSocket message received:', data);
-        
-        // Handle message reception
-        if (data.type === 'new_message') {
-          const message = data.message;
-          
-          // Check if this message is for the current conversation
-          if (
-            (message.senderId === recipientId && message.receiverId === user.id) ||
-            (message.senderId === user.id && message.receiverId === recipientId)
-          ) {
-            queryClient.invalidateQueries({ queryKey: [`/api/messages/${recipientId}`] });
-            
-            // Mark messages as read if we're currently viewing this conversation
-            markAsReadMutation.mutate();
-          }
-          
-          // Update conversations list
-          queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
-        }
-      } catch (error) {
-        console.error('Error processing WebSocket message:', error);
-      }
-    };
-
-    socket.onclose = (event) => {
-      console.log(`WebSocket disconnected with code: ${event.code}, reason: ${event.reason || 'No reason provided'}`);
-      setConnectionStatus('disconnected');
-      
-      // Try to reconnect if not closed cleanly (code 1000 is normal closure, 1001 is going away)
-      if (event.code !== 1000 && event.code !== 1001) {
-        handleReconnect();
-      }
-    };
-
-    socket.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setConnectionStatus('disconnected');
-      handleReconnect();
-    };
     
-    // Function to handle reconnection with exponential backoff
-    function handleReconnect() {
-      const attempts = reconnectAttemptsRef.current + 1;
-      reconnectAttemptsRef.current = attempts;
-      
-      // Only try up to 5 reconnect attempts
-      if (attempts <= 5) {
-        // Exponential backoff: 1s, 2s, 4s, 8s, 16s
-        const delay = Math.min(1000 * Math.pow(2, attempts - 1), 16000);
+    // Update connection status from WebSocket service
+    const removeStatusHandler = wsService.addStatusHandler(setConnectionStatus);
+    
+    // Set up message handler
+    const removeMessageHandler = wsService.addMessageHandler((data) => {
+      // Handle message reception
+      if (data.type === 'new_message') {
+        const message = data.message;
         
-        console.log(`Attempting to reconnect in ${delay}ms (attempt ${attempts})`);
-        
-        if (reconnectTimeoutRef.current) {
-          clearTimeout(reconnectTimeoutRef.current);
+        // Check if this message is for the current conversation
+        if (
+          (message.senderId === recipientId && message.receiverId === user.id) ||
+          (message.senderId === user.id && message.receiverId === recipientId)
+        ) {
+          queryClient.invalidateQueries({ queryKey: [`/api/messages/${recipientId}`] });
+          
+          // Mark messages as read if we're currently viewing this conversation
+          markAsReadMutation.mutate();
         }
         
-        reconnectTimeoutRef.current = setTimeout(() => {
-          // Create a new WebSocket connection
-          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-          const wsUrl = `${protocol}//${window.location.host}/ws`;
-          
-          // Set status to connecting before creating a new socket
-          setConnectionStatus('connecting');
-          
-          const newSocket = new WebSocket(wsUrl);
-          wsRef.current = newSocket;
-          
-          // Set up event handlers for the new socket
-          newSocket.onopen = socket.onopen;
-          newSocket.onmessage = socket.onmessage;
-          newSocket.onclose = socket.onclose;
-          newSocket.onerror = socket.onerror;
-        }, delay);
-      } else {
-        console.log('Max reconnection attempts reached');
-        toast({
-          title: 'Connection issue',
-          description: 'Could not connect to messaging service after multiple attempts',
-          variant: 'destructive'
-        });
+        // Update conversations list
+        queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
       }
-    }
-
+    });
+    
     // Clean up on component unmount
     return () => {
-      // Clear any pending reconnection attempts
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-      
-      // Close the WebSocket connection if it's open
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.close(1000, "Component unmounted");
-      }
+      removeStatusHandler();
+      removeMessageHandler();
     };
-  }, [user, recipientId, queryClient, markAsReadMutation, toast]);
+  }, [user, recipientId, queryClient, wsService, markAsReadMutation]);
 
   // Automatically mark messages as read when component mounts
   useEffect(() => {
@@ -230,11 +154,17 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // If recipient is currently typing
+  // Send the message via both WebSocket (for real-time) and API (for persistence)
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
     
+    // First try to send via WebSocket for immediate delivery
+    if (connectionStatus === 'connected') {
+      sendDirectMessage(message);
+    }
+    
+    // Always use the mutation for persistence (this creates the record in database)
     sendMessageMutation.mutate(message);
   };
 
