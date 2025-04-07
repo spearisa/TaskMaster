@@ -1,9 +1,8 @@
-
 import { Messenger } from '@/components/messenger';
 import { DirectMessenger } from '@/components/direct-messenger-new';
 import { UserSearch } from '@/components/user-search';
 import { useLocation } from 'wouter';
-import { ChevronLeft, MessageSquare, Search, Users } from 'lucide-react';
+import { MessageSquare, Search, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/use-auth';
@@ -11,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
+import { MobileLayout } from '@/components/layouts/mobile-layout';
 
 interface Conversation {
   id: number;
@@ -66,43 +66,30 @@ export default function MessengerPage() {
     console.log(`[Messenger] Opening conversation with user ID: ${userId}`);
     setSelectedUserId(userId);
     
-    // Update URL without reloading the page
-    window.history.pushState({}, '', `/messenger/${userId}`);
+    // Navigate to the conversation using Wouter
+    navigate(`/messenger/${userId}`);
   };
 
   // If we have a selected user ID, show the direct messenger
   if (selectedUserId) {
     return (
-      <div className="p-4">
-        <header className="flex items-center mb-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => {
-              setSelectedUserId(null);
-              window.history.pushState({}, '', '/messenger');
-            }} 
-            className="mr-2"
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </Button>
-          <h1 className="text-xl font-semibold">Direct Message</h1>
-        </header>
-        
+      <MobileLayout 
+        showBackButton 
+        backButtonPath="/messenger" 
+        pageTitle="Direct Message"
+      >
         <DirectMessenger recipientId={selectedUserId} />
-      </div>
+      </MobileLayout>
     );
   }
 
   // Otherwise show the messenger list
   return (
-    <div className="p-4">
-      <header className="flex items-center mb-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="mr-2">
-          <ChevronLeft className="h-6 w-6" />
-        </Button>
-        <h1 className="text-xl font-semibold">Messages</h1>
-      </header>
+    <MobileLayout 
+      showBackButton 
+      backButtonPath="/" 
+      pageTitle="Messages"
+    >
       
       <Tabs 
         defaultValue="direct" 
@@ -177,6 +164,6 @@ export default function MessengerPage() {
           <UserSearch onSelectUser={openConversation} />
         </TabsContent>
       </Tabs>
-    </div>
+    </MobileLayout>
   );
 }

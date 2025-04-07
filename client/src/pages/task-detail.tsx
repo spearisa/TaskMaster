@@ -134,20 +134,11 @@ export default function TaskDetailPage() {
 
   if (isLoading) {
     return (
-      <MobileLayout>
-        <div className="px-5 py-4">
-          <div className="flex items-center mb-6">
-            <Button variant="ghost" size="icon" onClick={handleGoBack} className="mr-2">
-              <ChevronLeft className="h-6 w-6" />
-            </Button>
-            <Skeleton className="h-6 w-48" />
-          </div>
-          
-          <div className="space-y-6">
-            <Skeleton className="h-4 w-36" />
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-40 w-full" />
-          </div>
+      <MobileLayout showBackButton backButtonPath="/" pageTitle="Loading...">
+        <div className="space-y-6">
+          <Skeleton className="h-4 w-36" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-40 w-full" />
         </div>
       </MobileLayout>
     );
@@ -155,8 +146,8 @@ export default function TaskDetailPage() {
 
   if (!task) {
     return (
-      <MobileLayout>
-        <div className="flex flex-col items-center justify-center h-[80vh] px-5">
+      <MobileLayout showBackButton backButtonPath="/" pageTitle="Not Found">
+        <div className="flex flex-col items-center justify-center h-[60vh] px-5">
           <AlertCircle className="h-16 w-16 text-gray-400 mb-4" />
           <h2 className="text-xl font-medium mb-2">Task Not Found</h2>
           <p className="text-gray-500 text-center mb-6">
@@ -169,18 +160,8 @@ export default function TaskDetailPage() {
   }
 
   return (
-    <MobileLayout>
+    <MobileLayout showBackButton backButtonPath="/" pageTitle={task.title}>
       <div>
-        <header className="px-5 py-4 border-b sticky top-0 bg-white z-10">
-          <div className="flex items-center">
-            <Button variant="ghost" size="icon" onClick={handleGoBack} className="mr-2">
-              <ChevronLeft className="h-6 w-6" />
-            </Button>
-            <h1 className={`text-xl font-semibold ${task.completed ? 'line-through text-gray-500' : ''}`}>
-              {task.title}
-            </h1>
-          </div>
-        </header>
 
         <div className="p-5">
           <div className="flex flex-wrap items-center gap-2 mb-4">
