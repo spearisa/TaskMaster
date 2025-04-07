@@ -315,7 +315,28 @@ export class DatabaseStorage implements IStorage {
 
   async createTask(insertTask: InsertTask): Promise<Task> {
     try {
-      // Try first with the basic columns we know exist in the database
+      // First, ensure all the necessary columns exist
+      try {
+        // Add missing columns if they don't exist
+        const pool = await import("./db").then(m => m.pool);
+        
+        // Add assigned_to_user_id column if it doesn't exist
+        await pool.query(
+          `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS assigned_to_user_id INTEGER`
+        );
+        
+        // Add is_public column if it doesn't exist
+        await pool.query(
+          `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false`
+        );
+        
+        console.log("Added missing columns to tasks table if needed");
+      } catch (alterError) {
+        console.error("Error adding columns to tasks table:", alterError);
+        // Continue anyway as the next step might work
+      }
+      
+      // Try with all columns including the ones we just added
       const safeInsertTask = {
         title: insertTask.title,
         description: insertTask.description || null,
@@ -324,7 +345,9 @@ export class DatabaseStorage implements IStorage {
         priority: insertTask.priority,
         category: insertTask.category,
         estimatedTime: insertTask.estimatedTime || null,
-        userId: insertTask.userId || null
+        userId: insertTask.userId || null,
+        assignedToUserId: insertTask.assignedToUserId || null,
+        isPublic: insertTask.isPublic || false
       };
       
       const [task] = await db.insert(tasks).values(safeInsertTask).returning();
@@ -371,10 +394,37 @@ export class DatabaseStorage implements IStorage {
 
   async updateTask(id: number, updatedTask: Partial<InsertTask>): Promise<Task | undefined> {
     try {
-      // Create a safe update object with only the columns we know exist
+      // First, ensure all necessary columns exist if we're trying to update them
+      if (updatedTask.assignedToUserId !== undefined || updatedTask.isPublic !== undefined) {
+        try {
+          // Add missing columns if they don't exist
+          const pool = await import("./db").then(m => m.pool);
+          
+          // Add assigned_to_user_id column if it doesn't exist and we're trying to update it
+          if (updatedTask.assignedToUserId !== undefined) {
+            await pool.query(
+              `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS assigned_to_user_id INTEGER`
+            );
+          }
+          
+          // Add is_public column if it doesn't exist and we're trying to update it
+          if (updatedTask.isPublic !== undefined) {
+            await pool.query(
+              `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false`
+            );
+          }
+          
+          console.log("Added missing columns to tasks table if needed for update");
+        } catch (alterError) {
+          console.error("Error adding columns to tasks table:", alterError);
+          // Continue anyway as the next step might work
+        }
+      }
+      
+      // Create a safe update object with all columns
       const safeUpdateTask: Record<string, any> = {};
       
-      // Only include fields that we know exist in the database
+      // Include all fields, including the newly added ones
       if (updatedTask.title !== undefined) safeUpdateTask.title = updatedTask.title;
       if (updatedTask.description !== undefined) safeUpdateTask.description = updatedTask.description;
       if (updatedTask.dueDate !== undefined) safeUpdateTask.dueDate = updatedTask.dueDate;
@@ -383,6 +433,8 @@ export class DatabaseStorage implements IStorage {
       if (updatedTask.category !== undefined) safeUpdateTask.category = updatedTask.category;
       if (updatedTask.estimatedTime !== undefined) safeUpdateTask.estimatedTime = updatedTask.estimatedTime;
       if (updatedTask.userId !== undefined) safeUpdateTask.userId = updatedTask.userId;
+      if (updatedTask.assignedToUserId !== undefined) safeUpdateTask.assignedToUserId = updatedTask.assignedToUserId;
+      if (updatedTask.isPublic !== undefined) safeUpdateTask.isPublic = updatedTask.isPublic;
       
       // Only attempt to update if we have fields to update
       if (Object.keys(safeUpdateTask).length > 0) {
