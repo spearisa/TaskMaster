@@ -3,11 +3,13 @@ import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { TaskList } from '@/components/task-list';
+import { MobileTaskList } from '@/components/mobile-task-list';
 import { TaskReminders } from '@/components/task-reminders';
 import { reminderService } from '@/lib/reminder-service';
 import { Plus, Bell } from 'lucide-react';
 import { TaskWithStringDates } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 import { MobileLayout } from '@/components/layouts/mobile-layout';
 
@@ -15,6 +17,7 @@ export default function HomePage() {
   const [_, navigate] = useLocation();
   const { toast } = useToast();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const isMobile = useIsMobile();
   
   // Check notification permission on component mount
   useEffect(() => {
@@ -92,10 +95,18 @@ export default function HomePage() {
       </div>
 
       {/* Today's Tasks */}
-      <TaskList filter="today" title="Today's Tasks" />
+      {isMobile ? (
+        <MobileTaskList filter="today" title="Today's Tasks" />
+      ) : (
+        <TaskList filter="today" title="Today's Tasks" />
+      )}
 
       {/* Upcoming Tasks */}
-      <TaskList filter="upcoming" title="Upcoming" />
+      {isMobile ? (
+        <MobileTaskList filter="upcoming" title="Upcoming" />
+      ) : (
+        <TaskList filter="upcoming" title="Upcoming" />
+      )}
     </MobileLayout>
   );
 }

@@ -15,11 +15,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileTaskList } from "@/components/mobile-task-list";
 
 export default function AssignedTasksPage() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [currentFilter, setCurrentFilter] = useState<'all' | 'today' | 'upcoming'>('all');
 
   // Fetch assigned tasks
@@ -141,6 +144,20 @@ export default function AssignedTasksPage() {
   );
 
   function renderTaskList() {
+    // If we're on mobile and have tasks, use the MobileTaskList component
+    if (isMobile && !isLoading && !isError && assignedTasks.length > 0) {
+      let filter = 'all';
+      if (currentFilter === 'today') filter = 'today';
+      if (currentFilter === 'upcoming') filter = 'upcoming';
+      
+      return (
+        <MobileTaskList 
+          filter={filter as any} 
+          title="" // Title is already shown in the TabsContent
+        />
+      );
+    }
+    
     if (isLoading) {
       return (
         <div className="space-y-4">
