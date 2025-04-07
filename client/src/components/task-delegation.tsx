@@ -40,14 +40,17 @@ export function TaskDelegation({ task, onDone }: TaskDelegationProps) {
 
   const delegateTask = async () => {
     try {
-      // First check if the user is logged in
-      if (!user) {
+      // Check session before making request
+      const userResponse = await fetch('/api/user', {
+        credentials: 'include'
+      });
+      
+      if (!userResponse.ok) {
         toast({
-          title: "Authentication required",
-          description: "You must be logged in to use this feature",
+          title: "Session expired",
+          description: "Please log in again to continue",
           variant: "destructive",
         });
-        navigate("/auth");
         return;
       }
 
@@ -68,6 +71,13 @@ export function TaskDelegation({ task, onDone }: TaskDelegationProps) {
         toast({
           title: "Task delegated",
           description: "AI assistant is helping you with this task",
+        });
+      } else if (response.status === 401) {
+        // Handle expired session during request
+        toast({
+          title: "Session expired",
+          description: "Please log in again to continue",
+          variant: "destructive",
         });
       } else {
         // Check if it's an auth error
