@@ -369,6 +369,8 @@ export class DatabaseStorage implements IStorage {
     
     const [demoUser] = await db.insert(users).values({
       username: "demo",
+      // The column in the database is named 'display_name' but our Drizzle schema maps it to 'displayName'
+      // The insert will handle the mapping correctly
       displayName: "Demo User",
       password: hashedPassword,
       bio: "I'm a productivity enthusiast who loves trying new task management methods.",
