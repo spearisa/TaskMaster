@@ -14,10 +14,11 @@ import {
   FileCode,
   BookTemplate,
   Bot,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -35,17 +36,17 @@ function NavItem({ icon, label, href, active, onClick }: NavItemProps) {
     <Link href={href}>
       <div 
         className={cn(
-          "flex items-center gap-2 px-3 py-2 rounded-md transition-colors cursor-pointer overflow-hidden",
+          "flex items-center gap-2 px-3 py-2 rounded-md transition-colors cursor-pointer overflow-hidden w-full",
           active 
             ? "bg-primary text-primary-foreground" 
             : "hover:bg-gray-100 text-gray-700"
         )}
         onClick={onClick}
       >
-        <div className="flex-shrink-0 flex items-center justify-center w-6 h-6">
+        <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 min-w-6">
           {icon}
         </div>
-        <span className="font-medium truncate">{label}</span>
+        <span className="font-medium truncate max-w-full">{label}</span>
       </div>
     </Link>
   );
@@ -141,8 +142,14 @@ export function SideNavigation() {
             <Menu size={24} />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64 overflow-y-auto">
-          <div className="flex flex-col gap-1 mt-8">
+        <SheetContent side="left" className="w-64 overflow-y-auto p-0">
+          <div className="bg-primary p-4 text-white text-lg font-bold flex items-center justify-between">
+            <span>TaskFlow</span>
+            <SheetClose className="rounded-full h-8 w-8 flex items-center justify-center hover:bg-primary-foreground/20">
+              <X size={18} />
+            </SheetClose>
+          </div>
+          <div className="flex flex-col gap-1 p-4">
             <NavItem
               icon={<Home size={18} />}
               label="Home"
