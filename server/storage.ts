@@ -260,17 +260,123 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTask(insertTask: InsertTask): Promise<Task> {
-    const [task] = await db.insert(tasks).values(insertTask).returning();
-    return task;
+    try {
+      // First try the normal insert
+      const [task] = await db.insert(tasks).values(insertTask).returning();
+      return task;
+    } catch (error) {
+      console.error("Error in createTask:", error);
+      
+      // If it's a missing column error, we need to use a more specific insert
+      if (error instanceof Error && error.message && error.message.includes("assigned_to_user_id")) {
+        console.log("Detected missing assigned_to_user_id column, using alternative insert approach");
+        
+        // Use a SQL approach that only inserts the columns we know exist
+        const result = await db.execute(`
+          INSERT INTO tasks (
+            title, description, due_date, completed, priority, 
+            category, completed_at, estimated_time, user_id, is_public
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+          ) RETURNING *
+        `, [
+          insertTask.title,
+          insertTask.description || null,
+          insertTask.dueDate || null,
+          insertTask.completed || false,
+          insertTask.priority,
+          insertTask.category,
+          null, // completed_at
+          insertTask.estimatedTime || null,
+          insertTask.userId || null,
+          insertTask.isPublic || false
+        ]);
+        
+        if (result.rows.length > 0) {
+          return result.rows[0] as Task;
+        }
+      }
+      
+      // Re-throw the error if our fallback didn't work
+      throw error;
+    }
   }
 
   async updateTask(id: number, updatedTask: Partial<InsertTask>): Promise<Task | undefined> {
-    const [task] = await db.update(tasks)
-      .set(updatedTask)
-      .where(eq(tasks.id, id))
-      .returning();
-    
-    return task;
+    try {
+      const [task] = await db.update(tasks)
+        .set(updatedTask)
+        .where(eq(tasks.id, id))
+        .returning();
+      
+      return task;
+    } catch (error) {
+      console.error("Error in updateTask:", error);
+      
+      // If it's a missing column error, we need to use a more specific update
+      if (error instanceof Error && error.message && error.message.includes("assigned_to_user_id")) {
+        console.log("Detected missing assigned_to_user_id column, using alternative update approach");
+        
+        // Create a values string that excludes potential problematic fields
+        const setClause = [];
+        const values = [];
+        let paramIndex = 1;
+        
+        // Only include fields that we know exist in the database
+        if (updatedTask.title !== undefined) {
+          setClause.push(`title = $${paramIndex++}`);
+          values.push(updatedTask.title);
+        }
+        if (updatedTask.description !== undefined) {
+          setClause.push(`description = $${paramIndex++}`);
+          values.push(updatedTask.description);
+        }
+        if (updatedTask.dueDate !== undefined) {
+          setClause.push(`due_date = $${paramIndex++}`);
+          values.push(updatedTask.dueDate);
+        }
+        if (updatedTask.completed !== undefined) {
+          setClause.push(`completed = $${paramIndex++}`);
+          values.push(updatedTask.completed);
+        }
+        if (updatedTask.priority !== undefined) {
+          setClause.push(`priority = $${paramIndex++}`);
+          values.push(updatedTask.priority);
+        }
+        if (updatedTask.category !== undefined) {
+          setClause.push(`category = $${paramIndex++}`);
+          values.push(updatedTask.category);
+        }
+        if (updatedTask.estimatedTime !== undefined) {
+          setClause.push(`estimated_time = $${paramIndex++}`);
+          values.push(updatedTask.estimatedTime);
+        }
+        if (updatedTask.isPublic !== undefined) {
+          setClause.push(`is_public = $${paramIndex++}`);
+          values.push(updatedTask.isPublic);
+        }
+        
+        // If we have fields to update, do the update
+        if (setClause.length > 0) {
+          // Add the ID parameter to the values array
+          values.push(id);
+          
+          const result = await db.execute(`
+            UPDATE tasks
+            SET ${setClause.join(', ')}
+            WHERE id = $${paramIndex}
+            RETURNING *
+          `, values);
+          
+          if (result.rows.length > 0) {
+            return result.rows[0] as Task;
+          }
+        }
+      }
+      
+      // Re-throw the error if our fallback didn't work
+      throw error;
+    }
   }
 
   async deleteTask(id: number): Promise<boolean> {
