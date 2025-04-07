@@ -12,6 +12,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
   // All routes are prefixed with /api
   
+  // Reset demo data (developer route - would be removed in production)
+  app.post("/api/dev/reset-demo-data", async (req, res) => {
+    try {
+      console.log("[API] Resetting demo data...");
+      await storage.initializeDemo(true);
+      console.log("[API] Demo data has been reset successfully");
+      return res.status(200).json({ success: true, message: "Demo data has been reset" });
+    } catch (error) {
+      console.error("[API] Error resetting demo data:", error);
+      return res.status(500).json({ success: false, message: "Failed to reset demo data" });
+    }
+  });
+
   // Get tasks for the currently authenticated user
   app.get("/api/tasks", async (req, res) => {
     try {

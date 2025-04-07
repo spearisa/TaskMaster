@@ -393,12 +393,28 @@ export class DatabaseStorage implements IStorage {
   
   /**
    * Initialize demo data if the database is empty
+   * @param forceReset If true, will drop all existing data and recreate demo data
    */
-  async initializeDemo(): Promise<void> {
+  async initializeDemo(forceReset: boolean = false): Promise<void> {
     // Check if there are any users
     const existingUsers = await db.select().from(users);
-    if (existingUsers.length > 0) {
+    
+    // If we have users and aren't doing a force reset, exit
+    if (existingUsers.length > 0 && !forceReset) {
       return; // Database already has data
+    }
+    
+    // If we're doing a force reset, drop all existing data
+    if (forceReset && existingUsers.length > 0) {
+      console.log("[DatabaseStorage] Force resetting demo data...");
+      
+      // Delete all data in reverse order of dependencies
+      await db.delete(directMessages);
+      await db.delete(conversations);
+      await db.delete(tasks);
+      await db.delete(users);
+      
+      console.log("[DatabaseStorage] All existing data cleared. Recreating demo data...");
     }
 
     // Create demo user with properly hashed password
@@ -509,47 +525,155 @@ export class DatabaseStorage implements IStorage {
     
     // Create demo conversations and messages
     if (createdUsers.length > 0) {
-      // Create a conversation between demo user and first created user
-      const [conversation1] = await db.insert(conversations).values({
-        user1Id: demoUser.id,
-        user2Id: createdUsers[0].id,
-        lastMessageAt: new Date(),
-        unreadCount: 0
-      }).returning();
+      // Create conversations between users
+      const conversationPairs = [
+        // Demo user conversations
+        { user1Id: demoUser.id, user2Id: createdUsers[0].id, unreadCount: 1 }, // demo <-> alex
+        { user1Id: demoUser.id, user2Id: createdUsers[1].id, unreadCount: 2 }, // demo <-> samantha
+        { user1Id: demoUser.id, user2Id: createdUsers[2].id, unreadCount: 0 }, // demo <-> jordan
+        
+        // Other user conversations
+        { user1Id: createdUsers[0].id, user2Id: createdUsers[1].id, unreadCount: 1 }, // alex <-> samantha
+        { user1Id: createdUsers[0].id, user2Id: createdUsers[2].id, unreadCount: 3 }, // alex <-> jordan
+        { user1Id: createdUsers[1].id, user2Id: createdUsers[2].id, unreadCount: 0 }, // samantha <-> jordan
+      ];
       
-      // Add some demo messages
-      const demoMessages = [
+      // Insert all conversations
+      for (const convo of conversationPairs) {
+        await db.insert(conversations).values({
+          ...convo,
+          lastMessageAt: new Date(Date.now() - Math.floor(Math.random() * 86400000)) // Random time in last 24 hours
+        });
+      }
+      
+      // Demo conversation between demo and alex (first user)
+      const demoAlexMessages = [
         {
-          senderId: createdUsers[0].id,
-          receiverId: demoUser.id,
+          senderId: createdUsers[0].id, // alex
+          receiverId: demoUser.id, // demo
           message: "Hi there! I saw you're interested in productivity. Any favorite tools you're using?",
           read: true,
           createdAt: new Date(Date.now() - 3600000) // 1 hour ago
         },
         {
-          senderId: demoUser.id,
-          receiverId: createdUsers[0].id,
+          senderId: demoUser.id, // demo
+          receiverId: createdUsers[0].id, // alex
           message: "Hey! I'm currently trying out this new task manager app. It's really helping me stay organized.",
           read: true,
           createdAt: new Date(Date.now() - 3000000) // 50 minutes ago
         },
         {
-          senderId: createdUsers[0].id,
-          receiverId: demoUser.id,
+          senderId: createdUsers[0].id, // alex
+          receiverId: demoUser.id, // demo
           message: "Sounds interesting! Does it have deadline reminders?",
           read: true,
           createdAt: new Date(Date.now() - 2400000) // 40 minutes ago
         },
         {
-          senderId: demoUser.id,
-          receiverId: createdUsers[0].id,
+          senderId: demoUser.id, // demo
+          receiverId: createdUsers[0].id, // alex
           message: "Yes, and it also has AI assistance for breaking down complex tasks!",
           read: false,
           createdAt: new Date(Date.now() - 1800000) // 30 minutes ago
         }
       ];
       
-      await db.insert(directMessages).values(demoMessages);
+      // Demo conversation between demo and samantha
+      const demoSamanthaMessages = [
+        {
+          senderId: createdUsers[1].id, // samantha
+          receiverId: demoUser.id, // demo
+          message: "Hello! I heard you're using a new productivity app. As a project manager, I'm always looking for ways to improve my team's workflow.",
+          read: true,
+          createdAt: new Date(Date.now() - 7200000) // 2 hours ago
+        },
+        {
+          senderId: demoUser.id, // demo
+          receiverId: createdUsers[1].id, // samantha
+          message: "Hi Sam! Yes, it's been great for managing both personal and team tasks. The priority system is really helpful.",
+          read: true,
+          createdAt: new Date(Date.now() - 7000000) // 116 minutes ago
+        },
+        {
+          senderId: createdUsers[1].id, // samantha
+          receiverId: demoUser.id, // demo
+          message: "That sounds perfect for our upcoming project. Can we schedule a demo sometime?",
+          read: true,
+          createdAt: new Date(Date.now() - 6800000) // 113 minutes ago
+        },
+        {
+          senderId: createdUsers[1].id, // samantha
+          receiverId: demoUser.id, // demo
+          message: "Also, do you know if it integrates with any agile boards?",
+          read: false,
+          createdAt: new Date(Date.now() - 5400000) // 90 minutes ago
+        },
+        {
+          senderId: createdUsers[1].id, // samantha
+          receiverId: demoUser.id, // demo
+          message: "I'd love to implement it for our next sprint if it works well!",
+          read: false,
+          createdAt: new Date(Date.now() - 5000000) // 83 minutes ago
+        }
+      ];
+      
+      // Demo conversation between demo and jordan
+      const demoJordanMessages = [
+        {
+          senderId: demoUser.id, // demo
+          receiverId: createdUsers[2].id, // jordan
+          message: "Hi Jordan! I really liked the UX improvements you suggested for our app.",
+          read: true,
+          createdAt: new Date(Date.now() - 10800000) // 3 hours ago
+        },
+        {
+          senderId: createdUsers[2].id, // jordan
+          receiverId: demoUser.id, // demo
+          message: "Thanks! I've been focusing on making the interface more intuitive. How's the accessibility testing going?",
+          read: true,
+          createdAt: new Date(Date.now() - 10600000) // 176 minutes ago
+        },
+        {
+          senderId: demoUser.id, // demo
+          receiverId: createdUsers[2].id, // jordan
+          message: "It's coming along well. The screen reader compatibility is much better now.",
+          read: true,
+          createdAt: new Date(Date.now() - 10400000) // 173 minutes ago
+        }
+      ];
+      
+      // Demo conversation between alex and samantha
+      const alexSamanthaMessages = [
+        {
+          senderId: createdUsers[0].id, // alex
+          receiverId: createdUsers[1].id, // samantha
+          message: "Hey Sam, how's the project planning going?",
+          read: true,
+          createdAt: new Date(Date.now() - 14400000) // 4 hours ago
+        },
+        {
+          senderId: createdUsers[1].id, // samantha
+          receiverId: createdUsers[0].id, // alex
+          message: "Good! I'm testing out some new task management approaches. Have you tried the AI delegation feature?",
+          read: true,
+          createdAt: new Date(Date.now() - 14200000) // 236 minutes ago
+        },
+        {
+          senderId: createdUsers[0].id, // alex
+          receiverId: createdUsers[1].id, // samantha
+          message: "Not yet, but I'm interested. How does it handle complex technical tasks?",
+          read: false,
+          createdAt: new Date(Date.now() - 14000000) // 233 minutes ago
+        }
+      ];
+      
+      // Insert all messages
+      await db.insert(directMessages).values([
+        ...demoAlexMessages,
+        ...demoSamanthaMessages,
+        ...demoJordanMessages,
+        ...alexSamanthaMessages
+      ]);
     }
   }
 }
