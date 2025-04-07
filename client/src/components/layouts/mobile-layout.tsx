@@ -30,7 +30,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
     <div className="max-w-md mx-auto bg-white min-h-screen relative pb-20">
       {/* Header Bar with Profile */}
       <div className="h-16 flex justify-between px-5 items-center bg-white shadow-sm">
-        <div className="text-xl font-bold">daddie.net</div> {/* Updated app name */}
+        <div className="text-xl font-bold">Daddie</div>
         <div 
           className="p-2 rounded-full hover:bg-gray-100 cursor-pointer" 
           onClick={() => window.location.href = '/profile'}
