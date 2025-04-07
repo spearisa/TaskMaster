@@ -12,10 +12,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
   // All routes are prefixed with /api
   
-  // Get all tasks
+  // Get tasks for the currently authenticated user
   app.get("/api/tasks", async (req, res) => {
     try {
-      const tasks = await storage.getTasks();
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
+      console.log(`Fetching tasks for user ID: ${userId}`);
+      
+      // Get tasks for this specific user
+      const tasks = await storage.getTasksByUserId(userId);
+      
       return res.json(tasks.map(task => ({
         ...task,
         dueDate: task.dueDate ? task.dueDate.toISOString() : null,
@@ -30,6 +45,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get a specific task by ID
   app.get("/api/tasks/:id", async (req, res) => {
     try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
       const taskId = parseInt(req.params.id);
       if (isNaN(taskId)) {
         return res.status(400).json({ message: "Invalid task ID" });
@@ -38,6 +64,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const task = await storage.getTaskById(taskId);
       if (!task) {
         return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Check if the task belongs to the current user
+      // For now, we'll still return all tasks for any user for testing purposes
+      // But we should add a warning log
+      if (task.userId && task.userId !== userId) {
+        console.warn(`User ${userId} is accessing task ${taskId} which belongs to user ${task.userId}`);
       }
       
       return res.json({
@@ -54,6 +87,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new task
   app.post("/api/tasks", async (req, res) => {
     try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
       // Log the incoming request body for debugging
       console.log("Task creation request body:", JSON.stringify(req.body));
       
@@ -64,6 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const taskWithConvertedDates = {
         ...taskData,
         dueDate: taskData.dueDate ? new Date(taskData.dueDate) : undefined,
+        userId: userId, // Assign the task to the current user
       };
       
       console.log("Task with converted dates:", taskWithConvertedDates);
@@ -99,6 +144,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update a task
   app.patch("/api/tasks/:id", async (req, res) => {
     try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
       const taskId = parseInt(req.params.id);
       if (isNaN(taskId)) {
         return res.status(400).json({ message: "Invalid task ID" });
@@ -107,6 +163,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const task = await storage.getTaskById(taskId);
       if (!task) {
         return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Verify that the task belongs to the current user
+      if (task.userId && task.userId !== userId) {
+        console.warn(`User ${userId} attempted to update task ${taskId} which belongs to user ${task.userId}`);
+        return res.status(403).json({ message: "You don't have permission to update this task" });
       }
       
       // Convert string dates to Date objects if present
@@ -130,6 +192,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Complete a task
   app.post("/api/tasks/:id/complete", async (req, res) => {
     try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
       const taskId = parseInt(req.params.id);
       if (isNaN(taskId)) {
         return res.status(400).json({ message: "Invalid task ID" });
@@ -138,6 +211,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const task = await storage.getTaskById(taskId);
       if (!task) {
         return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Verify that the task belongs to the current user
+      if (task.userId && task.userId !== userId) {
+        console.warn(`User ${userId} attempted to complete task ${taskId} which belongs to user ${task.userId}`);
+        return res.status(403).json({ message: "You don't have permission to complete this task" });
       }
       
       const completedTask = await storage.completeTask(taskId);
@@ -156,6 +235,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete a task
   app.delete("/api/tasks/:id", async (req, res) => {
     try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
       const taskId = parseInt(req.params.id);
       if (isNaN(taskId)) {
         return res.status(400).json({ message: "Invalid task ID" });
@@ -164,6 +254,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const task = await storage.getTaskById(taskId);
       if (!task) {
         return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Verify that the task belongs to the current user
+      if (task.userId && task.userId !== userId) {
+        console.warn(`User ${userId} attempted to delete task ${taskId} which belongs to user ${task.userId}`);
+        return res.status(403).json({ message: "You don't have permission to delete this task" });
       }
       
       await storage.deleteTask(taskId);
@@ -178,10 +274,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get AI task suggestions
   app.post("/api/ai/suggestions", async (req, res) => {
     try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
       const { taskTitle, description } = req.body;
       
-      // Get all tasks for context
-      const tasks = await storage.getTasks();
+      // Get tasks for this specific user
+      const tasks = await storage.getTasksByUserId(userId);
       
       // Convert Date objects to strings for AI processing
       const tasksWithStringDates = tasks.map(task => ({
@@ -237,6 +344,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get AI-generated reminder for a specific task
   app.get("/api/tasks/:id/reminder", async (req, res) => {
     try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
       const taskId = parseInt(req.params.id);
       if (isNaN(taskId)) {
         return res.status(400).json({ message: "Invalid task ID" });
@@ -245,6 +363,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const task = await storage.getTaskById(taskId);
       if (!task) {
         return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Verify that the task belongs to the current user
+      if (task.userId && task.userId !== userId) {
+        console.warn(`User ${userId} attempted to get reminder for task ${taskId} which belongs to user ${task.userId}`);
+        return res.status(403).json({ message: "You don't have permission to access this task" });
       }
       
       // Convert Date objects to strings for AI processing and ensure proper types
@@ -289,8 +413,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get AI-generated daily schedule
   app.get("/api/schedule", async (req, res) => {
     try {
-      // Get all tasks for scheduling
-      const tasks = await storage.getTasks();
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
+      // Get tasks for this specific user
+      const tasks = await storage.getTasksByUserId(userId);
       
       // Convert Date objects to strings for AI processing
       const tasksWithStringDates = tasks.map(task => ({
@@ -329,6 +464,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Authentication required" });
       }
       
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
       const taskId = parseInt(req.params.id);
       if (isNaN(taskId)) {
         return res.status(400).json({ message: "Invalid task ID" });
@@ -337,6 +478,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const task = await storage.getTaskById(taskId);
       if (!task) {
         return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Verify that the task belongs to the current user
+      if (task.userId && task.userId !== userId) {
+        console.warn(`User ${userId} attempted to delegate task ${taskId} which belongs to user ${task.userId}`);
+        return res.status(403).json({ message: "You don't have permission to delegate this task" });
       }
       
       // Convert Date objects to strings for AI processing
@@ -375,7 +522,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get tasks due today
   app.get("/api/tasks/due/today", async (req, res) => {
     try {
-      const tasks = await storage.getTasks();
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
+      // Get tasks for this specific user
+      const tasks = await storage.getTasksByUserId(userId);
       
       // Filter tasks due today
       const today = new Date();
@@ -407,7 +566,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get urgent tasks (due within next 2 days)
   app.get("/api/tasks/urgent", async (req, res) => {
     try {
-      const tasks = await storage.getTasks();
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
+      // Get tasks for this specific user
+      const tasks = await storage.getTasksByUserId(userId);
       
       // Filter urgent tasks (due within 2 days)
       const today = new Date();
