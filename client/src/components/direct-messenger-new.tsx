@@ -1,47 +1,25 @@
-import { useEffect, useRef, useState } from 'react';
-import { useAuth } from '@/hooks/use-auth';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'wouter';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { ChevronLeft, MessageCircle, Send } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { ChevronLeft, Send, MessageCircle } from 'lucide-react';
-import { useLocation } from 'wouter';
-import { apiRequest } from '@/lib/queryClient';
-import { format } from 'date-fns';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 import { useWebSocket } from '@/lib/websocket-service';
-
-interface DirectMessage {
-  id: number;
-  senderId: number;
-  receiverId: number;
-  content: string;
-  read: boolean;
-  createdAt: string;
-}
-
-interface UserProfile {
-  id: number;
-  username: string;
-  displayName: string | null;
-  bio: string | null;
-  interests: string[];
-  skills: string[];
-  avatarUrl: string | null;
-  createdAt: string | null;
-}
+import type { DirectMessage, UserProfile } from '@shared/schema';
 
 interface DirectMessengerProps {
   recipientId: number;
 }
 
 export function DirectMessenger({ recipientId }: DirectMessengerProps) {
-  const { user } = useAuth();
-  const [_, navigate] = useLocation();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [message, setMessage] = useState('');
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
@@ -49,17 +27,6 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
   // Use the WebSocket service
   const wsService = useWebSocket(user?.id);
   
-  // Send message directly through WebSocket for better real-time experience
-  const sendDirectMessage = (text: string) => {
-    if (user && wsService.getStatus() === 'connected') {
-      wsService.send({
-        type: 'direct_message',
-        receiverId: recipientId, 
-        content: text
-      });
-    }
-  };
-
   // Get recipient profile
   const { data: recipient } = useQuery<UserProfile>({
     queryKey: [`/api/profile/${recipientId}`],
@@ -70,17 +37,19 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
   const { data: messages = [], isLoading } = useQuery<DirectMessage[]>({
     queryKey: [`/api/messages/${recipientId}`],
     enabled: !!user,
-    refetchInterval: connectionStatus === 'connected' ? false : 5000, // Only poll if WebSocket isn't connected
+    onSuccess: (data) => {
+      // Scroll to bottom when messages arrive
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
   });
 
-  // Send message mutation
+  // Send a message
   const sendMessageMutation = useMutation({
-    mutationFn: async (content: string) => {
-      const response = await apiRequest('POST', '/api/messages', {
-        receiverId: recipientId,
-        content
-      });
-      return response.json();
+    mutationFn: async (text: string) => {
+      const res = await apiRequest('POST', `/api/messages/${recipientId}`, { content: text });
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/messages/${recipientId}`] });
@@ -96,17 +65,13 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
     }
   });
 
-  // Track if we've already marked messages as read
-  const [messagesMarkedAsRead, setMessagesMarkedAsRead] = useState(false);
-  
-  // Mark messages as read
+  // Mark messages as read (manual trigger)
   const markAsReadMutation = useMutation({
     mutationFn: async () => {
       await apiRequest('POST', `/api/messages/${recipientId}/read`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
-      setMessagesMarkedAsRead(true);
     }
   });
 
@@ -129,9 +94,6 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
           (message.senderId === user.id && message.receiverId === recipientId)
         ) {
           queryClient.invalidateQueries({ queryKey: [`/api/messages/${recipientId}`] });
-          
-          // We'll let the other useEffect handle marking messages as read
-          // based on the updated messages data
         }
         
         // Update conversations list
@@ -146,35 +108,6 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
     };
   }, [user, recipientId, queryClient, wsService]);
 
-  // Automatically mark messages as read when component mounts or when new messages arrive
-  useEffect(() => {
-    if (user && recipientId && messages && messages.length > 0 && !messagesMarkedAsRead) {
-      // Only mark as read if there are unread messages and they're from the recipient
-      const hasUnreadMessages = messages.some(msg => 
-        msg.senderId === recipientId && 
-        msg.receiverId === user.id && 
-        !msg.read
-      );
-      
-      if (hasUnreadMessages) {
-        markAsReadMutation.mutate();
-      } else {
-        // No unread messages, still mark as processed
-        setMessagesMarkedAsRead(true);
-      }
-    }
-    
-    // Reset the marked as read flag when the recipient changes
-    return () => {
-      setMessagesMarkedAsRead(false);
-    };
-  }, [user, recipientId, messages, messagesMarkedAsRead]);
-
-  // Scroll to bottom when new messages arrive
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
   // Send the message via both WebSocket (for real-time) and API (for persistence)
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,7 +115,12 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
     
     // First try to send via WebSocket for immediate delivery
     if (connectionStatus === 'connected') {
-      sendDirectMessage(message);
+      // Send message directly through WebSocket for better real-time experience
+      wsService.send({
+        type: 'direct_message',
+        receiverId: recipientId, 
+        content: message
+      });
     }
     
     // Always use the mutation for persistence (this creates the record in database)
@@ -220,6 +158,19 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
   // Check if we have profile of the recipient
   const recipientName = recipient ? (recipient.displayName || recipient.username) : 'Loading...';
 
+  // Check for unread messages
+  const hasUnreadMessages = messages.some(msg => 
+    msg.senderId === recipientId && 
+    msg.receiverId === user?.id && 
+    !msg.read
+  );
+
+  // On component mount, check if there are unread messages and add a mark as read button
+  useEffect(() => {
+    // We're not calling markAsReadMutation here to avoid the infinite loop
+    // Let the user click the button manually
+  }, []);
+
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
       {/* Header */}
@@ -233,7 +184,7 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
           <ChevronLeft className="h-6 w-6" />
         </Button>
         
-        <div className="flex items-center">
+        <div className="flex items-center flex-1">
           <Avatar className="h-10 w-10 mr-3">
             <AvatarImage src={recipient?.avatarUrl || undefined} />
             <AvatarFallback>{recipient?.username?.substring(0, 2).toUpperCase() || '??'}</AvatarFallback>
@@ -257,6 +208,19 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
               </p>
             )}
           </div>
+          
+          {/* Add manual mark as read button */}
+          {hasUnreadMessages && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="ml-auto"
+              onClick={() => markAsReadMutation.mutate()}
+              disabled={markAsReadMutation.isPending}
+            >
+              Mark as read
+            </Button>
+          )}
         </div>
       </div>
 

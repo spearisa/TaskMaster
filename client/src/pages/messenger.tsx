@@ -1,6 +1,6 @@
 
 import { Messenger } from '@/components/messenger';
-import { DirectMessenger } from '@/components/direct-messenger';
+import { DirectMessenger } from '@/components/direct-messenger-new';
 import { UserSearch } from '@/components/user-search';
 import { useLocation } from 'wouter';
 import { ChevronLeft, MessageSquare, Search, Users } from 'lucide-react';
