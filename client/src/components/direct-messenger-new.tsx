@@ -61,8 +61,23 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/messages/${recipientId}`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
+      // Mark queries as stale but don't trigger automatic refetch
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/messages/${recipientId}`],
+        refetchType: 'none' 
+      });
+      
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/conversations'],
+        refetchType: 'none'
+      });
+      
+      // Manual refetch with delay to prevent duplicates and race conditions
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: [`/api/messages/${recipientId}`] });
+        queryClient.refetchQueries({ queryKey: ['/api/conversations'] });
+      }, 500);
+      
       setMessage('');
     },
     onError: (error: Error) => {
@@ -80,7 +95,16 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
       await apiRequest('POST', `/api/messages/${recipientId}/read`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
+      // Mark as stale but don't trigger automatic refetch
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/conversations'],
+        refetchType: 'none' 
+      });
+      
+      // Manual refetch with delay to prevent duplicates
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['/api/conversations'] });
+      }, 300);
     }
   });
 
@@ -90,6 +114,13 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
     
     // Update connection status from WebSocket service
     const removeStatusHandler = wsService.addStatusHandler(setConnectionStatus);
+    
+    // Configure query to prevent automatic refetching
+    queryClient.setQueryDefaults([`/api/messages/${recipientId}`], {
+      refetchOnWindowFocus: false,
+      staleTime: 10000, // Consider data fresh for 10 seconds
+      refetchInterval: false
+    });
     
     // Set up message handler
     const removeMessageHandler = wsService.addMessageHandler((data) => {
@@ -102,11 +133,23 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
           (message.senderId === recipientId && message.receiverId === user.id) ||
           (message.senderId === user.id && message.receiverId === recipientId)
         ) {
-          queryClient.invalidateQueries({ queryKey: [`/api/messages/${recipientId}`] });
+          // Mark as stale but don't refetch automatically
+          queryClient.invalidateQueries({ 
+            queryKey: [`/api/messages/${recipientId}`],
+            refetchType: 'none' // Don't trigger a refetch
+          });
+          
+          // Instead, use a manual refetch with a short delay to prevent duplicates
+          setTimeout(() => {
+            queryClient.refetchQueries({ queryKey: [`/api/messages/${recipientId}`] });
+          }, 500);
         }
         
         // Update conversations list
-        queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/conversations'],
+          refetchType: 'none'
+        });
       }
     });
     
@@ -114,6 +157,9 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
     return () => {
       removeStatusHandler();
       removeMessageHandler();
+      
+      // Reset query defaults when component unmounts
+      queryClient.setQueryDefaults([`/api/messages/${recipientId}`], {});
     };
   }, [user, recipientId, queryClient, wsService]);
 
