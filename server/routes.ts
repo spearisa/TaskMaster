@@ -1,7 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertTaskSchema, taskSchema, insertDirectMessageSchema, updateProfileSchema } from "@shared/schema";
+import { 
+  insertTaskSchema, taskSchema, insertDirectMessageSchema, 
+  updateProfileSchema, insertTaskTemplateSchema, taskTemplateSchema
+} from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { getTaskSuggestions, generateTaskReminder, generateDailySchedule, delegateTaskToAI } from "./openai-service";
 import { setupAuth } from "./auth";
@@ -1019,7 +1022,341 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize demo data
   await storage.initializeDemo();
 
-  // Create HTTP server
+  // TASK TEMPLATE ROUTES
+  
+  // Get task templates for the currently authenticated user
+  app.get("/api/task-templates", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
+      console.log(`Fetching task templates for user ID: ${userId}`);
+      
+      // Get templates for this specific user
+      const templates = await storage.getTaskTemplatesByUserId(userId);
+      
+      return res.json(templates.map(template => ({
+        ...template,
+        createdAt: template.createdAt ? template.createdAt.toISOString() : null,
+      })));
+    } catch (error) {
+      console.error("Error fetching task templates:", error);
+      return res.status(500).json({ message: "Failed to retrieve task templates" });
+    }
+  });
+  
+  // Get all public task templates
+  app.get("/api/public-task-templates", async (req, res) => {
+    try {
+      const templates = await storage.getPublicTaskTemplates();
+      
+      // Get user info for each template
+      const templatesWithUserInfo = await Promise.all(
+        templates.map(async (template) => {
+          let userInfo = null;
+          if (template.userId) {
+            userInfo = await storage.getUserProfile(template.userId);
+          }
+          
+          return {
+            ...template,
+            createdAt: template.createdAt ? template.createdAt.toISOString() : null,
+            user: userInfo,
+          };
+        })
+      );
+      
+      return res.json(templatesWithUserInfo);
+    } catch (error) {
+      console.error("Error fetching public task templates:", error);
+      return res.status(500).json({ message: "Failed to retrieve public task templates" });
+    }
+  });
+  
+  // Get a specific task template by ID
+  app.get("/api/task-templates/:id", async (req, res) => {
+    try {
+      const templateId = parseInt(req.params.id);
+      if (isNaN(templateId)) {
+        return res.status(400).json({ message: "Invalid template ID" });
+      }
+      
+      const template = await storage.getTaskTemplateById(templateId);
+      if (!template) {
+        return res.status(404).json({ message: "Task template not found" });
+      }
+      
+      // Check if template is public or if user is authenticated
+      const isPublic = template.isPublic;
+      let belongsToUser = false;
+      
+      if (req.isAuthenticated() && req.user?.id) {
+        belongsToUser = template.userId === req.user.id;
+      }
+      
+      if (!isPublic && !belongsToUser) {
+        return res.status(403).json({ message: "You don't have permission to view this template" });
+      }
+      
+      // Get creator info
+      let userInfo = null;
+      if (template.userId) {
+        userInfo = await storage.getUserProfile(template.userId);
+      }
+      
+      return res.json({
+        ...template,
+        createdAt: template.createdAt ? template.createdAt.toISOString() : null,
+        user: userInfo,
+      });
+    } catch (error) {
+      console.error("Error fetching task template:", error);
+      return res.status(500).json({ message: "Failed to retrieve task template" });
+    }
+  });
+  
+  // Create a new task template
+  app.post("/api/task-templates", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
+      // Log the incoming request body for debugging
+      console.log("Task template creation request body:", JSON.stringify(req.body));
+      
+      // Prepare template data with user ID
+      const templateData = {
+        ...req.body,
+        userId: userId,
+      };
+      
+      // Validate with the schema
+      const validationResult = insertTaskTemplateSchema.safeParse(templateData);
+      
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        console.error("Task template validation error:", validationError.message);
+        return res.status(400).json({ message: validationError.message });
+      }
+      
+      // Get the validated data
+      const validatedTemplateData = validationResult.data;
+      
+      console.log("Validated task template data:", validatedTemplateData);
+      
+      // Create the task template with the validated data
+      const newTemplate = await storage.createTaskTemplate(validatedTemplateData);
+      
+      return res.status(201).json({
+        ...newTemplate,
+        createdAt: newTemplate.createdAt ? newTemplate.createdAt.toISOString() : null,
+      });
+    } catch (error) {
+      console.error("Error creating task template:", error);
+      return res.status(500).json({ message: "Failed to create task template" });
+    }
+  });
+  
+  // Update a task template
+  app.patch("/api/task-templates/:id", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
+      const templateId = parseInt(req.params.id);
+      if (isNaN(templateId)) {
+        return res.status(400).json({ message: "Invalid template ID" });
+      }
+      
+      const template = await storage.getTaskTemplateById(templateId);
+      if (!template) {
+        return res.status(404).json({ message: "Task template not found" });
+      }
+      
+      // Verify that the template belongs to the current user
+      if (template.userId && template.userId !== userId) {
+        console.warn(`User ${userId} attempted to update template ${templateId} which belongs to user ${template.userId}`);
+        return res.status(403).json({ message: "You don't have permission to update this template" });
+      }
+      
+      const updatedTemplate = await storage.updateTaskTemplate(templateId, req.body);
+      
+      return res.json({
+        ...updatedTemplate,
+        createdAt: updatedTemplate?.createdAt ? updatedTemplate.createdAt.toISOString() : null,
+      });
+    } catch (error) {
+      console.error("Error updating task template:", error);
+      return res.status(500).json({ message: "Failed to update task template" });
+    }
+  });
+  
+  // Delete a task template
+  app.delete("/api/task-templates/:id", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
+      const templateId = parseInt(req.params.id);
+      if (isNaN(templateId)) {
+        return res.status(400).json({ message: "Invalid template ID" });
+      }
+      
+      const template = await storage.getTaskTemplateById(templateId);
+      if (!template) {
+        return res.status(404).json({ message: "Task template not found" });
+      }
+      
+      // Verify that the template belongs to the current user
+      if (template.userId && template.userId !== userId) {
+        console.warn(`User ${userId} attempted to delete template ${templateId} which belongs to user ${template.userId}`);
+        return res.status(403).json({ message: "You don't have permission to delete this template" });
+      }
+      
+      await storage.deleteTaskTemplate(templateId);
+      
+      return res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting task template:", error);
+      return res.status(500).json({ message: "Failed to delete task template" });
+    }
+  });
+  
+  // Set a task template's public status
+  app.patch("/api/task-templates/:id/public", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
+      const templateId = parseInt(req.params.id);
+      if (isNaN(templateId)) {
+        return res.status(400).json({ message: "Invalid template ID" });
+      }
+      
+      // Get the isPublic flag from request body
+      const { isPublic } = req.body;
+      if (typeof isPublic !== 'boolean') {
+        return res.status(400).json({ message: "Invalid isPublic value. Must be a boolean." });
+      }
+      
+      const template = await storage.getTaskTemplateById(templateId);
+      if (!template) {
+        return res.status(404).json({ message: "Task template not found" });
+      }
+      
+      // Verify that the template belongs to the current user
+      if (template.userId && template.userId !== userId) {
+        console.warn(`User ${userId} attempted to change public status of template ${templateId} which belongs to user ${template.userId}`);
+        return res.status(403).json({ message: "You don't have permission to modify this template" });
+      }
+      
+      const updatedTemplate = await storage.setTaskTemplatePublic(templateId, isPublic);
+      
+      return res.json({
+        ...updatedTemplate,
+        createdAt: updatedTemplate?.createdAt ? updatedTemplate.createdAt.toISOString() : null,
+      });
+    } catch (error) {
+      console.error("Error updating template public status:", error);
+      return res.status(500).json({ message: "Failed to update template public status" });
+    }
+  });
+  
+  // Create a task from a template
+  app.post("/api/task-templates/:id/create-task", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
+      const templateId = parseInt(req.params.id);
+      if (isNaN(templateId)) {
+        return res.status(400).json({ message: "Invalid template ID" });
+      }
+      
+      // Get optional due date from request
+      let dueDate: Date | undefined = undefined;
+      if (req.body.dueDate) {
+        dueDate = new Date(req.body.dueDate);
+        if (isNaN(dueDate.getTime())) {
+          return res.status(400).json({ message: "Invalid due date format" });
+        }
+      }
+      
+      const template = await storage.getTaskTemplateById(templateId);
+      if (!template) {
+        return res.status(404).json({ message: "Task template not found" });
+      }
+      
+      // Check if template is public or belongs to user
+      const isPublic = template.isPublic;
+      const belongsToUser = template.userId === userId;
+      
+      if (!isPublic && !belongsToUser) {
+        return res.status(403).json({ message: "You don't have permission to use this template" });
+      }
+      
+      // Create the task from template
+      const newTask = await storage.createTaskFromTemplate(templateId, userId, dueDate);
+      
+      return res.status(201).json({
+        ...newTask,
+        dueDate: newTask.dueDate ? newTask.dueDate.toISOString() : null,
+        completedAt: newTask.completedAt ? newTask.completedAt.toISOString() : null,
+      });
+    } catch (error) {
+      console.error("Error creating task from template:", error);
+      return res.status(500).json({ message: "Failed to create task from template" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Create WebSocket server

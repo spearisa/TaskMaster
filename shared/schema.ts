@@ -106,6 +106,22 @@ export const conversations = pgTable("conversations", {
   unreadCount: integer("unread_count").default(0).notNull(),
 });
 
+// Task template table for the one-click task template library
+export const taskTemplates = pgTable("task_templates", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  priority: text("priority").notNull(),
+  category: text("category").notNull(),
+  estimatedTime: integer("estimated_time"),
+  steps: text("steps").array(),
+  tags: text("tags").array(),
+  icon: text("icon"),
+  createdAt: timestamp("created_at").defaultNow(),
+  userId: integer("user_id").references(() => users.id),
+  isPublic: boolean("is_public").default(false).notNull(),
+});
+
 // Custom schema for direct messages that maps 'content' to 'message' in the database
 export const insertDirectMessageSchema = z.object({
   senderId: z.number(),
@@ -113,6 +129,36 @@ export const insertDirectMessageSchema = z.object({
   content: z.string().min(1),
   read: z.boolean().default(false).optional(),
   createdAt: z.date().optional(),
+});
+
+// Schema for inserting task templates
+export const insertTaskTemplateSchema = z.object({
+  title: z.string().min(1, { message: "Title is required" }),
+  description: z.string().optional().nullable(),
+  priority: z.enum(["high", "medium", "low"]),
+  category: z.string(),
+  estimatedTime: z.number().int().positive().optional().nullable(),
+  steps: z.array(z.string()).optional().default([]),
+  tags: z.array(z.string()).optional().default([]),
+  icon: z.string().optional().nullable(),
+  userId: z.number().optional().nullable(),
+  isPublic: z.boolean().default(false).optional(),
+});
+
+// Schema for task templates with string dates
+export const taskTemplateSchema = z.object({
+  id: z.number(),
+  title: z.string().min(1, { message: "Title is required" }),
+  description: z.string().optional().nullable(),
+  priority: z.enum(["high", "medium", "low"]),
+  category: z.string(),
+  estimatedTime: z.number().optional().nullable(),
+  steps: z.array(z.string()).optional().nullable(),
+  tags: z.array(z.string()).optional().nullable(),
+  icon: z.string().optional().nullable(),
+  createdAt: z.string().optional().nullable(),
+  userId: z.number().optional().nullable(),
+  isPublic: z.boolean().default(false),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -125,3 +171,6 @@ export type TaskWithStringDates = z.infer<typeof taskSchema>;
 export type InsertDirectMessage = z.infer<typeof insertDirectMessageSchema>;
 export type DirectMessage = typeof directMessages.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
+export type InsertTaskTemplate = z.infer<typeof insertTaskTemplateSchema>;
+export type TaskTemplate = typeof taskTemplates.$inferSelect;
+export type TaskTemplateWithStringDates = z.infer<typeof taskTemplateSchema>;

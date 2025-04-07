@@ -2,7 +2,8 @@ import {
   tasks, type Task, type InsertTask, 
   users, type User, type InsertUser, type UpdateProfile, type UserProfile,
   directMessages, type DirectMessage, type InsertDirectMessage,
-  conversations, type Conversation
+  conversations, type Conversation,
+  taskTemplates, type TaskTemplate, type InsertTaskTemplate
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, ilike, asc, sql, not } from "drizzle-orm";
@@ -36,6 +37,17 @@ export interface IStorage {
   completeTask(id: number): Promise<Task | undefined>;
   assignTaskToUser(taskId: number, assignedToUserId: number): Promise<Task | undefined>;
   setTaskPublic(taskId: number, isPublic: boolean): Promise<Task | undefined>;
+  
+  // Task template methods
+  getTaskTemplates(): Promise<TaskTemplate[]>;
+  getTaskTemplateById(id: number): Promise<TaskTemplate | undefined>;
+  getTaskTemplatesByUserId(userId: number): Promise<TaskTemplate[]>;
+  getPublicTaskTemplates(): Promise<TaskTemplate[]>;
+  createTaskTemplate(template: InsertTaskTemplate): Promise<TaskTemplate>;
+  updateTaskTemplate(id: number, template: Partial<InsertTaskTemplate>): Promise<TaskTemplate | undefined>;
+  deleteTaskTemplate(id: number): Promise<boolean>;
+  setTaskTemplatePublic(templateId: number, isPublic: boolean): Promise<TaskTemplate | undefined>;
+  createTaskFromTemplate(templateId: number, userId: number, dueDate?: Date): Promise<Task>;
   
   // Direct message methods
   getConversations(userId: number): Promise<{conversation: Conversation, user: UserProfile}[]>;
@@ -433,6 +445,115 @@ export class DatabaseStorage implements IStorage {
           )
         )
       );
+  }
+  
+  // Task Template methods
+  
+  /**
+   * Get all task templates
+   */
+  async getTaskTemplates(): Promise<TaskTemplate[]> {
+    return await db.select().from(taskTemplates).orderBy(desc(taskTemplates.id));
+  }
+  
+  /**
+   * Get a task template by ID
+   */
+  async getTaskTemplateById(id: number): Promise<TaskTemplate | undefined> {
+    const [template] = await db.select().from(taskTemplates).where(eq(taskTemplates.id, id));
+    return template;
+  }
+  
+  /**
+   * Get task templates created by a specific user
+   */
+  async getTaskTemplatesByUserId(userId: number): Promise<TaskTemplate[]> {
+    return await db.select()
+      .from(taskTemplates)
+      .where(eq(taskTemplates.userId, userId))
+      .orderBy(desc(taskTemplates.id));
+  }
+  
+  /**
+   * Get all public task templates
+   */
+  async getPublicTaskTemplates(): Promise<TaskTemplate[]> {
+    return await db.select()
+      .from(taskTemplates)
+      .where(eq(taskTemplates.isPublic, true))
+      .orderBy(desc(taskTemplates.id));
+  }
+  
+  /**
+   * Create a new task template
+   */
+  async createTaskTemplate(template: InsertTaskTemplate): Promise<TaskTemplate> {
+    const [newTemplate] = await db.insert(taskTemplates).values(template).returning();
+    return newTemplate;
+  }
+  
+  /**
+   * Update an existing task template
+   */
+  async updateTaskTemplate(id: number, template: Partial<InsertTaskTemplate>): Promise<TaskTemplate | undefined> {
+    const [updatedTemplate] = await db.update(taskTemplates)
+      .set(template)
+      .where(eq(taskTemplates.id, id))
+      .returning();
+    
+    return updatedTemplate;
+  }
+  
+  /**
+   * Delete a task template
+   */
+  async deleteTaskTemplate(id: number): Promise<boolean> {
+    const [deletedTemplate] = await db.delete(taskTemplates)
+      .where(eq(taskTemplates.id, id))
+      .returning();
+    
+    return !!deletedTemplate;
+  }
+  
+  /**
+   * Set a task template's public visibility
+   */
+  async setTaskTemplatePublic(templateId: number, isPublic: boolean): Promise<TaskTemplate | undefined> {
+    const [template] = await db.update(taskTemplates)
+      .set({ 
+        isPublic: isPublic
+      })
+      .where(eq(taskTemplates.id, templateId))
+      .returning();
+    
+    return template;
+  }
+  
+  /**
+   * Create a new task from a template
+   */
+  async createTaskFromTemplate(templateId: number, userId: number, dueDate?: Date): Promise<Task> {
+    // First get the template
+    const template = await this.getTaskTemplateById(templateId);
+    
+    if (!template) {
+      throw new Error(`Template with ID ${templateId} not found`);
+    }
+    
+    // Create a new task from the template
+    const taskData: InsertTask = {
+      title: template.title,
+      description: template.description,
+      priority: template.priority as "high" | "medium" | "low",
+      category: template.category,
+      estimatedTime: template.estimatedTime,
+      completed: false,
+      dueDate: dueDate || null,
+      userId: userId,
+      isPublic: false // Always create as private initially
+    };
+    
+    return await this.createTask(taskData);
   }
   
   /**

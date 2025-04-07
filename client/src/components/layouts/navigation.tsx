@@ -10,7 +10,9 @@ import {
   Menu,
   UserPlus,
   Inbox,
-  Globe
+  Globe,
+  FileCode,
+  BookTemplate
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -60,30 +62,30 @@ export function MobileNavigation() {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-2 py-2 z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-1 py-2 z-50">
       <div className="flex justify-around items-center">
         <Link href="/">
           <a className={cn(
-            "flex flex-col items-center p-2",
+            "flex flex-col items-center p-1",
             isActive('/') ? "text-primary" : "text-gray-500"
           )}>
-            <Home size={24} />
+            <Home size={18} />
             <span className="text-xs mt-1">Home</span>
           </a>
         </Link>
         
         <Link href="/calendar">
           <a className={cn(
-            "flex flex-col items-center p-2",
+            "flex flex-col items-center p-1",
             isActive('/calendar') ? "text-primary" : "text-gray-500"
           )}>
-            <Calendar size={24} />
+            <Calendar size={18} />
             <span className="text-xs mt-1">Calendar</span>
           </a>
         </Link>
         
         <Link href="/new-task">
-          <a className="flex flex-col items-center p-2 -mt-5">
+          <a className="flex flex-col items-center p-1 -mt-5">
             <div className="flex items-center justify-center bg-primary text-primary-foreground rounded-full w-12 h-12">
               <Plus size={24} />
             </div>
@@ -91,23 +93,33 @@ export function MobileNavigation() {
           </a>
         </Link>
         
-        <Link href="/messenger">
+        <Link href="/public-tasks">
           <a className={cn(
-            "flex flex-col items-center p-2",
-            isActive('/messenger') ? "text-primary" : "text-gray-500"
+            "flex flex-col items-center p-1",
+            isActive('/public-tasks') ? "text-primary" : "text-gray-500"
           )}>
-            <MessageSquare size={24} />
-            <span className="text-xs mt-1">Messages</span>
+            <Globe size={18} />
+            <span className="text-xs mt-1">Public</span>
           </a>
         </Link>
         
-        <Link href="/profile">
+        <Link href="/task-templates">
           <a className={cn(
-            "flex flex-col items-center p-2",
-            isActive('/profile') ? "text-primary" : "text-gray-500"
+            "flex flex-col items-center p-1",
+            isActive('/task-templates') ? "text-primary" : "text-gray-500"
           )}>
-            <Settings size={24} />
-            <span className="text-xs mt-1">Profile</span>
+            <BookTemplate size={18} />
+            <span className="text-xs mt-1">Templates</span>
+          </a>
+        </Link>
+        
+        <Link href="/messenger">
+          <a className={cn(
+            "flex flex-col items-center p-1",
+            isActive('/messenger') ? "text-primary" : "text-gray-500"
+          )}>
+            <MessageSquare size={18} />
+            <span className="text-xs mt-1">Messages</span>
           </a>
         </Link>
       </div>
@@ -170,6 +182,12 @@ export function SideNavigation() {
               active={isActive('/public-tasks')}
             />
             <NavItem
+              icon={<BookTemplate size={18} />}
+              label="Templates"
+              href="/task-templates"
+              active={isActive('/task-templates')}
+            />
+            <NavItem
               icon={<MessageSquare size={18} />}
               label="Messages"
               href="/messenger"
@@ -220,6 +238,12 @@ export function SideNavigation() {
         label="Public Tasks"
         href="/public-tasks"
         active={isActive('/public-tasks')}
+      />
+      <NavItem
+        icon={<BookTemplate size={18} />}
+        label="Templates"
+        href="/task-templates"
+        active={isActive('/task-templates')}
       />
       <NavItem
         icon={<MessageSquare size={18} />}
