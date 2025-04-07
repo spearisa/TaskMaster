@@ -88,9 +88,14 @@ export class DatabaseStorage implements IStorage {
   }
   
   async searchUsers(query: string, currentUserId: number): Promise<UserProfile[]> {
-    // Search for users by username, displayName, interests, or skills
+    console.log(`[Storage] Searching users with query: "${query}", currentUserId: ${currentUserId}`);
+    
+    // Make query lowercase for case-insensitive matching
+    const lowerQuery = query.toLowerCase();
+    
+    // Search for users by username, displayName only 
     // Exclude the current user from results
-    const results = await db.select({
+    const allUsers = await db.select({
       id: users.id,
       username: users.username,
       displayName: users.displayName,
@@ -102,18 +107,30 @@ export class DatabaseStorage implements IStorage {
     })
     .from(users)
     .where(
-      and(
-        not(eq(users.id, currentUserId)),
-        or(
-          ilike(users.username, `%${query}%`),
-          ilike(users.displayName || '', `%${query}%`),
-          sql`${users.interests}::text[] && ARRAY[${query}]::text[]`,
-          sql`${users.skills}::text[] && ARRAY[${query}]::text[]`
-        )
-      )
+      not(eq(users.id, currentUserId))
     )
-    .orderBy(asc(users.username))
-    .limit(20);
+    .orderBy(asc(users.username));
+    
+    // Manually filter results for better control over matching logic
+    const results = allUsers.filter(user => {
+      // Check username and displayName
+      if (user.username.toLowerCase().includes(lowerQuery)) return true;
+      if (user.displayName && user.displayName.toLowerCase().includes(lowerQuery)) return true;
+      
+      // Check if any interest includes the query
+      if (user.interests && user.interests.some(interest => 
+        interest.toLowerCase().includes(lowerQuery)
+      )) return true;
+      
+      // Check if any skill includes the query
+      if (user.skills && user.skills.some(skill => 
+        skill.toLowerCase().includes(lowerQuery)
+      )) return true;
+      
+      return false;
+    }).slice(0, 20); // Limit to 20 results
+    
+    console.log(`[Storage] Found ${results.length} matching users`);
     
     // Convert Date objects to strings to match our schema
     return results.map(profile => ({

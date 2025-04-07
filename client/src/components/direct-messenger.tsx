@@ -43,8 +43,10 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [message, setMessage] = useState('');
-  const [wsConnected, setWsConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
   const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptsRef = useRef<number>(0);
 
   // Get recipient profile
   const { data: recipient } = useQuery<UserProfile>({
@@ -56,7 +58,7 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
   const { data: messages = [], isLoading } = useQuery<DirectMessage[]>({
     queryKey: [`/api/messages/${recipientId}`],
     enabled: !!user,
-    refetchInterval: wsConnected ? false : 5000, // Only poll if WebSocket isn't connected
+    refetchInterval: connectionStatus === 'connected' ? false : 5000, // Only poll if WebSocket isn't connected
   });
 
   // Send message mutation
@@ -104,7 +106,8 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
 
     socket.onopen = () => {
       console.log('WebSocket connected');
-      setWsConnected(true);
+      setConnectionStatus('connected');
+      reconnectAttemptsRef.current = 0;
       
       // Register with the WebSocket server
       socket.send(JSON.stringify({
@@ -141,23 +144,79 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
       }
     };
 
-    socket.onclose = () => {
-      console.log('WebSocket disconnected');
-      setWsConnected(false);
+    socket.onclose = (event) => {
+      console.log(`WebSocket disconnected with code: ${event.code}, reason: ${event.reason || 'No reason provided'}`);
+      setConnectionStatus('disconnected');
+      
+      // Try to reconnect if not closed cleanly (code 1000 is normal closure, 1001 is going away)
+      if (event.code !== 1000 && event.code !== 1001) {
+        handleReconnect();
+      }
     };
 
     socket.onerror = (error) => {
       console.error('WebSocket error:', error);
-      setWsConnected(false);
+      setConnectionStatus('disconnected');
+      handleReconnect();
     };
+    
+    // Function to handle reconnection with exponential backoff
+    function handleReconnect() {
+      const attempts = reconnectAttemptsRef.current + 1;
+      reconnectAttemptsRef.current = attempts;
+      
+      // Only try up to 5 reconnect attempts
+      if (attempts <= 5) {
+        // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+        const delay = Math.min(1000 * Math.pow(2, attempts - 1), 16000);
+        
+        console.log(`Attempting to reconnect in ${delay}ms (attempt ${attempts})`);
+        
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+        }
+        
+        reconnectTimeoutRef.current = setTimeout(() => {
+          // Create a new WebSocket connection
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          const wsUrl = `${protocol}//${window.location.host}/ws`;
+          
+          // Set status to connecting before creating a new socket
+          setConnectionStatus('connecting');
+          
+          const newSocket = new WebSocket(wsUrl);
+          wsRef.current = newSocket;
+          
+          // Set up event handlers for the new socket
+          newSocket.onopen = socket.onopen;
+          newSocket.onmessage = socket.onmessage;
+          newSocket.onclose = socket.onclose;
+          newSocket.onerror = socket.onerror;
+        }, delay);
+      } else {
+        console.log('Max reconnection attempts reached');
+        toast({
+          title: 'Connection issue',
+          description: 'Could not connect to messaging service after multiple attempts',
+          variant: 'destructive'
+        });
+      }
+    }
 
     // Clean up on component unmount
     return () => {
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.close();
+      // Clear any pending reconnection attempts
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      
+      // Close the WebSocket connection if it's open
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.close(1000, "Component unmounted");
       }
     };
-  }, [user, recipientId, queryClient, markAsReadMutation]);
+  }, [user, recipientId, queryClient, markAsReadMutation, toast]);
 
   // Automatically mark messages as read when component mounts
   useEffect(() => {
@@ -230,10 +289,21 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
           </Avatar>
           <div>
             <h2 className="text-lg font-semibold">{recipientName}</h2>
-            {wsConnected ? (
-              <p className="text-xs text-green-600">Connected</p>
+            {connectionStatus === 'connected' ? (
+              <p className="text-xs text-green-600 flex items-center">
+                <span className="w-2 h-2 bg-green-600 rounded-full mr-1"></span>
+                Connected
+              </p>
+            ) : connectionStatus === 'connecting' ? (
+              <p className="text-xs text-amber-600 flex items-center">
+                <span className="w-2 h-2 bg-amber-500 rounded-full mr-1 animate-pulse"></span>
+                Connecting...
+              </p>
             ) : (
-              <p className="text-xs text-gray-500">Reconnecting...</p>
+              <p className="text-xs text-gray-500 flex items-center">
+                <span className="w-2 h-2 bg-gray-400 rounded-full mr-1"></span>
+                Disconnected
+              </p>
             )}
           </div>
         </div>

@@ -6,6 +6,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
 interface Message {
   room: string;
@@ -18,28 +19,36 @@ interface Message {
 export function Messenger() {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
   const { user } = useAuth();
   const { toast } = useToast();
   const socketRef = useRef<Socket | null>(null);
+  const reconnectAttemptRef = useRef<number>(0);
   const room = 'global'; // Using a global room for simplicity
 
   useEffect(() => {
+    // Set initial status
+    setConnectionStatus('connecting');
+    
     // Create socket instance with proper configuration
     const socket = io('/', {
       withCredentials: true,
-      autoConnect: true,
+      autoConnect: false, // Don't auto connect, we'll handle this manually
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000
+      reconnectionAttempts: 3,
+      reconnectionDelay: 1000,
+      timeout: 5000 // Shorter timeout for faster connection feedback
     });
 
     socketRef.current = socket;
 
     // Connect to the socket
     socket.connect();
-
-    // Join room
-    socket.emit('join_room', room);
+    
+    // Join room when connected
+    socket.on('connect', () => {
+      socket.emit('join_room', room);
+    });
 
     // Listen for incoming messages
     socket.on('receive_message', (data: Message) => {
@@ -69,18 +78,51 @@ export function Messenger() {
     // Handle connection events
     socket.on('connect', () => {
       console.log('Connected to socket server');
-      toast({
-        title: "Connected to messenger",
-        description: "You are now connected to the messenger service",
-        variant: "default",
-      });
+      setConnectionStatus('connected');
+      reconnectAttemptRef.current = 0;
+      
+      // Only show toast on reconnection
+      if (reconnectAttemptRef.current > 0) {
+        toast({
+          title: "Connected to messenger",
+          description: "You are now connected to the messenger service",
+          variant: "default",
+        });
+      }
     });
 
     socket.on('connect_error', (err) => {
       console.error('Socket connection error:', err);
+      setConnectionStatus('disconnected');
+      reconnectAttemptRef.current += 1;
+      
+      // Only show toast on first error
+      if (reconnectAttemptRef.current === 1) {
+        toast({
+          title: "Connection issue",
+          description: "Attempting to reconnect to the messenger service",
+          variant: "default",
+        });
+      }
+    });
+    
+    socket.on('disconnect', () => {
+      console.log('Disconnected from socket server');
+      setConnectionStatus('disconnected');
+    });
+    
+    socket.on('reconnect_attempt', (attemptNumber) => {
+      console.log(`Reconnection attempt ${attemptNumber}`);
+      setConnectionStatus('connecting');
+      reconnectAttemptRef.current = attemptNumber;
+    });
+    
+    socket.on('reconnect_failed', () => {
+      console.log('Failed to reconnect after multiple attempts');
+      setConnectionStatus('disconnected');
       toast({
-        title: "Connection error",
-        description: "Failed to connect to the messenger service",
+        title: "Connection failed",
+        description: "Could not connect to messenger after multiple attempts. Please try again later.",
         variant: "destructive",
       });
     });
@@ -90,6 +132,9 @@ export function Messenger() {
       socket.off('receive_message');
       socket.off('connect');
       socket.off('connect_error');
+      socket.off('disconnect');
+      socket.off('reconnect_attempt');
+      socket.off('reconnect_failed');
       socket.disconnect();
     };
   }, [toast]);
@@ -128,8 +173,43 @@ export function Messenger() {
     }
   };
 
+  // Connection status indicator
+  const getConnectionStatusIcon = () => {
+    switch(connectionStatus) {
+      case 'connected':
+        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      case 'connecting':
+        return <Loader2 className="h-4 w-4 text-amber-500 animate-spin" />;
+      case 'disconnected':
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+    }
+  };
+  
+  const getConnectionStatusText = () => {
+    switch(connectionStatus) {
+      case 'connected':
+        return 'Connected';
+      case 'connecting':
+        return 'Connecting...';
+      case 'disconnected':
+        return 'Disconnected';
+    }
+  };
+
   return (
     <Card className="p-4 h-[400px] flex flex-col">
+      {/* Connection status indicator */}
+      <div className="flex items-center justify-end gap-1 text-xs mb-2">
+        {getConnectionStatusIcon()}
+        <span className={`
+          ${connectionStatus === 'connected' ? 'text-green-500' : ''}
+          ${connectionStatus === 'connecting' ? 'text-amber-500' : ''}
+          ${connectionStatus === 'disconnected' ? 'text-red-500' : ''}
+        `}>
+          {getConnectionStatusText()}
+        </span>
+      </div>
+      
       <div className="flex-1 overflow-y-auto mb-4 space-y-2">
         {messages.length === 0 && (
           <div className="text-center text-gray-500 mt-8">
@@ -161,8 +241,14 @@ export function Messenger() {
           onChange={(e) => setMessage(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
           placeholder="Type a message..."
+          disabled={connectionStatus !== 'connected'}
         />
-        <Button onClick={sendMessage}>Send</Button>
+        <Button 
+          onClick={sendMessage}
+          disabled={connectionStatus !== 'connected'}
+        >
+          Send
+        </Button>
       </div>
     </Card>
   );
