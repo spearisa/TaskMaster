@@ -12,6 +12,7 @@ import AIAssistantPage from "@/pages/ai-assistant";
 import CompletedPage from "@/pages/completed";
 import TaskDetailPage from "@/pages/task-detail";
 import AssignedTasksPage from "@/pages/assigned-tasks";
+import PublicTasksPage from "@/pages/public-tasks";
 import AuthPage from "@/pages/auth-page";
 import ProfilePage from "@/pages/profile";
 import MessengerPage from "@/pages/messenger";
@@ -27,6 +28,7 @@ function Router() {
       <ProtectedRoute path="/completed" component={CompletedPage} />
       <ProtectedRoute path="/task/:id" component={TaskDetailPage} />
       <ProtectedRoute path="/assigned-tasks" component={AssignedTasksPage} />
+      <ProtectedRoute path="/public-tasks" component={PublicTasksPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/messenger" component={MessengerPage} />
       <ProtectedRoute path="/messenger/:userId" component={MessengerPage} />

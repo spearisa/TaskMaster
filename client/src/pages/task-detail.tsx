@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { MobileLayout } from "@/components/layouts/mobile-layout";
-import { ChevronLeft, AlertCircle, Sparkles, Calendar, Clock, UserPlus, Bell } from "lucide-react";
+import { ChevronLeft, AlertCircle, Sparkles, Calendar, Clock, UserPlus, Bell, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { TaskDelegation } from "@/components/task-delegation";
 import { TaskAssignment } from "@/components/task-assignment";
+import { PublicTaskToggle } from "@/components/public-task-toggle";
 import { PriorityBadge } from "@/components/ui/priority-badge";
 import { CategoryBadge } from "@/components/ui/category-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -240,6 +241,13 @@ export default function TaskDetailPage() {
               </div>
             </TabsContent>
           </Tabs>
+
+          {/* Only show public toggle if the task belongs to the current user */}
+          {task.userId === user?.id && (
+            <div className="mt-6 mb-4">
+              <PublicTaskToggle task={task} onDone={refetchTask} />
+            </div>
+          )}
 
           {!task.completed && (
             <div className="mt-8">

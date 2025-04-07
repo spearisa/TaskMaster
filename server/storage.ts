@@ -28,11 +28,14 @@ export interface IStorage {
   getTaskById(id: number): Promise<Task | undefined>;
   getTasksByUserId(userId: number): Promise<Task[]>;
   getTasksAssignedToUser(userId: number): Promise<Task[]>;
+  getPublicTasks(): Promise<Task[]>;
+  getPublicTasksByUserId(userId: number): Promise<Task[]>;
   createTask(task: InsertTask): Promise<Task>;
   updateTask(id: number, task: Partial<InsertTask>): Promise<Task | undefined>;
   deleteTask(id: number): Promise<boolean>;
   completeTask(id: number): Promise<Task | undefined>;
   assignTaskToUser(taskId: number, assignedToUserId: number): Promise<Task | undefined>;
+  setTaskPublic(taskId: number, isPublic: boolean): Promise<Task | undefined>;
   
   // Direct message methods
   getConversations(userId: number): Promise<{conversation: Conversation, user: UserProfile}[]>;
@@ -201,6 +204,19 @@ export class DatabaseStorage implements IStorage {
   async getTasksAssignedToUser(userId: number): Promise<Task[]> {
     return await db.select().from(tasks).where(eq(tasks.assignedToUserId, userId)).orderBy(desc(tasks.id));
   }
+  
+  async getPublicTasks(): Promise<Task[]> {
+    return await db.select().from(tasks).where(eq(tasks.isPublic, true)).orderBy(desc(tasks.id));
+  }
+  
+  async getPublicTasksByUserId(userId: number): Promise<Task[]> {
+    return await db.select().from(tasks)
+      .where(and(
+        eq(tasks.userId, userId),
+        eq(tasks.isPublic, true)
+      ))
+      .orderBy(desc(tasks.id));
+  }
 
   async createTask(insertTask: InsertTask): Promise<Task> {
     const [task] = await db.insert(tasks).values(insertTask).returning();
@@ -240,6 +256,17 @@ export class DatabaseStorage implements IStorage {
     const [task] = await db.update(tasks)
       .set({ 
         assignedToUserId: assignedToUserId
+      })
+      .where(eq(tasks.id, taskId))
+      .returning();
+    
+    return task;
+  }
+  
+  async setTaskPublic(taskId: number, isPublic: boolean): Promise<Task | undefined> {
+    const [task] = await db.update(tasks)
+      .set({ 
+        isPublic: isPublic
       })
       .where(eq(tasks.id, taskId))
       .returning();

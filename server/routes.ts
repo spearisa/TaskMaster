@@ -370,6 +370,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to assign task" });
     }
   });
+  
+  // Set a task's public status
+  app.post("/api/tasks/:id/public", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
+      const taskId = parseInt(req.params.id);
+      if (isNaN(taskId)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
+      
+      // Get the isPublic flag from request body
+      const { isPublic } = req.body;
+      if (typeof isPublic !== 'boolean') {
+        return res.status(400).json({ message: "Invalid isPublic value. Must be a boolean." });
+      }
+      
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Verify that the task belongs to the current user
+      if (task.userId && task.userId !== userId) {
+        console.warn(`User ${userId} attempted to change public status of task ${taskId} which belongs to user ${task.userId}`);
+        return res.status(403).json({ message: "You don't have permission to modify this task" });
+      }
+      
+      const updatedTask = await storage.setTaskPublic(taskId, isPublic);
+      
+      return res.json({
+        ...updatedTask,
+        dueDate: updatedTask?.dueDate ? updatedTask.dueDate.toISOString() : null,
+        completedAt: updatedTask?.completedAt ? updatedTask.completedAt.toISOString() : null,
+      });
+    } catch (error) {
+      console.error("Error updating task public status:", error);
+      return res.status(500).json({ message: "Failed to update task public status" });
+    }
+  });
+  
+  // Get all public tasks
+  app.get("/api/public-tasks", async (req, res) => {
+    try {
+      const tasks = await storage.getPublicTasks();
+      
+      // Get user info for each task
+      const tasksWithUserInfo = await Promise.all(
+        tasks.map(async (task) => {
+          let userInfo = null;
+          if (task.userId) {
+            userInfo = await storage.getUserProfile(task.userId);
+          }
+          
+          return {
+            ...task,
+            dueDate: task.dueDate ? task.dueDate.toISOString() : null,
+            completedAt: task.completedAt ? task.completedAt.toISOString() : null,
+            user: userInfo
+          };
+        })
+      );
+      
+      return res.json(tasksWithUserInfo);
+    } catch (error) {
+      console.error("Error fetching public tasks:", error);
+      return res.status(500).json({ message: "Failed to retrieve public tasks" });
+    }
+  });
+  
+  // Get public tasks for a specific user
+  app.get("/api/users/:userId/public-tasks", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // Verify user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const tasks = await storage.getPublicTasksByUserId(userId);
+      const userProfile = await storage.getUserProfile(userId);
+      
+      return res.json({
+        user: userProfile,
+        tasks: tasks.map(task => ({
+          ...task,
+          dueDate: task.dueDate ? task.dueDate.toISOString() : null,
+          completedAt: task.completedAt ? task.completedAt.toISOString() : null,
+        }))
+      });
+    } catch (error) {
+      console.error("Error fetching user's public tasks:", error);
+      return res.status(500).json({ message: "Failed to retrieve user's public tasks" });
+    }
+  });
 
   // Get AI task suggestions
   app.post("/api/ai/suggestions", async (req, res) => {

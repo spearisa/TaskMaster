@@ -64,6 +64,7 @@ export function MobileLayout({
     '/calendar': 'Calendar',
     '/ai-assistant': 'AI Assistant',
     '/profile': 'My Profile',
+    '/public-tasks': 'Public Task Board',
   };
 
   // For paths with dynamic segments like /task/:id or /messenger/:userId
