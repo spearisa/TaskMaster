@@ -82,7 +82,9 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
   return (
     <Link href={`/task/${task.id}`}>
       <div className="bg-lightGray rounded-xl p-4 mb-3 shadow-sm transition-all hover:translate-y-[-2px] cursor-pointer overflow-hidden">
-        <div className="flex items-start gap-3 flex-wrap">
+        {/* Task layout with fixed width columns for better text containment */}
+        <div className="grid grid-cols-[auto_1fr] gap-3">
+          {/* Checkbox column - fixed width */}
           <div onClick={stopPropagation} className="flex-shrink-0 mt-1">
             <TaskCheckbox 
               checked={task.completed} 
@@ -90,35 +92,52 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
               disabled={isCompleting}
             />
           </div>
-          <div className="flex-grow overflow-hidden">
-            <div className="flex flex-wrap justify-between items-start w-full">
-              <h3 className={`font-medium text-base mr-2 task-item-text max-w-[75%] ${task.completed ? 'line-through text-neutral-500' : ''}`}>
+
+          {/* Content column - automatically takes remaining space */}
+          <div className="min-w-0"> {/* min-width:0 prevents overflow */}
+            {/* Title row with status badge */}
+            <div className="flex justify-between items-start gap-2">
+              <h3 className={`font-medium text-base task-item-text ${task.completed ? 'line-through text-neutral-500' : ''}`}
+                  style={{ 
+                    maxWidth: 'calc(100% - 80px)', 
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    wordBreak: 'break-word'
+                  }}>
                 {task.title}
               </h3>
               {task.completed ? (
-                <div className="px-2 py-1 rounded-full text-xs text-green-500 bg-green-50 flex-shrink-0 whitespace-nowrap">
+                <div className="px-2 py-1 rounded-full text-xs text-green-500 bg-green-50 shrink-0">
                   Completed
                 </div>
               ) : (
-                <div className="flex-shrink-0 whitespace-nowrap">
+                <div className="shrink-0">
                   <PriorityBadge priority={task.priority} />
                 </div>
               )}
             </div>
-            <div className="flex flex-wrap items-center mt-2 text-sm text-neutral-500">
-              {task.completed ? (
-                <>
-                  <Clock className="h-4 w-4 mr-1" />
-                  <span>{getTimeText()}</span>
-                </>
-              ) : (
-                <>
-                  <Calendar className="h-4 w-4 mr-1" />
-                  <span>{getTimeText()}</span>
-                </>
-              )}
-              <span className="mx-2">•</span>
-              <CategoryBadge category={task.category} />
+
+            {/* Metadata row */}
+            <div className="flex flex-wrap items-center mt-2 text-sm text-neutral-500 gap-2">
+              <div className="flex items-center shrink-0">
+                {task.completed ? (
+                  <>
+                    <Clock className="h-4 w-4 mr-1" />
+                    <span>{getTimeText()}</span>
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="h-4 w-4 mr-1" />
+                    <span>{getTimeText()}</span>
+                  </>
+                )}
+              </div>
+
+              <span className="shrink-0">•</span>
+              
+              <div className="shrink-0">
+                <CategoryBadge category={task.category} />
+              </div>
               
               {/* Deadline warning for upcoming tasks with close deadlines */}
               {!task.completed && task.dueDate && 
@@ -126,8 +145,8 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
                (getDaysUntilDeadline(task.dueDate) as number) <= 2 && 
                (getDaysUntilDeadline(task.dueDate) as number) >= 0 && (
                 <>
-                  <span className="mx-2">•</span>
-                  <span className="px-2 py-0.5 bg-red-50 text-red-500 rounded-lg text-xs task-item-text">
+                  <span className="shrink-0">•</span>
+                  <span className="px-2 py-0.5 bg-red-50 text-red-500 rounded-lg text-xs shrink-0">
                     {getDaysUntilDeadline(task.dueDate)} days left
                   </span>
                 </>
