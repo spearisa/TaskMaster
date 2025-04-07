@@ -27,6 +27,7 @@ function Router() {
       <ProtectedRoute path="/task/:id" component={TaskDetailPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/messenger" component={MessengerPage} />
+      <ProtectedRoute path="/messenger/:userId" component={MessengerPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
