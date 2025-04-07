@@ -48,7 +48,10 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
   // Send a message
   const sendMessageMutation = useMutation({
     mutationFn: async (text: string) => {
-      const res = await apiRequest('POST', `/api/messages/${recipientId}`, { content: text });
+      const res = await apiRequest('POST', '/api/messages', { 
+        receiverId: recipientId,
+        content: text 
+      });
       return await res.json();
     },
     onSuccess: () => {
@@ -247,14 +250,14 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
                   }`}
                 >
                   <div className="whitespace-pre-wrap break-words">
-                    {msg.content}
+                    {msg.message || msg.content}
                   </div>
                   <div 
                     className={`text-xs mt-1 ${
                       msg.senderId === user?.id ? 'text-primary-foreground/70' : 'text-gray-500'
                     }`}
                   >
-                    {formatMessageDate(msg.createdAt)}
+                    {formatMessageDate(msg.createdAt.toString())}
                   </div>
                 </div>
               </div>
