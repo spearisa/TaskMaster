@@ -129,36 +129,42 @@ export function TaskTemplateList({ filter = 'all', title = 'Task Templates' }: T
   // Get all categories from templates
   const allCategories = [...new Set([...templates, ...publicTemplates].map(t => t.category))];
 
+  // Helper function for filtering templates
+  const filterTemplate = (template: TaskTemplateWithStringDates) => {
+    const matchesSearch = !searchQuery || 
+      template.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (template.description && template.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    const matchesCategory = !categoryFilter || template.category === categoryFilter;
+    
+    return matchesSearch && matchesCategory;
+  };
+
+  // Create a map to deduplicate templates by ID
+  const templateMap = new Map<number, TaskTemplateWithStringDates>();
+  
   // Filter templates based on filter prop and search query
   const filteredTemplates = filter === 'my'
-    ? templates.filter((template: TaskTemplateWithStringDates) => {
-        const matchesSearch = !searchQuery || 
-          template.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (template.description && template.description.toLowerCase().includes(searchQuery.toLowerCase()));
-        
-        const matchesCategory = !categoryFilter || template.category === categoryFilter;
-        
-        return matchesSearch && matchesCategory;
-      })
+    ? templates.filter(filterTemplate)
     : filter === 'public'
-    ? publicTemplates.filter((template: TaskTemplateWithStringDates) => {
-        const matchesSearch = !searchQuery || 
-          template.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (template.description && template.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    ? publicTemplates.filter(filterTemplate)
+    : (() => {
+        // For 'all' filter, combine templates but avoid duplicates
+        // Add my templates first
+        templates.forEach(template => {
+          templateMap.set(template.id, template);
+        });
         
-        const matchesCategory = !categoryFilter || template.category === categoryFilter;
+        // Then add public templates, but avoid overwriting templates already added
+        publicTemplates.forEach(template => {
+          if (!templateMap.has(template.id)) {
+            templateMap.set(template.id, template);
+          }
+        });
         
-        return matchesSearch && matchesCategory;
-      })
-    : [...templates, ...publicTemplates].filter((template: TaskTemplateWithStringDates) => {
-        const matchesSearch = !searchQuery || 
-          template.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (template.description && template.description.toLowerCase().includes(searchQuery.toLowerCase()));
-        
-        const matchesCategory = !categoryFilter || template.category === categoryFilter;
-        
-        return matchesSearch && matchesCategory;
-      });
+        // Return filtered array from the map values
+        return Array.from(templateMap.values()).filter(filterTemplate);
+      })();
 
   // Check if there are templates to display
   const hasTemplates = filteredTemplates.length > 0;
