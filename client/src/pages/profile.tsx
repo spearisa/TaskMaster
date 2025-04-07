@@ -227,7 +227,7 @@ export default function ProfilePage() {
             {upcomingDeadlines && upcomingDeadlines.length > 0 ? (
               <div className="space-y-3">
                 {upcomingDeadlines.map(task => (
-                  <Card key={task.id} className="cursor-pointer" onClick={() => navigate(`/task/${task.id}`)}>
+                  <Card key={task.id} className="cursor-pointer" onClick={() => { window.location.href = `/task/${task.id}`; }}>
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
                         <h3 className="font-medium">{task.title}</h3>
