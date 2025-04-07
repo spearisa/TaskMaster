@@ -34,7 +34,13 @@ export async function createDatabaseTables() {
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         username TEXT NOT NULL UNIQUE,
-        password TEXT NOT NULL
+        password TEXT NOT NULL,
+        display_name TEXT,
+        bio TEXT,
+        interests TEXT[],
+        skills TEXT[],
+        avatar_url TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
     
@@ -51,6 +57,29 @@ export async function createDatabaseTables() {
         completed_at TIMESTAMP,
         estimated_time INTEGER,
         user_id INTEGER REFERENCES users(id)
+      );
+    `);
+
+    // Create direct_messages table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS direct_messages (
+        id SERIAL PRIMARY KEY,
+        sender_id INTEGER REFERENCES users(id) NOT NULL,
+        receiver_id INTEGER REFERENCES users(id) NOT NULL,
+        message TEXT NOT NULL,
+        read BOOLEAN NOT NULL DEFAULT false,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Create conversations table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS conversations (
+        id SERIAL PRIMARY KEY,
+        user1_id INTEGER REFERENCES users(id) NOT NULL,
+        user2_id INTEGER REFERENCES users(id) NOT NULL,
+        last_message_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        unread_count INTEGER NOT NULL DEFAULT 0
       );
     `);
     
