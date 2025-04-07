@@ -8,7 +8,7 @@ interface MobileLayoutProps {
 }
 
 export function MobileLayout({ children }: MobileLayoutProps) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const { user } = useAuth();
 
   const navItems = [
