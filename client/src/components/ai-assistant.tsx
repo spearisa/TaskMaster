@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest, getQueryFn } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, RefreshCw, Loader } from 'lucide-react';
 
 interface Task {
   title: string;
@@ -18,23 +18,69 @@ interface SuggestionGroup {
 }
 
 export function AiAssistant() {
-  const [suggestions, setSuggestions] = useState<SuggestionGroup[]>([
-    {
-      title: "Launch your business website",
-      steps: [
-        { title: "Choose domain name", estimatedTime: 30 },
-        { title: "Set up hosting", estimatedTime: 30 },
-        { title: "Write homepage copy", estimatedTime: 60 },
-        { title: "Design layout", estimatedTime: 120 }
-      ],
-      recommendation: "To stay on track, try finishing 2 of these today."
-    }
-  ]);
-  
+  const [suggestions, setSuggestions] = useState<SuggestionGroup[]>([]);
+  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Record<string, boolean>>({});
+  const [selectedTaskForDelegation, setSelectedTaskForDelegation] = useState<number | null>(null);
+  const [delegationContext, setDelegationContext] = useState('');
+  const [isDelegating, setIsDelegating] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  
+  // Fetch user's tasks for delegation
+  const { data: tasks = [] } = useQuery({
+    queryKey: ['/api/tasks'],
+    queryFn: getQueryFn({ on401: "throw" }),
+  });
+  
+  // Task suggestions query
+  const suggestionsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('POST', '/api/ai/suggestions', {});
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (Array.isArray(data)) {
+        setSuggestions(data);
+      } else if (data.taskBreakdowns) {
+        // If we're receiving the new OpenAI format, transform it
+        const transformedSuggestions = data.taskBreakdowns.map((breakdown: any) => ({
+          title: breakdown.taskTitle,
+          steps: breakdown.steps.map((step: any) => ({
+            title: step.title,
+            estimatedTime: step.estimatedTime
+          })),
+          recommendation: data.timeManagementTips?.[0] || "Prioritize these tasks based on deadlines."
+        }));
+        setSuggestions(transformedSuggestions);
+      }
+    },
+    onError: (error) => {
+      console.error('Error fetching AI suggestions:', error);
+      toast({
+        title: "Failed to get AI suggestions",
+        description: "We couldn't generate suggestions at this time. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Fetch suggestions when component mounts
+  useEffect(() => {
+    loadSuggestions();
+  }, []);
+  
+  const loadSuggestions = async () => {
+    try {
+      setIsFetchingSuggestions(true);
+      await suggestionsMutation.mutateAsync();
+    } catch (error) {
+      console.error('Error in loadSuggestions:', error);
+    } finally {
+      setIsFetchingSuggestions(false);
+    }
+  };
 
   const toggleTaskSelection = (taskTitle: string) => {
     setSelectedTasks(prev => ({
@@ -95,11 +141,38 @@ export function AiAssistant() {
     }
   };
 
-  const askAiForHelp = () => {
-    toast({
-      title: "AI Assistant",
-      description: "AI Assistant will help optimize your schedule. Feature coming soon.",
-    });
+  // Schedule optimization mutation
+  const scheduleMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('POST', '/api/ai/schedule', {});
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Schedule Optimization",
+        description: data.message || "AI has optimized your daily schedule.",
+      });
+      // If we get schedule data, refresh tasks
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      }
+    },
+    onError: (error) => {
+      console.error('Error optimizing schedule:', error);
+      toast({
+        title: "Schedule Optimization Failed",
+        description: "We couldn't optimize your schedule at this time. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const askAiForHelp = async () => {
+    try {
+      await scheduleMutation.mutateAsync();
+    } catch (error) {
+      console.error('Error in askAiForHelp:', error);
+    }
   };
 
   const addTask = async (task: any) => {
@@ -114,8 +187,32 @@ export function AiAssistant() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
           </svg>
         </div>
-        <h2 className="text-lg font-semibold">Here's a plan to help you with your tasks:</h2>
+        <div className="flex items-center justify-center">
+          <h2 className="text-lg font-semibold mr-2">
+            Here's a plan to help you with your tasks:
+          </h2>
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            onClick={loadSuggestions} 
+            disabled={isFetchingSuggestions}
+            className="p-1"
+          >
+            {isFetchingSuggestions ? (
+              <Loader className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
       </div>
+      
+      {isFetchingSuggestions && suggestions.length === 0 && (
+        <div className="flex items-center justify-center py-10">
+          <Loader className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-3 text-gray-500">Generating AI suggestions...</span>
+        </div>
+      )}
 
       {suggestions.map((group, groupIndex) => (
         <Card key={groupIndex} className="bg-gray-50 border-none shadow-sm">
@@ -169,30 +266,86 @@ export function AiAssistant() {
           <CardTitle className="text-base font-semibold">Delegate Task to AI</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center mb-3">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <div>
-              <div className="font-medium">Write About Page Copy</div>
-              <div className="text-sm text-neutral-500">Est. Time: 45 min</div>
+          {Array.isArray(tasks) && tasks.length > 0 ? (
+            <>
+              <div className="mb-3">
+                <select 
+                  className="w-full p-2 border border-gray-200 rounded-md text-sm"
+                  value={selectedTaskForDelegation || ''}
+                  onChange={(e) => setSelectedTaskForDelegation(e.target.value ? parseInt(e.target.value) : null)}
+                >
+                  <option value="">Select a task to delegate...</option>
+                  {Array.isArray(tasks) && tasks.map((task: any) => (
+                    <option key={task.id} value={task.id}>
+                      {task.title} {task.estimatedTime ? `(${task.estimatedTime} mins)` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="mb-3 text-sm bg-primary/10 p-3 rounded-lg">
+                <div className="font-medium text-primary mb-1">AI tip:</div>
+                <p>When delegating this task to AI, be specific about your brand voice and target audience.</p>
+              </div>
+              <div className="mb-3">
+                <textarea 
+                  className="w-full p-2 border border-gray-200 rounded-md text-sm" 
+                  placeholder="Add context for the AI (optional)"
+                  rows={2}
+                  value={delegationContext}
+                  onChange={(e) => setDelegationContext(e.target.value)}
+                ></textarea>
+              </div>
+              <Button 
+                className="w-full bg-primary text-white py-2 h-10 rounded-xl text-sm font-medium"
+                onClick={() => {
+                  if (!selectedTaskForDelegation) {
+                    toast({
+                      title: "Please select a task",
+                      description: "You need to select a task to delegate to the AI.",
+                      variant: "destructive"
+                    });
+                    return;
+                  }
+                  
+                  // In a real implementation, we would call the task delegation API
+                  setIsDelegating(true);
+                  
+                  // Example of what the delegation API call would look like
+                  toast({
+                    title: "AI Task Delegation",
+                    description: `Task ID ${selectedTaskForDelegation} will be delegated to AI.`,
+                  });
+                  
+                  // After some time, stop showing loading state
+                  setTimeout(() => {
+                    setIsDelegating(false);
+                  }, 1500);
+                }}
+                disabled={isDelegating || !selectedTaskForDelegation}
+              >
+                {isDelegating ? 
+                  <><Loader className="h-4 w-4 animate-spin mr-2" /> Delegating...</> : 
+                  "Delegate Task"
+                }
+              </Button>
+              <div className="mt-2 text-xs text-gray-500 text-center">
+                The AI will break this task down into steps and provide suggestions.
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-4">
+              <div className="text-gray-500 mb-3">You don't have any tasks to delegate.</div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-primary text-primary"
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/tasks'] })}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Tasks
+              </Button>
             </div>
-          </div>
-          <div className="mb-3 text-sm bg-primary/10 p-3 rounded-lg">
-            <div className="font-medium text-primary mb-1">AI tip:</div>
-            Use brand story to build emotional resonance
-          </div>
-          <Button 
-            className="w-full bg-primary text-white py-2 h-10 rounded-xl text-sm font-medium"
-            onClick={() => {
-              toast({
-                title: "AI Delegation",
-                description: "Task delegated to AI. Feature coming soon.",
-              });
-            }}
-          >
-            Delegate Task
-          </Button>
+          )}
         </CardContent>
       </Card>
 

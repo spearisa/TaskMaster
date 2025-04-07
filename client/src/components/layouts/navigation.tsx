@@ -12,7 +12,9 @@ import {
   Inbox,
   Globe,
   FileCode,
-  BookTemplate
+  BookTemplate,
+  Bot,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -31,9 +33,9 @@ interface NavItemProps {
 function NavItem({ icon, label, href, active, onClick }: NavItemProps) {
   return (
     <Link href={href}>
-      <a 
+      <div 
         className={cn(
-          "flex items-center gap-2 px-3 py-2 rounded-md transition-colors",
+          "flex items-center gap-2 px-3 py-2 rounded-md transition-colors cursor-pointer",
           active 
             ? "bg-primary text-primary-foreground" 
             : "hover:bg-gray-100 text-gray-700"
@@ -44,7 +46,7 @@ function NavItem({ icon, label, href, active, onClick }: NavItemProps) {
           {icon}
         </div>
         <span className="font-medium">{label}</span>
-      </a>
+      </div>
     </Link>
   );
 }
@@ -65,62 +67,72 @@ export function MobileNavigation() {
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-1 py-2 z-50">
       <div className="flex justify-around items-center">
         <Link href="/">
-          <a className={cn(
-            "flex flex-col items-center p-1",
+          <div className={cn(
+            "flex flex-col items-center p-1 cursor-pointer",
             isActive('/') ? "text-primary" : "text-gray-500"
           )}>
             <Home size={18} />
             <span className="text-xs mt-1">Home</span>
-          </a>
+          </div>
         </Link>
         
         <Link href="/calendar">
-          <a className={cn(
-            "flex flex-col items-center p-1",
+          <div className={cn(
+            "flex flex-col items-center p-1 cursor-pointer",
             isActive('/calendar') ? "text-primary" : "text-gray-500"
           )}>
             <Calendar size={18} />
             <span className="text-xs mt-1">Calendar</span>
-          </a>
+          </div>
         </Link>
         
         <Link href="/new-task">
-          <a className="flex flex-col items-center p-1 -mt-5">
+          <div className="flex flex-col items-center p-1 -mt-5 cursor-pointer">
             <div className="flex items-center justify-center bg-primary text-primary-foreground rounded-full w-12 h-12">
               <Plus size={24} />
             </div>
             <span className="text-xs mt-1">New Task</span>
-          </a>
+          </div>
         </Link>
         
         <Link href="/public-tasks">
-          <a className={cn(
-            "flex flex-col items-center p-1",
+          <div className={cn(
+            "flex flex-col items-center p-1 cursor-pointer",
             isActive('/public-tasks') ? "text-primary" : "text-gray-500"
           )}>
             <Globe size={18} />
             <span className="text-xs mt-1">Public</span>
-          </a>
+          </div>
         </Link>
         
         <Link href="/task-templates">
-          <a className={cn(
-            "flex flex-col items-center p-1",
+          <div className={cn(
+            "flex flex-col items-center p-1 cursor-pointer",
             isActive('/task-templates') ? "text-primary" : "text-gray-500"
           )}>
             <BookTemplate size={18} />
             <span className="text-xs mt-1">Templates</span>
-          </a>
+          </div>
         </Link>
         
         <Link href="/messenger">
-          <a className={cn(
-            "flex flex-col items-center p-1",
+          <div className={cn(
+            "flex flex-col items-center p-1 cursor-pointer",
             isActive('/messenger') ? "text-primary" : "text-gray-500"
           )}>
             <MessageSquare size={18} />
             <span className="text-xs mt-1">Messages</span>
-          </a>
+          </div>
+        </Link>
+
+        <Link href="/ai-assistant">
+          <div className={cn(
+            "flex flex-col items-center p-1 cursor-pointer",
+            isActive('/ai-assistant') ? "text-primary" : "text-gray-500"
+          )}>
+            <Sparkles size={18} />
+            <span className="text-xs mt-1">AI Help</span>
+          </div>
         </Link>
       </div>
     </div>
@@ -194,6 +206,12 @@ export function SideNavigation() {
               active={isActive('/messenger')}
             />
             <NavItem
+              icon={<Sparkles size={18} />}
+              label="AI Assistant"
+              href="/ai-assistant"
+              active={isActive('/ai-assistant')}
+            />
+            <NavItem
               icon={<Settings size={18} />}
               label="Profile"
               href="/profile"
@@ -252,6 +270,12 @@ export function SideNavigation() {
         active={isActive('/messenger')}
       />
       <NavItem
+        icon={<Sparkles size={18} />}
+        label="AI Assistant"
+        href="/ai-assistant"
+        active={isActive('/ai-assistant')}
+      />
+      <NavItem
         icon={<Settings size={18} />}
         label="Profile"
         href="/profile"
@@ -260,10 +284,10 @@ export function SideNavigation() {
       
       <div className="mt-auto">
         <Link href="/new-task">
-          <a className="flex items-center justify-center bg-primary text-primary-foreground rounded-md py-2 px-4 w-full">
+          <div className="flex items-center justify-center bg-primary text-primary-foreground rounded-md py-2 px-4 w-full cursor-pointer">
             <Plus size={18} className="mr-2" />
             <span>New Task</span>
-          </a>
+          </div>
         </Link>
       </div>
     </div>
