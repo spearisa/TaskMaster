@@ -44,40 +44,21 @@ export async function createDatabaseTables() {
       );
     `);
     
-    // Check if tasks table needs new columns
-    const checkColumnsResult = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'tasks';
+    // Create tasks table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS tasks (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        due_date TIMESTAMP,
+        completed BOOLEAN NOT NULL DEFAULT false,
+        priority TEXT NOT NULL,
+        category TEXT NOT NULL,
+        completed_at TIMESTAMP,
+        estimated_time INTEGER,
+        user_id INTEGER REFERENCES users(id)
+      );
     `);
-    
-    const existingColumns = checkColumnsResult.rows.map(row => row.column_name);
-    
-    // Drop and recreate tasks table if missing columns
-    if (!existingColumns.includes('assigned_to_user_id') || !existingColumns.includes('is_public')) {
-      console.log("Recreating tasks table with missing columns...");
-      await pool.query(`DROP TABLE IF EXISTS tasks;`);
-      
-      // Create tasks table
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS tasks (
-          id SERIAL PRIMARY KEY,
-          title TEXT NOT NULL,
-          description TEXT,
-          due_date TIMESTAMP,
-          completed BOOLEAN NOT NULL DEFAULT false,
-          priority TEXT NOT NULL,
-          category TEXT NOT NULL,
-          completed_at TIMESTAMP,
-          estimated_time INTEGER,
-          user_id INTEGER REFERENCES users(id),
-          assigned_to_user_id INTEGER REFERENCES users(id),
-          is_public BOOLEAN NOT NULL DEFAULT false
-        );
-      `);
-    } else {
-      console.log("Tasks table already has all columns");
-    }
 
     // Create direct_messages table
     await pool.query(`
@@ -101,34 +82,6 @@ export async function createDatabaseTables() {
         unread_count INTEGER NOT NULL DEFAULT 0
       );
     `);
-    
-    // Check if task templates table exists
-    const checkTemplatesResult = await pool.query(`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_name = 'task_templates';
-    `);
-    
-    // Create task templates table if needed
-    if (checkTemplatesResult.rows.length === 0) {
-      console.log("Creating task_templates table...");
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS task_templates (
-          id SERIAL PRIMARY KEY,
-          title TEXT NOT NULL,
-          description TEXT,
-          priority TEXT NOT NULL,
-          category TEXT NOT NULL,
-          estimated_time INTEGER,
-          steps TEXT[],
-          tags TEXT[],
-          icon TEXT,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          user_id INTEGER REFERENCES users(id),
-          is_public BOOLEAN NOT NULL DEFAULT false
-        );
-      `);
-    }
     
     console.log("Database tables created successfully");
     return true;

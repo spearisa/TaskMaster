@@ -5,15 +5,12 @@ import { ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { TaskList } from '@/components/task-list';
-import { MobileTaskList } from '@/components/mobile-task-list';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function CompletedPage() {
   const [_, navigate] = useLocation();
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const isMobile = useIsMobile();
   
   const moods = [
     { value: 'great', label: 'Great', emoji: '😊' },
@@ -48,11 +45,7 @@ export default function CompletedPage() {
         <h1 className="text-xl font-semibold">Completed</h1>
       </header>
 
-      {isMobile ? (
-        <MobileTaskList filter="completed" title="Completed Tasks" />
-      ) : (
-        <TaskList filter="completed" title="Completed Tasks" />
-      )}
+      <TaskList filter="completed" />
 
       {/* Mood Tracking Section */}
       <div className="px-5 py-4">

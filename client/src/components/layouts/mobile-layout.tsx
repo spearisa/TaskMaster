@@ -117,7 +117,7 @@ export function MobileLayout({
       </div>
 
       {/* Main Content */}
-      <main className="p-4 pb-20 page-content">
+      <main className="p-4 pb-20">
         {children}
       </main>
 

@@ -19,13 +19,10 @@ import { format } from 'date-fns';
 import { useAuth } from '@/hooks/use-auth';
 import { useLocation } from 'wouter';
 import { getInitials } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { MobileTaskList } from '@/components/mobile-task-list';
 
 export default function PublicTasksPage() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
-  const isMobile = useIsMobile();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   // Define the type for public tasks that include user info
@@ -160,11 +157,7 @@ export default function PublicTasksPage() {
                 </Button>
               )}
             </div>
-          ) : isMobile ? (
-            // If mobile, use the mobile-optimized task list component
-            <MobileTaskList filter="all" title="Public Tasks" />
           ) : (
-            // For desktop, use the original card layout
             filteredTasks.map(task => (
               <Card 
                 key={task.id}
