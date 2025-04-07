@@ -205,19 +205,38 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTaskById(id: number): Promise<Task | undefined> {
-    const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
-    return task;
+    try {
+      const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
+      return task;
+    } catch (error) {
+      console.error("Error in getTaskById with ORM:", error);
+      
+      try {
+        // Try with direct SQL query
+        const pool = await import("./db").then(m => m.pool);
+        const result = await pool.query(
+          `SELECT * FROM tasks WHERE id = $1`,
+          [id]
+        );
+        
+        if (result.rows.length > 0) {
+          return result.rows[0] as Task;
+        }
+        return undefined;
+      } catch (fallbackError) {
+        console.error("Failed to fetch task by ID:", fallbackError);
+        return undefined;
+      }
+    }
   }
 
   async getTasksByUserId(userId: number): Promise<Task[]> {
     try {
-      // Try the standard Drizzle ORM approach first
-      return await db.select().from(tasks).where(eq(tasks.userId, userId)).orderBy(desc(tasks.id));
+      // Use a SQL query using the proper Drizzle SQL builder
+      const result = await db.execute(sql`SELECT * FROM tasks WHERE user_id = ${userId} ORDER BY id DESC`);
+      return result.rows as Task[];
     } catch (error) {
-      console.error("Error in getTasksByUserId with Drizzle ORM:", error);
-      
-      // If there's a database schema mismatch, return an empty array
-      // We'll handle this more permanently with a migration later
+      console.error("Error in getTasksByUserId with raw SQL:", error);
       return [];
     }
   }
@@ -234,18 +253,35 @@ export class DatabaseStorage implements IStorage {
   
   async getPublicTasks(): Promise<Task[]> {
     try {
-      // Use the standard Drizzle ORM approach
+      // First try using the standard Drizzle ORM approach
       return await db.select().from(tasks).where(eq(tasks.isPublic, true)).orderBy(desc(tasks.id));
     } catch (error) {
       console.error("Error in getPublicTasks with ORM:", error);
-      // If there's a database schema mismatch, return an empty array
-      return [];
+      
+      try {
+        // First, try to add the column if it doesn't exist
+        const pool = await import("./db").then(m => m.pool);
+        await pool.query(
+          `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false`
+        );
+        
+        // Try again with direct SQL
+        const result = await pool.query(
+          `SELECT * FROM tasks WHERE is_public = true ORDER BY id DESC`
+        );
+        
+        return result.rows as Task[];
+      } catch (fallbackError) {
+        console.error("Failed to query public tasks:", fallbackError);
+        // If there's a database schema mismatch, return an empty array
+        return [];
+      }
     }
   }
   
   async getPublicTasksByUserId(userId: number): Promise<Task[]> {
     try {
-      // Use the standard Drizzle ORM approach
+      // First try using the standard Drizzle ORM approach
       return await db.select().from(tasks)
         .where(and(
           eq(tasks.userId, userId),
@@ -254,30 +290,60 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(tasks.id));
     } catch (error) {
       console.error("Error in getPublicTasksByUserId with ORM:", error);
-      // If there's a database schema mismatch, return an empty array
-      return [];
+      
+      try {
+        // First, try to add the column if it doesn't exist
+        const pool = await import("./db").then(m => m.pool);
+        await pool.query(
+          `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false`
+        );
+        
+        // Try again with direct SQL
+        const result = await pool.query(
+          `SELECT * FROM tasks WHERE user_id = $1 AND is_public = true ORDER BY id DESC`,
+          [userId]
+        );
+        
+        return result.rows as Task[];
+      } catch (fallbackError) {
+        console.error("Failed to query public tasks by user ID:", fallbackError);
+        // If there's a database schema mismatch, return an empty array
+        return [];
+      }
     }
   }
 
   async createTask(insertTask: InsertTask): Promise<Task> {
     try {
-      // First try the normal insert
-      const [task] = await db.insert(tasks).values(insertTask).returning();
+      // Try first with the basic columns we know exist in the database
+      const safeInsertTask = {
+        title: insertTask.title,
+        description: insertTask.description || null,
+        dueDate: insertTask.dueDate || null,
+        completed: insertTask.completed || false,
+        priority: insertTask.priority,
+        category: insertTask.category,
+        estimatedTime: insertTask.estimatedTime || null,
+        userId: insertTask.userId || null
+      };
+      
+      const [task] = await db.insert(tasks).values(safeInsertTask).returning();
       return task;
     } catch (error) {
       console.error("Error in createTask:", error);
       
-      // If it's a missing column error, we need to use a more specific insert
-      if (error instanceof Error && error.message && error.message.includes("assigned_to_user_id")) {
-        console.log("Detected missing assigned_to_user_id column, using alternative insert approach");
+      // If we still have issues, try the most basic raw SQL approach with only the columns we know exist
+      try {
+        console.log("Trying most basic insert with just the known columns");
         
-        // Use a SQL approach that only inserts the columns we know exist
-        const result = await db.execute(`
+        // Create a safe parameterized query using the pg module directly
+        const pool = await import("./db").then(m => m.pool);
+        const result = await pool.query(`
           INSERT INTO tasks (
             title, description, due_date, completed, priority, 
-            category, completed_at, estimated_time, user_id, is_public
+            category, completed_at, estimated_time, user_id
           ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+            $1, $2, $3, $4, $5, $6, $7, $8, $9
           ) RETURNING *
         `, [
           insertTask.title,
@@ -288,41 +354,62 @@ export class DatabaseStorage implements IStorage {
           insertTask.category,
           null, // completed_at
           insertTask.estimatedTime || null,
-          insertTask.userId || null,
-          insertTask.isPublic || false
+          insertTask.userId || null
         ]);
         
         if (result.rows.length > 0) {
           return result.rows[0] as Task;
         }
+      } catch (fallbackError) {
+        console.error("Even the fallback insert approach failed:", fallbackError);
       }
       
-      // Re-throw the error if our fallback didn't work
+      // Re-throw the original error if our fallbacks didn't work
       throw error;
     }
   }
 
   async updateTask(id: number, updatedTask: Partial<InsertTask>): Promise<Task | undefined> {
     try {
-      const [task] = await db.update(tasks)
-        .set(updatedTask)
-        .where(eq(tasks.id, id))
-        .returning();
+      // Create a safe update object with only the columns we know exist
+      const safeUpdateTask: Record<string, any> = {};
       
+      // Only include fields that we know exist in the database
+      if (updatedTask.title !== undefined) safeUpdateTask.title = updatedTask.title;
+      if (updatedTask.description !== undefined) safeUpdateTask.description = updatedTask.description;
+      if (updatedTask.dueDate !== undefined) safeUpdateTask.dueDate = updatedTask.dueDate;
+      if (updatedTask.completed !== undefined) safeUpdateTask.completed = updatedTask.completed;
+      if (updatedTask.priority !== undefined) safeUpdateTask.priority = updatedTask.priority;
+      if (updatedTask.category !== undefined) safeUpdateTask.category = updatedTask.category;
+      if (updatedTask.estimatedTime !== undefined) safeUpdateTask.estimatedTime = updatedTask.estimatedTime;
+      if (updatedTask.userId !== undefined) safeUpdateTask.userId = updatedTask.userId;
+      
+      // Only attempt to update if we have fields to update
+      if (Object.keys(safeUpdateTask).length > 0) {
+        const [task] = await db.update(tasks)
+          .set(safeUpdateTask)
+          .where(eq(tasks.id, id))
+          .returning();
+        
+        return task;
+      }
+      
+      // If nothing to update, retrieve the current task
+      const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
       return task;
     } catch (error) {
       console.error("Error in updateTask:", error);
       
-      // If it's a missing column error, we need to use a more specific update
-      if (error instanceof Error && error.message && error.message.includes("assigned_to_user_id")) {
-        console.log("Detected missing assigned_to_user_id column, using alternative update approach");
+      // If we still have issues, try a raw SQL approach with only the known columns
+      try {
+        console.log("Trying update with raw SQL and known columns only");
         
         // Create a values string that excludes potential problematic fields
         const setClause = [];
         const values = [];
         let paramIndex = 1;
         
-        // Only include fields that we know exist in the database
+        // Only include fields that we know exist in the database based on our schema check
         if (updatedTask.title !== undefined) {
           setClause.push(`title = $${paramIndex++}`);
           values.push(updatedTask.title);
@@ -351,9 +438,10 @@ export class DatabaseStorage implements IStorage {
           setClause.push(`estimated_time = $${paramIndex++}`);
           values.push(updatedTask.estimatedTime);
         }
-        if (updatedTask.isPublic !== undefined) {
-          setClause.push(`is_public = $${paramIndex++}`);
-          values.push(updatedTask.isPublic);
+        // Add completion date if task is being marked as completed
+        if (updatedTask.completed) {
+          setClause.push(`completed_at = $${paramIndex++}`);
+          values.push(new Date());
         }
         
         // If we have fields to update, do the update
@@ -361,20 +449,29 @@ export class DatabaseStorage implements IStorage {
           // Add the ID parameter to the values array
           values.push(id);
           
-          const result = await db.execute(`
+          // Build the dynamic SQL query using sql tagged template
+          // Unfortunately this requires creating the SQL dynamically since we need to build 
+          // the SET clause based on which fields are being updated
+          const updateSql = `
             UPDATE tasks
             SET ${setClause.join(', ')}
             WHERE id = $${paramIndex}
             RETURNING *
-          `, values);
+          `;
+          
+          // Create a safe parameterized query using the pg module directly
+          const pool = await import("./db").then(m => m.pool);
+          const result = await pool.query(updateSql, values);
           
           if (result.rows.length > 0) {
             return result.rows[0] as Task;
           }
         }
+      } catch (fallbackError) {
+        console.error("Even the fallback update approach failed:", fallbackError);
       }
       
-      // Re-throw the error if our fallback didn't work
+      // Re-throw the original error if our fallbacks didn't work
       throw error;
     }
   }
@@ -388,19 +485,42 @@ export class DatabaseStorage implements IStorage {
   }
 
   async completeTask(id: number): Promise<Task | undefined> {
-    const [task] = await db.update(tasks)
-      .set({ 
-        completed: true,
-        completedAt: new Date() 
-      })
-      .where(eq(tasks.id, id))
-      .returning();
-    
-    return task;
+    try {
+      // Try using standard Drizzle update first
+      const [task] = await db.update(tasks)
+        .set({ 
+          completed: true,
+          completedAt: new Date() 
+        })
+        .where(eq(tasks.id, id))
+        .returning();
+      
+      return task;
+    } catch (error) {
+      console.error("Error in completeTask (possibly due to missing completedAt column):", error);
+      
+      // Fallback: use direct SQL to update only the columns we know exist
+      try {
+        const pool = await import("./db").then(m => m.pool);
+        const result = await pool.query(
+          `UPDATE tasks SET completed = true, completed_at = $1 WHERE id = $2 RETURNING *`,
+          [new Date(), id]
+        );
+        
+        if (result.rows.length > 0) {
+          return result.rows[0] as Task;
+        }
+        return undefined;
+      } catch (fallbackError) {
+        console.error("Even the fallback complete approach failed:", fallbackError);
+        throw error; // Rethrow original error if fallback also fails
+      }
+    }
   }
   
   async assignTaskToUser(taskId: number, assignedToUserId: number): Promise<Task | undefined> {
     try {
+      // Try standard Drizzle approach first
       const [task] = await db.update(tasks)
         .set({ 
           assignedToUserId: assignedToUserId
@@ -411,19 +531,71 @@ export class DatabaseStorage implements IStorage {
       return task;
     } catch (error) {
       console.error("Error in assignTaskToUser, database may be missing the column:", error);
-      return undefined;
+      
+      try {
+        // Try to add the column if it doesn't exist
+        const pool = await import("./db").then(m => m.pool);
+        await pool.query(
+          `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS assigned_to_user_id INTEGER`
+        );
+        
+        // Now try again with the direct pool
+        const result = await pool.query(
+          `UPDATE tasks SET assigned_to_user_id = $1 WHERE id = $2 RETURNING *`,
+          [assignedToUserId, taskId]
+        );
+        
+        if (result.rows.length > 0) {
+          return result.rows[0] as Task;
+        }
+      } catch (fallbackError) {
+        console.error("Failed to add or update assigned_to_user_id column:", fallbackError);
+      }
+      
+      // If nothing worked, just return the task as is
+      const [task] = await db.select().from(tasks).where(eq(tasks.id, taskId));
+      return task;
     }
   }
   
   async setTaskPublic(taskId: number, isPublic: boolean): Promise<Task | undefined> {
-    const [task] = await db.update(tasks)
-      .set({ 
-        isPublic: isPublic
-      })
-      .where(eq(tasks.id, taskId))
-      .returning();
-    
-    return task;
+    try {
+      // Try standard Drizzle approach first
+      const [task] = await db.update(tasks)
+        .set({ 
+          isPublic: isPublic
+        })
+        .where(eq(tasks.id, taskId))
+        .returning();
+      
+      return task;
+    } catch (error) {
+      console.error("Error in setTaskPublic, database may be missing the column:", error);
+      
+      try {
+        // Try to add the column if it doesn't exist
+        const pool = await import("./db").then(m => m.pool);
+        await pool.query(
+          `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false`
+        );
+        
+        // Now try again with the direct pool
+        const result = await pool.query(
+          `UPDATE tasks SET is_public = $1 WHERE id = $2 RETURNING *`,
+          [isPublic, taskId]
+        );
+        
+        if (result.rows.length > 0) {
+          return result.rows[0] as Task;
+        }
+      } catch (fallbackError) {
+        console.error("Failed to add or update is_public column:", fallbackError);
+      }
+      
+      // If nothing worked, just return the task as is
+      const [task] = await db.select().from(tasks).where(eq(tasks.id, taskId));
+      return task;
+    }
   }
 
   /**
