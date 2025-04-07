@@ -33,7 +33,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
         <div className="text-xl font-bold">Daddie</div>
         <div 
           className="p-2 rounded-full hover:bg-gray-100 cursor-pointer" 
-          onClick={() => window.location.href = '/profile'}
+          onClick={() => navigate('/profile')}
         >
           <User className="h-5 w-5" />
         </div>
