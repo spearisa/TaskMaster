@@ -58,6 +58,7 @@ export function MobileLayout({
   const pageTitles: Record<string, string> = {
     '/': 'My Tasks',
     '/completed': 'Completed Tasks',
+    '/assigned-tasks': 'Assigned Tasks',
     '/new-task': 'Add New Task',
     '/messenger': 'Messages',
     '/calendar': 'Calendar',

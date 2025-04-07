@@ -25,6 +25,7 @@ export const tasks = pgTable("tasks", {
   completedAt: timestamp("completed_at"),
   estimatedTime: integer("estimated_time"), // in minutes
   userId: integer("user_id").references(() => users.id),
+  assignedToUserId: integer("assigned_to_user_id").references(() => users.id),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -66,6 +67,7 @@ export const insertTaskSchema = z.object({
   category: z.string(),
   estimatedTime: z.number().int().positive().optional().nullable(),
   userId: z.number().optional().nullable(),
+  assignedToUserId: z.number().optional().nullable(),
 });
 
 export const taskSchema = z.object({
@@ -79,6 +81,7 @@ export const taskSchema = z.object({
   completedAt: z.string().optional().nullable(),
   estimatedTime: z.number().optional().nullable(),
   userId: z.number().optional().nullable(),
+  assignedToUserId: z.number().optional().nullable(),
 });
 
 // Create the direct messages table

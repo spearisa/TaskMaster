@@ -2,11 +2,12 @@ import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { MobileLayout } from "@/components/layouts/mobile-layout";
-import { ChevronLeft, AlertCircle, Sparkles, Calendar, Clock } from "lucide-react";
+import { ChevronLeft, AlertCircle, Sparkles, Calendar, Clock, UserPlus, Bell } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { TaskDelegation } from "@/components/task-delegation";
+import { TaskAssignment } from "@/components/task-assignment";
 import { PriorityBadge } from "@/components/ui/priority-badge";
 import { CategoryBadge } from "@/components/ui/category-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -204,18 +205,32 @@ export default function TaskDetailPage() {
           <Separator className="my-6" />
 
           <Tabs defaultValue="delegate" className="space-y-6">
-            <TabsList className="grid grid-cols-2">
-              <TabsTrigger value="delegate" className="flex items-center gap-2">
+            <TabsList className="grid grid-cols-3">
+              <TabsTrigger value="delegate" className="flex items-center gap-1">
                 <Sparkles className="h-4 w-4" />
                 <span>AI Delegate</span>
               </TabsTrigger>
-              <TabsTrigger value="reminders">Reminders</TabsTrigger>
+              <TabsTrigger value="assign" className="flex items-center gap-1">
+                <UserPlus className="h-4 w-4" />
+                <span>Assign</span>
+              </TabsTrigger>
+              <TabsTrigger value="reminders" className="flex items-center gap-1">
+                <Bell className="h-4 w-4" />
+                <span>Reminders</span>
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="delegate" className="mt-4">
               <TaskDelegation 
                 task={task} 
                 onDone={handleCompleteTask}
+              />
+            </TabsContent>
+            
+            <TabsContent value="assign" className="mt-4">
+              <TaskAssignment 
+                task={task} 
+                onDone={() => refetchTask()}
               />
             </TabsContent>
             

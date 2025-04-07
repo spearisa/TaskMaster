@@ -7,7 +7,9 @@ import {
   MessageSquare, 
   Plus, 
   Settings,
-  Menu
+  Menu,
+  UserPlus,
+  Inbox
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -155,6 +157,12 @@ export function SideNavigation() {
               active={isActive('/completed')}
             />
             <NavItem
+              icon={<Inbox size={18} />}
+              label="Assigned Tasks"
+              href="/assigned-tasks"
+              active={isActive('/assigned-tasks')}
+            />
+            <NavItem
               icon={<MessageSquare size={18} />}
               label="Messages"
               href="/messenger"
@@ -193,6 +201,12 @@ export function SideNavigation() {
         label="Completed Tasks"
         href="/completed"
         active={isActive('/completed')}
+      />
+      <NavItem
+        icon={<Inbox size={18} />}
+        label="Assigned Tasks"
+        href="/assigned-tasks"
+        active={isActive('/assigned-tasks')}
       />
       <NavItem
         icon={<MessageSquare size={18} />}

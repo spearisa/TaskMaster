@@ -283,6 +283,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to delete task" });
     }
   });
+  
+  // Get tasks assigned to the authenticated user
+  app.get("/api/assigned-tasks", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
+      console.log(`Fetching tasks assigned to user ID: ${userId}`);
+      
+      // Get tasks assigned to this specific user
+      const assignedTasks = await storage.getTasksAssignedToUser(userId);
+      
+      return res.json(assignedTasks.map(task => ({
+        ...task,
+        dueDate: task.dueDate ? task.dueDate.toISOString() : null,
+        completedAt: task.completedAt ? task.completedAt.toISOString() : null,
+      })));
+    } catch (error) {
+      console.error("Error fetching assigned tasks:", error);
+      return res.status(500).json({ message: "Failed to retrieve assigned tasks" });
+    }
+  });
+  
+  // Assign a task to another user
+  app.post("/api/tasks/:id/assign", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the current user's ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID not available" });
+      }
+      
+      const taskId = parseInt(req.params.id);
+      if (isNaN(taskId)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
+      
+      // Get the assignee's user ID from the request body
+      const { assignedToUserId } = req.body;
+      if (!assignedToUserId || isNaN(parseInt(assignedToUserId))) {
+        return res.status(400).json({ message: "Invalid assignee user ID" });
+      }
+      
+      const assigneeId = parseInt(assignedToUserId);
+      
+      // Verify assignee exists
+      const assignee = await storage.getUser(assigneeId);
+      if (!assignee) {
+        return res.status(404).json({ message: "Assignee user not found" });
+      }
+      
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Verify that the task belongs to the current user
+      if (task.userId && task.userId !== userId) {
+        console.warn(`User ${userId} attempted to assign task ${taskId} which belongs to user ${task.userId}`);
+        return res.status(403).json({ message: "You don't have permission to assign this task" });
+      }
+      
+      const assignedTask = await storage.assignTaskToUser(taskId, assigneeId);
+      
+      return res.json({
+        ...assignedTask,
+        dueDate: assignedTask?.dueDate ? assignedTask.dueDate.toISOString() : null,
+        completedAt: assignedTask?.completedAt ? assignedTask.completedAt.toISOString() : null,
+      });
+    } catch (error) {
+      console.error("Error assigning task:", error);
+      return res.status(500).json({ message: "Failed to assign task" });
+    }
+  });
 
   // Get AI task suggestions
   app.post("/api/ai/suggestions", async (req, res) => {

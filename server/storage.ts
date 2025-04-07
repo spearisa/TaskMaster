@@ -27,10 +27,12 @@ export interface IStorage {
   getTasks(): Promise<Task[]>;
   getTaskById(id: number): Promise<Task | undefined>;
   getTasksByUserId(userId: number): Promise<Task[]>;
+  getTasksAssignedToUser(userId: number): Promise<Task[]>;
   createTask(task: InsertTask): Promise<Task>;
   updateTask(id: number, task: Partial<InsertTask>): Promise<Task | undefined>;
   deleteTask(id: number): Promise<boolean>;
   completeTask(id: number): Promise<Task | undefined>;
+  assignTaskToUser(taskId: number, assignedToUserId: number): Promise<Task | undefined>;
   
   // Direct message methods
   getConversations(userId: number): Promise<{conversation: Conversation, user: UserProfile}[]>;
@@ -195,6 +197,10 @@ export class DatabaseStorage implements IStorage {
   async getTasksByUserId(userId: number): Promise<Task[]> {
     return await db.select().from(tasks).where(eq(tasks.userId, userId)).orderBy(desc(tasks.id));
   }
+  
+  async getTasksAssignedToUser(userId: number): Promise<Task[]> {
+    return await db.select().from(tasks).where(eq(tasks.assignedToUserId, userId)).orderBy(desc(tasks.id));
+  }
 
   async createTask(insertTask: InsertTask): Promise<Task> {
     const [task] = await db.insert(tasks).values(insertTask).returning();
@@ -225,6 +231,17 @@ export class DatabaseStorage implements IStorage {
         completedAt: new Date() 
       })
       .where(eq(tasks.id, id))
+      .returning();
+    
+    return task;
+  }
+  
+  async assignTaskToUser(taskId: number, assignedToUserId: number): Promise<Task | undefined> {
+    const [task] = await db.update(tasks)
+      .set({ 
+        assignedToUserId: assignedToUserId
+      })
+      .where(eq(tasks.id, taskId))
       .returning();
     
     return task;
