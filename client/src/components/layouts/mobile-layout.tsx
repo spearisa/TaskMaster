@@ -82,7 +82,7 @@ export function MobileLayout({
     logoutMutation.mutate();
   };
 
-  const contentPadding = isMobile ? '' : 'md:ml-48';
+  const contentPadding = isMobile ? 'pb-28' : 'md:ml-48';
 
   return (
     <div className={`mx-auto bg-white min-h-screen relative ${contentPadding}`}>
@@ -117,7 +117,7 @@ export function MobileLayout({
       </div>
 
       {/* Main Content */}
-      <main className={`p-4 ${isMobile ? 'pb-28' : 'pb-8'} page-content`}>
+      <main className="p-4 pb-20 page-content">
         {children}
       </main>
 

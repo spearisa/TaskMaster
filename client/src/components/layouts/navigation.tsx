@@ -64,54 +64,54 @@ export function MobileNavigation() {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 px-1 py-2 z-50 bottom-nav bg-white">
-      <div className="grid grid-cols-5 gap-0">
+    <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 px-1 py-2 z-50 bottom-nav">
+      <div className="grid grid-cols-5 gap-1">
         <Link href="/">
           <div className={cn(
-            "flex flex-col items-center justify-center px-0.5 py-1 cursor-pointer",
+            "flex flex-col items-center p-1 cursor-pointer",
             isActive('/') ? "text-primary" : "text-gray-500"
           )}>
-            <Home size={16} />
-            <span className="text-[8px] mt-0.5 w-full text-center">Home</span>
+            <Home size={18} />
+            <span className="text-xs mt-1">Home</span>
           </div>
         </Link>
         
         <Link href="/calendar">
           <div className={cn(
-            "flex flex-col items-center justify-center px-0.5 py-1 cursor-pointer",
+            "flex flex-col items-center p-1 cursor-pointer",
             isActive('/calendar') ? "text-primary" : "text-gray-500"
           )}>
-            <Calendar size={16} />
-            <span className="text-[8px] mt-0.5 w-full text-center">Cal</span>
+            <Calendar size={18} />
+            <span className="text-xs mt-1">Cal</span>
           </div>
         </Link>
         
         <Link href="/new-task">
-          <div className="flex flex-col items-center justify-center px-0.5 -mt-5 cursor-pointer">
+          <div className="flex flex-col items-center p-1 -mt-5 cursor-pointer">
             <div className="flex items-center justify-center bg-primary text-primary-foreground rounded-full w-12 h-12">
               <Plus size={24} />
             </div>
-            <span className="text-[8px] mt-0.5 w-full text-center">Add</span>
+            <span className="text-xs mt-1">Add</span>
           </div>
         </Link>
         
         <Link href="/messenger">
           <div className={cn(
-            "flex flex-col items-center justify-center px-0.5 py-1 cursor-pointer",
+            "flex flex-col items-center p-1 cursor-pointer",
             isActive('/messenger') ? "text-primary" : "text-gray-500"
           )}>
-            <MessageSquare size={16} />
-            <span className="text-[8px] mt-0.5 w-full text-center">Chat</span>
+            <MessageSquare size={18} />
+            <span className="text-xs mt-1">Chat</span>
           </div>
         </Link>
 
         <Link href="/ai-assistant">
           <div className={cn(
-            "flex flex-col items-center justify-center px-0.5 py-1 cursor-pointer",
+            "flex flex-col items-center p-1 cursor-pointer",
             isActive('/ai-assistant') ? "text-primary" : "text-gray-500"
           )}>
-            <Sparkles size={16} />
-            <span className="text-[8px] mt-0.5 w-full text-center">AI</span>
+            <Sparkles size={18} />
+            <span className="text-xs mt-1">AI</span>
           </div>
         </Link>
       </div>
