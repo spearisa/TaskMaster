@@ -323,6 +323,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delegate a task to AI for detailed completion assistance
   app.post("/api/tasks/:id/delegate", async (req, res) => {
     try {
+      // Ensure user is authenticated
+      if (!req.isAuthenticated()) {
+        console.log("User not authenticated for task delegation");
+        return res.status(401).json({ message: "Authentication required" });
+      }
       // Check if user is authenticated
       if (!req.isAuthenticated()) {
         return res.status(401).json({ message: "Authentication required" });

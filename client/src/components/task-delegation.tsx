@@ -40,15 +40,10 @@ export function TaskDelegation({ task, onDone }: TaskDelegationProps) {
 
   const delegateTask = async () => {
     try {
-      // Check session before making request
-      const userResponse = await fetch('/api/user', {
-        credentials: 'include'
-      });
-      
-      if (!userResponse.ok) {
+      if (!user) {
         toast({
-          title: "Session expired",
-          description: "Please log in again to continue",
+          title: "Authentication required",
+          description: "Please log in to use this feature",
           variant: "destructive",
         });
         return;
