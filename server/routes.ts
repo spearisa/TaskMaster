@@ -1,10 +1,11 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertTaskSchema, taskSchema } from "@shared/schema";
+import { insertTaskSchema, taskSchema, insertDirectMessageSchema, updateProfileSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { getTaskSuggestions, generateTaskReminder, generateDailySchedule, delegateTaskToAI } from "./openai-service";
 import { setupAuth } from "./auth";
+import { WebSocketServer, WebSocket } from "ws";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
@@ -435,6 +436,294 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // === User Profile API Routes ===
+  
+  app.get("/api/profile", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const profile = await storage.getUserProfile(req.user.id);
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+      
+      res.json(profile);
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      return res.status(500).json({ message: "Failed to retrieve profile" });
+    }
+  });
+  
+  app.patch("/api/profile", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Validate the incoming profile data
+      const profileValidation = updateProfileSchema.safeParse(req.body);
+      
+      if (!profileValidation.success) {
+        const validationError = fromZodError(profileValidation.error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      
+      const updatedUser = await storage.updateUserProfile(req.user.id, profileValidation.data);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const profile = await storage.getUserProfile(req.user.id);
+      res.json(profile);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      return res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+  
+  app.get("/api/users/search", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const query = req.query.q as string;
+      if (!query || query.length < 2) {
+        return res.status(400).json({ message: "Search query must be at least 2 characters" });
+      }
+      
+      const users = await storage.searchUsers(query, req.user.id);
+      res.json(users);
+    } catch (error) {
+      console.error("Error searching users:", error);
+      return res.status(500).json({ message: "Failed to search users" });
+    }
+  });
+  
+  // === Messaging API Routes ===
+  
+  app.get("/api/conversations", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const conversations = await storage.getConversations(req.user.id);
+      res.json(conversations);
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+      return res.status(500).json({ message: "Failed to retrieve conversations" });
+    }
+  });
+  
+  app.get("/api/messages/:userId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const otherUserId = parseInt(req.params.userId);
+      if (isNaN(otherUserId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // Mark messages as read when fetching them
+      await storage.markMessagesAsRead(req.user.id, otherUserId);
+      
+      const messages = await storage.getMessages(req.user.id, otherUserId);
+      res.json(messages.map(msg => ({
+        ...msg,
+        createdAt: msg.createdAt ? msg.createdAt.toISOString() : null,
+      })));
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      return res.status(500).json({ message: "Failed to retrieve messages" });
+    }
+  });
+  
+  app.post("/api/messages", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const messageData = {
+        senderId: req.user.id,
+        receiverId: req.body.receiverId,
+        content: req.body.content,
+        read: false,
+        createdAt: new Date()
+      };
+      
+      // Validate message data
+      const validationResult = insertDirectMessageSchema.safeParse(messageData);
+      if (!validationResult.success) {
+        const validationError = fromZodError(validationResult.error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      
+      const message = await storage.sendMessage(validationResult.data);
+      
+      // Send a WebSocket notification
+      notifyWebSocketClients({
+        type: 'new_message',
+        message: {
+          ...message,
+          createdAt: message.createdAt ? message.createdAt.toISOString() : null,
+        }
+      });
+      
+      res.status(201).json({
+        ...message,
+        createdAt: message.createdAt ? message.createdAt.toISOString() : null,
+      });
+    } catch (error) {
+      console.error("Error sending message:", error);
+      return res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+  
+  app.post("/api/messages/:userId/read", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const otherUserId = parseInt(req.params.userId);
+      if (isNaN(otherUserId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      await storage.markMessagesAsRead(req.user.id, otherUserId);
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
+      return res.status(500).json({ message: "Failed to mark messages as read" });
+    }
+  });
+
+  // Initialize demo data
+  await storage.initializeDemo();
+
+  // Create HTTP server
   const httpServer = createServer(app);
+  
+  // Create WebSocket server
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  // Track connected clients by user ID
+  const connectedClients = new Map<number, Set<WebSocket>>();
+  
+  // Function to notify WebSocket clients
+  function notifyWebSocketClients(data: any) {
+    // If it's a message, specifically notify the receiver
+    if (data.type === 'new_message' && data.message && data.message.receiverId) {
+      const receiverId = data.message.receiverId;
+      const receiverSockets = connectedClients.get(receiverId);
+      
+      if (receiverSockets) {
+        receiverSockets.forEach(socket => {
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify(data));
+          }
+        });
+      }
+      return;
+    }
+    
+    // Otherwise broadcast to all connected clients
+    for (const [userId, sockets] of connectedClients.entries()) {
+      sockets.forEach(socket => {
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify(data));
+        }
+      });
+    }
+  }
+  
+  // WebSocket connection handler
+  wss.on('connection', (ws, req) => {
+    console.log('WebSocket client connected');
+    let userId: number | null = null;
+    
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        console.log('WebSocket message received:', data);
+        
+        // Handle client registration with user ID
+        if (data.type === 'register' && data.userId) {
+          userId = parseInt(data.userId);
+          
+          if (!connectedClients.has(userId)) {
+            connectedClients.set(userId, new Set());
+          }
+          
+          connectedClients.get(userId)?.add(ws);
+          console.log(`User ${userId} registered with WebSocket`);
+          
+          // Acknowledge registration
+          ws.send(JSON.stringify({ 
+            type: 'registration_successful',
+            userId
+          }));
+          
+          return;
+        }
+        
+        // Handle direct messages
+        if (data.type === 'direct_message' && userId && data.receiverId && data.content) {
+          // Forward the message to the API to save it
+          const messageData = {
+            senderId: userId,
+            receiverId: data.receiverId,
+            content: data.content,
+            read: false
+          };
+          
+          // This is async but we don't need to await it here
+          // as we're just forwarding the message for processing
+          fetch('http://localhost:' + (process.env.PORT || 3000) + '/api/messages', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              // Include credentials from the request if needed
+              'Cookie': req.headers.cookie || ''
+            },
+            body: JSON.stringify(messageData)
+          }).catch(error => {
+            console.error('Error forwarding WebSocket message to API:', error);
+          });
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+      }
+    });
+    
+    ws.on('close', () => {
+      console.log('WebSocket client disconnected');
+      
+      // Remove this connection from tracked clients
+      if (userId && connectedClients.has(userId)) {
+        const userSockets = connectedClients.get(userId);
+        if (userSockets) {
+          userSockets.delete(ws);
+          
+          // If no more sockets for this user, remove the user entry
+          if (userSockets.size === 0) {
+            connectedClients.delete(userId);
+          }
+        }
+      }
+    });
+    
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+    });
+  });
+  
   return httpServer;
 }

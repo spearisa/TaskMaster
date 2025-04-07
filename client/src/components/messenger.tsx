@@ -10,7 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 interface Message {
   room: string;
   author: string;
-  message: string;
+  message: string; // Used in UI for compatibility
+  content?: string; // Field from direct message API
   timestamp?: string;
 }
 
@@ -42,18 +43,27 @@ export function Messenger() {
 
     // Listen for incoming messages
     socket.on('receive_message', (data: Message) => {
+      // Ensure both message and content fields exist for compatibility
+      const normalizedData = {
+        ...data,
+        // If we receive a message with content field (from direct message API), use it for message field
+        message: data.content || data.message,
+        // Always keep both fields in sync for compatibility
+        content: data.message || data.content
+      };
+      
       // Check if this message is from the current user and already in the list
       // This prevents duplicate messages
-      const isDuplicate = prev => prev.some(
+      const isDuplicate = (prev: Message[]) => prev.some(
         msg => 
-          msg.author === data.author && 
-          msg.message === data.message && 
+          msg.author === normalizedData.author && 
+          msg.message === normalizedData.message && 
           // Use approximate time matching (within 2 seconds)
-          msg.timestamp && data.timestamp && 
-          Math.abs(new Date(msg.timestamp).getTime() - new Date(data.timestamp).getTime()) < 2000
+          msg.timestamp && normalizedData.timestamp && 
+          Math.abs(new Date(msg.timestamp).getTime() - new Date(normalizedData.timestamp).getTime()) < 2000
       );
       
-      setMessages((prev) => isDuplicate(prev) ? prev : [...prev, data]);
+      setMessages((prev) => isDuplicate(prev) ? prev : [...prev, normalizedData]);
     });
 
     // Handle connection events
@@ -86,10 +96,12 @@ export function Messenger() {
 
   const sendMessage = () => {
     if (message.trim() && socketRef.current && user) {
+      const messageText = message.trim();
       const messageData: Message = {
         room,
         author: user.username,
-        message: message.trim(),
+        message: messageText,
+        content: messageText, // Include content field for direct message API compatibility
       };
       
       socketRef.current.emit('send_message', messageData);
