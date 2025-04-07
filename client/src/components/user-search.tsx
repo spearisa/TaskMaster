@@ -21,7 +21,11 @@ interface UserProfile {
   createdAt: string | null;
 }
 
-export function UserSearch() {
+interface UserSearchProps {
+  onSelectUser?: (userId: number) => void;
+}
+
+export function UserSearch({ onSelectUser }: UserSearchProps) {
   const { user } = useAuth();
   const [_, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,10 +86,15 @@ export function UserSearch() {
 
   // When a user card is clicked, navigate to the direct message page
   const handleUserClick = (userId: number) => {
-    console.log(`[UserSearch] Navigating to user ID: ${userId}`);
+    console.log(`[UserSearch] Selecting user ID: ${userId}`);
     
-    // Using window.location for direct navigation to ensure it works
-    window.location.href = `/messenger/${userId}`;
+    if (onSelectUser) {
+      // Use the callback if provided (for the new unified page approach)
+      onSelectUser(userId);
+    } else {
+      // For backwards compatibility
+      window.location.href = `/messenger/${userId}`;
+    }
   };
 
   return (
