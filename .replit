@@ -48,8 +48,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "psql $DATABASE_URL -c \"DROP TABLE IF EXISTS users, tasks, direct_messages, conversations CASCADE;\""
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
 args = "npm run dev"
