@@ -46,7 +46,9 @@ function MessengerWithSearch() {
 
   // Handle active conversations list
   const navigateToConversation = (userId: number) => {
-    navigate(`/messenger/${userId}`);
+    console.log(`[Messenger] Navigating to conversation with user ID: ${userId}`);
+    // Using window.location for direct navigation to ensure it works
+    window.location.href = `/messenger/${userId}`;
   };
 
   return (

@@ -82,7 +82,10 @@ export function UserSearch() {
 
   // When a user card is clicked, navigate to the direct message page
   const handleUserClick = (userId: number) => {
-    navigate(`/messenger/${userId}`);
+    console.log(`[UserSearch] Navigating to user ID: ${userId}`);
+    
+    // Using window.location for direct navigation to ensure it works
+    window.location.href = `/messenger/${userId}`;
   };
 
   return (
