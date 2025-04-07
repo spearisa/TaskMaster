@@ -51,20 +51,34 @@ export function UserSearch() {
   };
 
   // Get search results
-  const { data: searchResults = [], isLoading } = useQuery<UserProfile[]>({
+  const { data: searchResults = [], isLoading, error } = useQuery<UserProfile[]>({
     queryKey: ['/api/users/search', debouncedQuery],
     queryFn: async () => {
       if (!debouncedQuery || debouncedQuery.length < 2) return [];
       
-      const response = await apiRequest(
-        'GET',
-        `/api/users/search?q=${encodeURIComponent(debouncedQuery)}`
-      );
+      console.log(`[UserSearch] Searching for query: "${debouncedQuery}"`);
       
-      return response.json();
+      try {
+        const response = await apiRequest(
+          'GET',
+          `/api/users/search?q=${encodeURIComponent(debouncedQuery)}`
+        );
+        
+        const data = await response.json();
+        console.log(`[UserSearch] Search results:`, data);
+        return data;
+      } catch (err) {
+        console.error(`[UserSearch] Error searching users:`, err);
+        throw err;
+      }
     },
     enabled: !!user && debouncedQuery.length >= 2,
   });
+  
+  // Log any errors
+  if (error) {
+    console.error(`[UserSearch] Query error:`, error);
+  }
 
   // When a user card is clicked, navigate to the direct message page
   const handleUserClick = (userId: number) => {

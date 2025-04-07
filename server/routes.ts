@@ -680,16 +680,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/users/search", async (req, res) => {
     try {
+      console.log(`[API] User search request received: ${JSON.stringify(req.query)}`);
+      
       if (!req.isAuthenticated() || !req.user) {
+        console.log(`[API] User search: Not authenticated`);
         return res.status(401).json({ message: "Not authenticated" });
       }
       
       const query = req.query.q as string;
+      console.log(`[API] User search query: "${query}" from user ID: ${req.user.id}`);
+      
       if (!query || query.length < 2) {
+        console.log(`[API] User search: Query too short`);
         return res.status(400).json({ message: "Search query must be at least 2 characters" });
       }
       
       const users = await storage.searchUsers(query, req.user.id);
+      console.log(`[API] User search results: Found ${users.length} users for query "${query}"`);
+      
       res.json(users);
     } catch (error) {
       console.error("Error searching users:", error);

@@ -93,6 +93,15 @@ export class DatabaseStorage implements IStorage {
     // Make query lowercase for case-insensitive matching
     const lowerQuery = query.toLowerCase();
     
+    // First, log all users in the database for debugging
+    const debugAllUsers = await db.select().from(users);
+    console.log(`[Storage] All users in database (${debugAllUsers.length}):`);
+    debugAllUsers.forEach(user => {
+      console.log(`  - ID: ${user.id}, Username: ${user.username}, Display Name: ${user.displayName}`);
+      console.log(`    Interests: ${JSON.stringify(user.interests)}`);
+      console.log(`    Skills: ${JSON.stringify(user.skills)}`);
+    });
+    
     // Search for users by username, displayName only 
     // Exclude the current user from results
     const allUsers = await db.select({
@@ -111,26 +120,38 @@ export class DatabaseStorage implements IStorage {
     )
     .orderBy(asc(users.username));
     
+    console.log(`[Storage] Got ${allUsers.length} users excluding current user`);
+    
     // Manually filter results for better control over matching logic
     const results = allUsers.filter(user => {
-      // Check username and displayName
-      if (user.username.toLowerCase().includes(lowerQuery)) return true;
-      if (user.displayName && user.displayName.toLowerCase().includes(lowerQuery)) return true;
+      const matchesUsername = user.username.toLowerCase().includes(lowerQuery);
+      const matchesDisplayName = user.displayName && user.displayName.toLowerCase().includes(lowerQuery);
       
       // Check if any interest includes the query
-      if (user.interests && user.interests.some(interest => 
-        interest.toLowerCase().includes(lowerQuery)
-      )) return true;
+      const matchesInterests = user.interests && user.interests.some(interest => 
+        interest && interest.toLowerCase().includes(lowerQuery)
+      );
       
       // Check if any skill includes the query
-      if (user.skills && user.skills.some(skill => 
-        skill.toLowerCase().includes(lowerQuery)
-      )) return true;
+      const matchesSkills = user.skills && user.skills.some(skill => 
+        skill && skill.toLowerCase().includes(lowerQuery)
+      );
       
-      return false;
+      const matches = matchesUsername || matchesDisplayName || matchesInterests || matchesSkills;
+      
+      // Log details about each match evaluation for debugging
+      console.log(`[Storage] User ${user.username} (${user.id}) match evaluation:`);
+      console.log(`  - Searching for: "${lowerQuery}"`);
+      console.log(`  - Username match: ${matchesUsername} (${user.username})`);
+      console.log(`  - DisplayName match: ${matchesDisplayName} (${user.displayName})`);
+      console.log(`  - Interests match: ${matchesInterests} (${JSON.stringify(user.interests)})`);
+      console.log(`  - Skills match: ${matchesSkills} (${JSON.stringify(user.skills)})`);
+      console.log(`  - Overall match: ${matches}`);
+      
+      return matches;
     }).slice(0, 20); // Limit to 20 results
     
-    console.log(`[Storage] Found ${results.length} matching users`);
+    console.log(`[Storage] Found ${results.length} matching users for query "${query}"`);
     
     // Convert Date objects to strings to match our schema
     return results.map(profile => ({
