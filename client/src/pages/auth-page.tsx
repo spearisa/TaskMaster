@@ -136,6 +136,16 @@ function LoginForm() {
             </FormItem>
           )}
         />
+        <div className="mb-4 p-3 bg-blue-50 border-blue-100 rounded-md text-sm text-blue-600">
+          <p className="font-medium mb-1">Demo accounts available:</p>
+          <div className="grid grid-cols-4 gap-1 text-xs">
+            <span className="font-semibold">Username:</span>
+            <span className="col-span-3">demo, alex, samantha, jordan</span>
+            <span className="font-semibold">Password:</span>
+            <span className="col-span-3">password (same for all accounts)</span>
+          </div>
+        </div>
+        
         <Button 
           type="submit" 
           className="w-full"
