@@ -136,7 +136,8 @@ export function setupAuth(app: Express) {
     console.log(`[Auth] Register API request for username: ${req.body.username}`);
     
     try {
-      const { username, password } = req.body;
+      // Get all registration data from the request body
+      const { username, password, displayName, bio, interests, skills, avatarUrl } = req.body;
       
       if (!username || !password) {
         console.log(`[Auth] Registration failed: Missing username or password`);
@@ -153,24 +154,41 @@ export function setupAuth(app: Express) {
 
       console.log(`[Auth] Creating new user: ${username}`);
       const hashedPassword = await hashPassword(password);
+      
+      // Create a complete user object with all available fields
       const user = await storage.createUser({
         username,
         password: hashedPassword,
+        displayName: displayName || username, // Default to username if no display name provided
+        bio,
+        interests: interests || [],
+        skills: skills || [],
+        avatarUrl
       });
       
       console.log(`[Auth] User created with ID: ${user.id}, calling req.login`);
-      req.login(user, (err) => {
-        if (err) {
-          console.error(`[Auth] req.login error during registration:`, err);
-          return next(err);
+      
+      // Clear any existing session data
+      req.logout((logoutErr) => {
+        if (logoutErr) {
+          console.error(`[Auth] Error clearing existing session:`, logoutErr);
+          // Continue anyway
         }
         
-        console.log(`[Auth] Registration complete, session established for ${user.username}`);
-        console.log(`[Auth] Session ID: ${req.sessionID}`);
-        
-        // Return user data without password
-        const { password, ...userWithoutPassword } = user;
-        res.status(201).json(userWithoutPassword);
+        // Now log in with the new user
+        req.login(user, (loginErr) => {
+          if (loginErr) {
+            console.error(`[Auth] req.login error during registration:`, loginErr);
+            return next(loginErr);
+          }
+          
+          console.log(`[Auth] Registration complete, session established for ${user.username}`);
+          console.log(`[Auth] Session ID: ${req.sessionID}`);
+          
+          // Return user data without password
+          const { password, ...userWithoutPassword } = user;
+          res.status(201).json(userWithoutPassword);
+        });
       });
     } catch (error) {
       console.error(`[Auth] Error in register endpoint:`, error);
@@ -212,14 +230,28 @@ export function setupAuth(app: Express) {
   app.post("/api/logout", (req, res, next) => {
     console.log(`[Auth] Logout request for user: ${req.user ? (req.user as SelectUser).username : 'Unknown'}`);
     
+    // Store session ID for destruction
+    const sessionID = req.sessionID;
+    
     req.logout((err) => {
       if (err) {
         console.error(`[Auth] Logout error:`, err);
         return next(err);
       }
       
-      console.log(`[Auth] Logout successful, session destroyed`);
-      res.sendStatus(200);
+      // Ensure the session is truly destroyed
+      req.session.destroy((destroyErr) => {
+        if (destroyErr) {
+          console.error(`[Auth] Session destruction error:`, destroyErr);
+          // Still send success since user is logged out
+        }
+        
+        // Clear the session cookie
+        res.clearCookie('taskmaster.sid');
+        
+        console.log(`[Auth] Logout successful, session ${sessionID} destroyed`);
+        res.sendStatus(200);
+      });
     });
   });
 

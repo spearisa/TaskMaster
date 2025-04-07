@@ -205,11 +205,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logoutMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("POST", "/api/logout");
-    },
-    onSuccess: () => {
+      // Force clear any cached user data immediately
+      saveUserToStorage(null);
+      // Clear any React Query cache related to user
       queryClient.setQueryData(["/api/user"], null);
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      saveUserToStorage(null);
+      // Reset the cached user state
+      setCachedUser(null);
+      // Clear browser-stored credentials
+      document.cookie = "connect.sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    },
+    onSuccess: () => {
+      // Force a page refresh to ensure all state is cleared
+      window.location.href = '/auth';
       
       toast({
         title: "Logged out",
@@ -217,6 +225,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error: Error) => {
+      // Even on error, we should clear local data to prevent auth issues
+      saveUserToStorage(null);
+      setCachedUser(null);
+      queryClient.setQueryData(["/api/user"], null);
+      
       toast({
         title: "Logout failed",
         description: error.message,
