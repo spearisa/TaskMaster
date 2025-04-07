@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TaskWithStringDates } from '@shared/schema';
-import { TaskItem } from './ui/task-item';
+import { SimpleTaskItem } from './ui/simple-task-item';
 import { Skeleton } from './ui/skeleton';
 
 interface TaskListProps {
@@ -91,7 +91,7 @@ export function TaskList({ filter = 'all', title }: TaskListProps) {
     <div className="px-5 mb-4">
       {title && <h2 className="text-lg font-semibold mb-3">{title}</h2>}
       {filteredTasks.map(task => (
-        <TaskItem 
+        <SimpleTaskItem 
           key={task.id} 
           task={task} 
           onTaskComplete={handleTaskComplete}
