@@ -20,29 +20,62 @@ export default function TaskDetailPage() {
   const [, params] = useRoute("/task/:id");
   const [, navigate] = useLocation();
   const taskId = params?.id ? parseInt(params.id) : null;
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   
   console.log("TaskDetailPage - User authenticated:", !!user);
   console.log("TaskDetailPage - Task ID:", taskId);
+  console.log("TaskDetailPage - User:", user);
   
   const [isCompleting, setIsCompleting] = useState(false);
+  const [authCheckAttempted, setAuthCheckAttempted] = useState(false);
   const { toast } = useToast();
 
   // Use TanStack Query to fetch the task
   const { 
     data: task,
     isLoading,
-    error 
+    error,
+    refetch: refetchTask
   } = useQuery<TaskWithStringDates>({ 
     queryKey: ['/api/tasks', taskId],
     queryFn: async () => {
       if (!taskId) throw new Error("Task ID is required");
-      const response = await apiRequest("GET", `/api/tasks/${taskId}`);
-      return await response.json();
+      console.log("Fetching task data, user state:", !!user);
+      
+      const response = await apiRequest("GET", `/api/tasks/${taskId}`, undefined, {
+        credentials: "include",
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache"
+        }
+      });
+      
+      const data = await response.json();
+      console.log("Task data fetched successfully:", data);
+      return data;
     },
     enabled: !!taskId && !!user,
-    retry: 1,
+    retry: 2,
     staleTime: 30000,
+    onError: async (error) => {
+      console.error("Error fetching task:", error);
+      
+      // If we get an error and haven't tried refreshing authentication yet, try once
+      if (!authCheckAttempted) {
+        console.log("Attempting to refresh authentication state...");
+        setAuthCheckAttempted(true);
+        try {
+          await refreshUser();
+          // If refreshUser succeeds, try refetching the task
+          if (user) {
+            setTimeout(() => refetchTask(), 500);
+          }
+        } catch (refreshError) {
+          console.error("Failed to refresh authentication:", refreshError);
+        }
+      }
+    }
   });
   
   // Use TanStack Query Mutation for completing a task

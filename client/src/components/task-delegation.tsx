@@ -36,19 +36,39 @@ export function TaskDelegation({ task, onDone }: TaskDelegationProps) {
   const [context, setContext] = useState("");
   const [result, setResult] = useState<DelegationResult | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [_, navigate] = useLocation();
   
   console.log("TaskDelegation component - User authenticated:", !!user);
+  console.log("TaskDelegation component - User data:", user);
 
   // Use TanStack Query mutation for delegation
   const delegateMutation = useMutation({
     mutationFn: async (taskContext: string) => {
       console.log(`Delegating task ${task.id} with context:`, taskContext || "None");
+      
+      if (!user) {
+        console.log("No user found in delegation, attempting to refresh auth...");
+        try {
+          await refreshUser();
+        } catch (error) {
+          console.error("Failed to refresh auth:", error);
+          throw new Error("Authentication required. Please login again.");
+        }
+      }
+      
       const response = await apiRequest(
         "POST", 
         `/api/tasks/${task.id}/delegate`,
-        { context: taskContext.trim() || undefined }
+        { context: taskContext.trim() || undefined },
+        {
+          credentials: "include",
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache"
+          }
+        }
       );
       return await response.json();
     },

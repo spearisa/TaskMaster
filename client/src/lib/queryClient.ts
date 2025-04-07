@@ -9,6 +9,9 @@ async function throwIfResNotOk(res: Response) {
 
 interface ApiRequestOptions {
   redirectToAuthOnUnauthorized?: boolean;
+  credentials?: RequestCredentials;
+  cache?: RequestCache;
+  headers?: Record<string, string>;
 }
 
 export async function apiRequest(
@@ -19,11 +22,18 @@ export async function apiRequest(
 ): Promise<Response> {
   console.log(`[API] Making ${method} request to ${url}`, data ? { dataKeys: Object.keys(data) } : 'no data');
   
+  // Prepare headers
+  const headers: Record<string, string> = {
+    ...(data ? { "Content-Type": "application/json" } : {}),
+    ...(options?.headers || {})
+  };
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    credentials: options?.credentials || "include",
+    cache: options?.cache || "default"
   });
 
   console.log(`[API] Response from ${url}:`, { status: res.status, statusText: res.statusText });
