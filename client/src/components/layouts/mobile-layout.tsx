@@ -54,7 +54,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
             // Special styling for Add button
             if (item.label === 'Add') {
               return (
-                <div key={item.path} onClick={() => window.location.href = item.path} className="cursor-pointer">
+                <div key={item.path} onClick={() => navigate(item.path)} className="cursor-pointer">
                   <div className="py-3 px-5 flex flex-col items-center relative">
                     <div className="absolute -top-5 w-12 h-12 rounded-full bg-primary flex items-center justify-center shadow-lg">
                       <Icon className="h-6 w-6 text-white" />
@@ -68,7 +68,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
             return (
               <div 
                 key={item.path} 
-                onClick={() => window.location.href = item.path}
+                onClick={() => navigate(item.path)}
                 className={`py-3 px-5 flex flex-col items-center cursor-pointer ${
                   active ? 'text-primary' : 'text-neutral-500'
                 }`}
