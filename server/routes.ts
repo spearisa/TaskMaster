@@ -1501,17 +1501,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // This is async but we don't need to await it here
           // as we're just forwarding the message for processing
-          fetch('http://localhost:' + (process.env.PORT || 3000) + '/api/messages', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              // Include credentials from the request if needed
-              'Cookie': req.headers.cookie || ''
-            },
-            body: JSON.stringify(messageData)
+          // Use a direct API call instead of fetch with localhost
+          storage.sendMessage(messageData).then(savedMessage => {
+            // Notify the receiver about the new message
+            notifyWebSocketClients({
+              type: 'new_message',
+              message: {
+                ...savedMessage,
+                createdAt: savedMessage.createdAt?.toISOString()
+              }
+            });
           }).catch(error => {
-            console.error('Error forwarding WebSocket message to API:', error);
+            console.error('Error saving direct message:', error);
           });
+          
+          // Direct API call is more reliable than using localhost fetch
         }
       } catch (error) {
         console.error('Error processing WebSocket message:', error);
