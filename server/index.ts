@@ -4,6 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { checkDatabaseConnection, createDatabaseTables } from "./db";
 import { storage, DatabaseStorage } from "./storage";
 import { Server } from 'socket.io'; // Added import for Socket.IO
+import { createServer as createHttpServer } from 'http';
 
 const app = express();
 app.use(express.json());
@@ -112,10 +113,31 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  // Try to use port 5000, but if it's in use, try alternatives
+  // Implement port-retry logic
+  const tryPort = (port: number): Promise<number> => {
+    return new Promise((resolve, reject) => {
+      const testServer = createHttpServer();
+      testServer.on('error', (err: any) => {
+        if (err.code === 'EADDRINUSE') {
+          log(`Port ${port} is in use, trying ${port + 1}`);
+          resolve(tryPort(port + 1));
+        } else {
+          reject(err);
+        }
+      });
+      
+      testServer.listen(port, '0.0.0.0', () => {
+        testServer.close(() => {
+          log(`Port ${port} is available`);
+          resolve(port);
+        });
+      });
+    });
+  };
+  
+  // Find an available port starting with 5000
+  const port = await tryPort(5000);
   server.listen({
     port,
     host: "0.0.0.0",
