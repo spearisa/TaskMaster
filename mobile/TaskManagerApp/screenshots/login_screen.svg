@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="390" height="844" viewBox="0 0 390 844" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Phone frame -->
+  <rect width="390" height="844" rx="40" fill="#F5F7FA"/>
+  
+  <!-- Status bar -->
+  <rect width="390" height="44" fill="#FFFFFF"/>
+  <text x="25" y="27" font-family="Arial" font-size="14" fill="#000000">9:41</text>
+  <text x="345" y="27" font-family="Arial" font-size="14" fill="#000000">100%</text>
+  
+  <!-- App content -->
+  <rect x="20" y="64" width="350" height="760" rx="10" fill="#FFFFFF"/>
+  
+  <!-- Logo -->
+  <circle cx="195" cy="164" r="50" fill="#6366F1"/>
+  <path d="M165 164L185 188L225 140" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- App Name -->
+  <text x="125" y="244" font-family="Arial" font-weight="bold" font-size="24" fill="#333333">Task Manager</text>
+  <text x="100" y="274" font-family="Arial" font-size="16" fill="#666666">Login to your account</text>
+  
+  <!-- Form -->
+  <rect x="50" y="314" width="290" height="60" rx="8" fill="#F5F7FA" stroke="#E0E0E0"/>
+  <text x="65" y="304" font-family="Arial" font-size="14" fill="#333333">Username</text>
+  <text x="65" y="350" font-family="Arial" font-size="16" fill="#999999">Enter your username</text>
+  
+  <rect x="50" y="404" width="290" height="60" rx="8" fill="#F5F7FA" stroke="#E0E0E0"/>
+  <text x="65" y="394" font-family="Arial" font-size="14" fill="#333333">Password</text>
+  <text x="65" y="440" font-family="Arial" font-size="16" fill="#999999">••••••••</text>
+  
+  <!-- Login Button -->
+  <rect x="50" y="494" width="290" height="60" rx="8" fill="#6366F1"/>
+  <text x="170" y="532" font-family="Arial" font-weight="bold" font-size="16" fill="#FFFFFF" text-anchor="middle">Log In</text>
+  
+  <!-- Register Link -->
+  <text x="120" y="584" font-family="Arial" font-size="14" fill="#666666">Don't have an account?</text>
+  <text x="270" y="584" font-family="Arial" font-weight="bold" font-size="14" fill="#6366F1">Register</text>
+</svg>
