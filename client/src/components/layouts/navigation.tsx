@@ -1,26 +1,23 @@
 import React from 'react';
 import { useLocation, Link } from 'wouter';
 import { 
-  Home, 
-  Calendar, 
-  CheckSquare, 
+  LayoutTemplate, 
   MessageSquare, 
   Plus, 
   Settings,
   Menu,
-  UserPlus,
-  Inbox,
-  Globe,
-  FileCode,
-  BookTemplate,
-  Bot,
-  Sparkles
+  FileText,
+  User,
+  Sparkles,
+  Bell,
+  BellOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Switch } from '@/components/ui/switch';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -35,10 +32,10 @@ function NavItem({ icon, label, href, active, onClick }: NavItemProps) {
     <Link href={href}>
       <div 
         className={cn(
-          "flex items-center gap-2 px-3 py-2 rounded-md transition-colors cursor-pointer",
+          "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
           active 
-            ? "bg-primary text-primary-foreground" 
-            : "hover:bg-gray-100 text-gray-700"
+            ? "border-l-primary text-primary" 
+            : "border-l-transparent text-gray-700 hover:border-l-gray-200"
         )}
         onClick={onClick}
       >
@@ -48,74 +45,6 @@ function NavItem({ icon, label, href, active, onClick }: NavItemProps) {
         <span className="font-medium">{label}</span>
       </div>
     </Link>
-  );
-}
-
-export function MobileNavigation() {
-  const [location] = useLocation();
-  const { user } = useAuth();
-  
-  if (!user) return null;
-  
-  const isActive = (path: string) => {
-    if (path === '/' && location === '/') return true;
-    if (path !== '/' && location.startsWith(path)) return true;
-    return false;
-  };
-
-  return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-1 py-1 z-50">
-      <div className="grid grid-cols-5 gap-1">
-        <Link href="/">
-          <div className={cn(
-            "flex flex-col items-center p-1 cursor-pointer",
-            isActive('/') ? "text-primary" : "text-muted-foreground"
-          )}>
-            <Home size={22} />
-            <span className="text-xs mt-1">Home</span>
-          </div>
-        </Link>
-        
-        <Link href="/ai-tools">
-          <div className={cn(
-            "flex flex-col items-center p-1 cursor-pointer",
-            isActive('/ai-tools') ? "text-primary" : "text-muted-foreground"
-          )}>
-            <Sparkles size={22} />
-            <span className="text-xs mt-1">AI</span>
-          </div>
-        </Link>
-        
-        <Link href="/new-task">
-          <div className="flex flex-col items-center p-1 cursor-pointer">
-            <div className="flex items-center justify-center bg-primary text-primary-foreground rounded-full w-12 h-12 mb-0.5">
-              <Plus size={24} />
-            </div>
-            <span className="text-xs">New</span>
-          </div>
-        </Link>
-        
-        <Link href="/calendar">
-          <div className={cn(
-            "flex flex-col items-center p-1 cursor-pointer",
-            isActive('/calendar') ? "text-primary" : "text-muted-foreground"
-          )}>
-            <Calendar size={22} />
-            <span className="text-xs mt-1">Calendar</span>
-          </div>
-        </Link>
-        
-        <Link href="/messenger">
-          <div className={cn(
-            "flex flex-col items-center p-1 cursor-pointer",
-            isActive('/messenger') ? "text-primary" : "text-muted-foreground"
-          )}>
-            <MessageSquare size={22} />
-            <span className="text-xs mt-1">Chat</span>
-          </div>
-        </Link>
-      </div>
-    </div>
   );
 }
 
@@ -141,43 +70,19 @@ export function SideNavigation() {
             <Menu size={24} />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64">
-          <div className="flex flex-col gap-1 mt-8">
+        <SheetContent side="left" className="w-64 p-0">
+          <div className="flex flex-col py-4">
             <NavItem
-              icon={<Home size={18} />}
-              label="Home"
-              href="/"
-              active={isActive('/')}
-            />
-            <NavItem
-              icon={<Calendar size={18} />}
-              label="Calendar"
-              href="/calendar"
-              active={isActive('/calendar')}
-            />
-            <NavItem
-              icon={<CheckSquare size={18} />}
-              label="Completed Tasks"
-              href="/completed"
-              active={isActive('/completed')}
-            />
-            <NavItem
-              icon={<Inbox size={18} />}
-              label="Assigned Tasks"
-              href="/assigned-tasks"
-              active={isActive('/assigned-tasks')}
-            />
-            <NavItem
-              icon={<Globe size={18} />}
-              label="Public Tasks"
-              href="/public-tasks"
-              active={isActive('/public-tasks')}
-            />
-            <NavItem
-              icon={<BookTemplate size={18} />}
+              icon={<LayoutTemplate size={18} />}
               label="Templates"
               href="/task-templates"
               active={isActive('/task-templates')}
+            />
+            <NavItem
+              icon={<FileText size={18} />}
+              label="My Tasks"
+              href="/"
+              active={isActive('/')}
             />
             <NavItem
               icon={<MessageSquare size={18} />}
@@ -198,7 +103,7 @@ export function SideNavigation() {
               active={isActive('/ai-tools')}
             />
             <NavItem
-              icon={<Settings size={18} />}
+              icon={<User size={18} />}
               label="Profile"
               href="/profile"
               active={isActive('/profile')}
@@ -211,43 +116,18 @@ export function SideNavigation() {
   
   // For desktop, show a sidebar
   return (
-    <div className="hidden md:flex flex-col gap-1 w-48 p-4 border-r border-gray-200 h-screen fixed">
-      <div className="text-xl font-bold mb-6">TaskFlow</div>
+    <div className="hidden md:flex flex-col w-56 border-r border-gray-200 min-h-screen fixed pt-4">
       <NavItem
-        icon={<Home size={18} />}
-        label="Home"
-        href="/"
-        active={isActive('/')}
-      />
-      <NavItem
-        icon={<Calendar size={18} />}
-        label="Calendar"
-        href="/calendar"
-        active={isActive('/calendar')}
-      />
-      <NavItem
-        icon={<CheckSquare size={18} />}
-        label="Completed Tasks"
-        href="/completed"
-        active={isActive('/completed')}
-      />
-      <NavItem
-        icon={<Inbox size={18} />}
-        label="Assigned Tasks"
-        href="/assigned-tasks"
-        active={isActive('/assigned-tasks')}
-      />
-      <NavItem
-        icon={<Globe size={18} />}
-        label="Public Tasks"
-        href="/public-tasks"
-        active={isActive('/public-tasks')}
-      />
-      <NavItem
-        icon={<BookTemplate size={18} />}
+        icon={<LayoutTemplate size={18} />}
         label="Templates"
         href="/task-templates"
         active={isActive('/task-templates')}
+      />
+      <NavItem
+        icon={<FileText size={18} />}
+        label="My Tasks"
+        href="/"
+        active={isActive('/')}
       />
       <NavItem
         icon={<MessageSquare size={18} />}
@@ -268,20 +148,29 @@ export function SideNavigation() {
         active={isActive('/ai-tools')}
       />
       <NavItem
-        icon={<Settings size={18} />}
+        icon={<User size={18} />}
         label="Profile"
         href="/profile"
         active={isActive('/profile')}
       />
-      
-      <div className="mt-auto">
-        <Link href="/new-task">
-          <div className="flex items-center justify-center bg-primary text-primary-foreground rounded-md py-2 px-4 w-full cursor-pointer">
-            <Plus size={18} className="mr-2" />
-            <span>New Task</span>
-          </div>
-        </Link>
+    </div>
+  );
+}
+
+export function EnableReminders() {
+  const [enabled, setEnabled] = React.useState(false);
+  
+  return (
+    <div className="flex items-center justify-between py-3 px-4 bg-amber-50 rounded-lg border border-amber-100 mb-4">
+      <div className="flex items-center gap-2">
+        {enabled ? <Bell className="text-amber-600" size={18} /> : <BellOff className="text-amber-600" size={18} />}
+        <span className="text-amber-700">Enable Task Reminders</span>
       </div>
+      <Switch 
+        checked={enabled} 
+        onCheckedChange={setEnabled} 
+        className="data-[state=checked]:bg-amber-600"
+      />
     </div>
   );
 }
@@ -289,9 +178,5 @@ export function SideNavigation() {
 export function Navigation() {
   const isMobile = useIsMobile();
   
-  return (
-    <>
-      {isMobile ? <MobileNavigation /> : <SideNavigation />}
-    </>
-  );
+  return <SideNavigation />;
 }
