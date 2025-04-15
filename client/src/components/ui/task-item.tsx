@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Link } from 'wouter';
 import { Button } from './button';
 import { getDaysUntilDeadline } from '@/lib/utils/date-utils';
+import { PublicTaskShare } from '@/components/public-task-share';
 
 interface TaskItemProps {
   task: TaskWithStringDates;
@@ -134,9 +135,9 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
               )}
             </div>
             
-            {/* AI Delegate Button for incomplete tasks */}
+            {/* Action buttons row */}
             {!task.completed && (
-              <div className="mt-3" onClick={stopPropagation}>
+              <div className="mt-3 flex space-x-2" onClick={stopPropagation}>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -149,6 +150,13 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
                   <Sparkles className="h-3 w-3 mr-1" />
                   Delegate to AI
                 </Button>
+                
+                {/* Share button for public tasks */}
+                {task.isPublic && (
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <PublicTaskShare task={task} />
+                  </div>
+                )}
               </div>
             )}
           </div>

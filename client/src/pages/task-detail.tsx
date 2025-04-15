@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { TaskDelegation } from "@/components/task-delegation";
 import { TaskAssignment } from "@/components/task-assignment";
 import { PublicTaskToggle } from "@/components/public-task-toggle";
+import { PublicTaskShare } from "@/components/public-task-share";
 import { PriorityBadge } from "@/components/ui/priority-badge";
 import { CategoryBadge } from "@/components/ui/category-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -53,31 +54,14 @@ export default function TaskDetailPage() {
         }
       });
       
-      const data = await response.json();
+      const data = await response.json() as TaskWithStringDates;
       console.log("Task data fetched successfully:", data);
       return data;
     },
     enabled: !!taskId && !!user,
     retry: 2,
     staleTime: 30000,
-    onError: async (error) => {
-      console.error("Error fetching task:", error);
-      
-      // If we get an error and haven't tried refreshing authentication yet, try once
-      if (!authCheckAttempted) {
-        console.log("Attempting to refresh authentication state...");
-        setAuthCheckAttempted(true);
-        try {
-          await refreshUser();
-          // If refreshUser succeeds, try refetching the task
-          if (user) {
-            setTimeout(() => refetchTask(), 500);
-          }
-        } catch (refreshError) {
-          console.error("Failed to refresh authentication:", refreshError);
-        }
-      }
-    }
+    gcTime: 300000
   });
   
   // Use TanStack Query Mutation for completing a task
@@ -246,6 +230,19 @@ export default function TaskDetailPage() {
           {task.userId === user?.id && (
             <div className="mt-6 mb-4">
               <PublicTaskToggle task={task} onDone={refetchTask} />
+            </div>
+          )}
+          
+          {/* Show share button if the task is public */}
+          {task.isPublic && (
+            <div className="mt-4 mb-4">
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center">
+                  <Globe className="h-4 w-4 text-blue-500 mr-2" />
+                  <span className="text-sm font-medium">This task is public</span>
+                </div>
+                <PublicTaskShare task={task} />
+              </div>
             </div>
           )}
 
