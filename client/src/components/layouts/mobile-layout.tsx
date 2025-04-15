@@ -44,20 +44,23 @@ export function MobileLayout({
   const [isScrolled, setIsScrolled] = useState(false);
   const isMobile = useIsMobile();
   
+  // Handle scroll for header shadow effect - always register this effect
+  useEffect(() => {
+    // Only add scroll listener if we're authenticated and not on auth page
+    if (location !== '/auth' && user) {
+      const handleScroll = () => {
+        setIsScrolled(window.scrollY > 10);
+      };
+      
+      window.addEventListener('scroll', handleScroll);
+      return () => window.removeEventListener('scroll', handleScroll);
+    }
+  }, [location, user]);
+  
   // Skip layout if on auth page or not authenticated
   if (location === '/auth' || !user) {
     return <>{children}</>;
   }
-  
-  // Handle scroll for header shadow effect
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // Pages with appropriate title mapping
   const pageTitles: Record<string, string> = {
