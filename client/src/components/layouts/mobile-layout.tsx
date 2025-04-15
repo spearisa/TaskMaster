@@ -71,7 +71,7 @@ export function MobileLayout({
   const currentPageTitle = pageTitle || pageTitles[location] || 'TaskFlow';
 
   return (
-    <div className="bg-white min-h-screen pb-20">
+    <div className="bg-white min-h-screen">
       {/* Header with title and menu button */}
       <header className="sticky top-0 z-40 bg-white border-b border-gray-100 px-4 py-3 flex justify-between items-center">
         <div className="flex items-center">
@@ -114,8 +114,8 @@ export function MobileLayout({
         <SideNavigation />
       </div>
       
-      {/* Main content area */}
-      <main className={`${isMobile ? '' : 'md:ml-56'}`}>
+      {/* Main content area - add pb-24 to ensure content doesn't get hidden behind bottom nav */}
+      <main className={`${isMobile ? 'pb-24' : 'md:ml-56'}`}>
         {children}
       </main>
       
