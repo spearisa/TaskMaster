@@ -363,11 +363,25 @@ export class DatabaseStorage implements IStorage {
         // Continue anyway as the next step might work
       }
       
+      // Process and convert date strings to Date objects
+      let processedDueDate = null;
+      if (insertTask.dueDate) {
+        if (typeof insertTask.dueDate === 'string') {
+          // Convert string to Date if it's a string
+          processedDueDate = new Date(insertTask.dueDate);
+          console.log(`Converted date string '${insertTask.dueDate}' to Date object: ${processedDueDate}`);
+        } else {
+          // Already a Date object
+          processedDueDate = insertTask.dueDate;
+          console.log(`Using existing Date object: ${processedDueDate}`);
+        }
+      }
+
       // Try with all columns including the ones we just added
       const safeInsertTask = {
         title: insertTask.title,
         description: insertTask.description || null,
-        dueDate: insertTask.dueDate || null,
+        dueDate: processedDueDate,
         completed: insertTask.completed || false,
         priority: insertTask.priority,
         category: insertTask.category,
@@ -376,6 +390,14 @@ export class DatabaseStorage implements IStorage {
         assignedToUserId: insertTask.assignedToUserId || null,
         isPublic: insertTask.isPublic || false
       };
+      
+      console.log("Safe insert task with converted date:", JSON.stringify(safeInsertTask, (key, value) => {
+        // Handle Date objects in JSON stringify
+        if (key === 'dueDate' && value instanceof Date) {
+          return `Date object: ${value.toISOString()}`;
+        }
+        return value;
+      }, 2));
       
       const [task] = await db.insert(tasks).values(safeInsertTask).returning();
       return task;
@@ -398,7 +420,8 @@ export class DatabaseStorage implements IStorage {
         `, [
           insertTask.title,
           insertTask.description || null,
-          insertTask.dueDate || null,
+          // Handle date string to Date object conversion
+          typeof insertTask.dueDate === 'string' ? new Date(insertTask.dueDate) : (insertTask.dueDate || null),
           insertTask.completed || false,
           insertTask.priority,
           insertTask.category,
