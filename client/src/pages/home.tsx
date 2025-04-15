@@ -188,9 +188,9 @@ export default function HomePage() {
       <div className="mt-6">
         <Button
           onClick={() => navigate('/new-task')}
-          className="w-full bg-primary text-white flex items-center justify-center gap-2 p-4 rounded-xl"
+          className="w-full bg-primary hover:bg-primary/90 text-white flex items-center justify-center gap-2 p-6 rounded-xl shadow-lg text-lg"
         >
-          <Plus size={20} />
+          <Plus size={24} className="animate-pulse" />
           <span className="font-medium">Add New Task</span>
         </Button>
       </div>
