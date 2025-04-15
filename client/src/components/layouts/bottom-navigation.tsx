@@ -9,6 +9,13 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Define the type for navigation items
+interface NavItem {
+  path: string;
+  label: string;
+  icon: React.ElementType;
+}
+
 export function BottomNavigation() {
   const [location, navigate] = useLocation();
   
@@ -23,10 +30,9 @@ export function BottomNavigation() {
     return false;
   };
 
-  const navItems = [
+  const navItems: NavItem[] = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/calendar', label: 'Calendar', icon: Calendar },
-    { path: '/new-task', label: 'New', icon: Plus, highlight: true },
     { path: '/public-tasks', label: 'Public', icon: Globe },
     { path: '/messenger', label: 'Chat', icon: MessageSquare },
   ];
@@ -35,43 +41,26 @@ export function BottomNavigation() {
     <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 py-2 z-50 shadow-lg md:hidden">
       <div className="flex justify-around items-center w-full max-w-lg mx-auto px-4">
         {navItems.map((item) => (
-          item.highlight ? (
-            // Make the "New" button a direct clickable element
-            <button
-              key={item.path}
-              onClick={() => navigate('/new-task')}
-              className="flex flex-col items-center justify-center w-1/5"
-            >
-              <div className="flex flex-col items-center justify-center">
-                <div className="bg-primary p-3 rounded-full mb-1 shadow-lg">
-                  <item.icon size={24} className="text-white" />
-                </div>
-                <span className="text-xs font-medium text-gray-700">{item.label}</span>
+          <Link
+            key={item.path}
+            href={item.path}
+            className="flex flex-col items-center justify-center w-1/4"
+          >
+            <div className="flex flex-col items-center justify-center">
+              <div className={cn(
+                "p-2 mb-1",
+                isActive(item.path) ? "text-primary" : "text-gray-400"
+              )}>
+                <item.icon size={20} />
               </div>
-            </button>
-          ) : (
-            // Regular navigation items
-            <Link
-              key={item.path}
-              href={item.path}
-              className="flex flex-col items-center justify-center w-1/5"
-            >
-              <div className="flex flex-col items-center justify-center">
-                <div className={cn(
-                  "p-2 mb-1",
-                  isActive(item.path) ? "text-primary" : "text-gray-400"
-                )}>
-                  <item.icon size={20} />
-                </div>
-                <span className={cn(
-                  "text-xs font-medium",
-                  isActive(item.path) ? "text-primary" : "text-gray-400"
-                )}>
-                  {item.label}
-                </span>
-              </div>
-            </Link>
-          )
+              <span className={cn(
+                "text-xs font-medium",
+                isActive(item.path) ? "text-primary" : "text-gray-400"
+              )}>
+                {item.label}
+              </span>
+            </div>
+          </Link>
         ))}
       </div>
     </div>
