@@ -113,36 +113,37 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Try to use port 5000, but if it's in use, try alternatives
-  // Implement port-retry logic
-  const tryPort = (port: number): Promise<number> => {
-    return new Promise((resolve, reject) => {
-      const testServer = createHttpServer();
-      testServer.on('error', (err: any) => {
-        if (err.code === 'EADDRINUSE') {
-          log(`Port ${port} is in use, trying ${port + 1}`);
-          resolve(tryPort(port + 1));
-        } else {
-          reject(err);
-        }
+  // Try to use port 5000, but handle when it's in use
+  const tryListen = () => {
+    const port = 5000;
+    try {
+      server.listen({
+        port,
+        host: "0.0.0.0",
+        reusePort: true,
+      }, () => {
+        log(`serving on port ${port}`);
       });
       
-      testServer.listen(port, '0.0.0.0', () => {
-        testServer.close(() => {
-          log(`Port ${port} is available`);
-          resolve(port);
-        });
+      server.on('error', (err: any) => {
+        if (err.code === 'EADDRINUSE') {
+          log(`Port ${port} is already in use, retrying in 3 seconds...`);
+          setTimeout(() => {
+            server.close();
+            tryListen();
+          }, 3000);
+        } else {
+          log(`Server error: ${err.message}`);
+        }
       });
-    });
+    } catch (err: any) {
+      log(`Error starting server: ${err.message}`);
+      if (err.code === 'EADDRINUSE') {
+        log(`Port ${port} is already in use, retrying in 3 seconds...`);
+        setTimeout(tryListen, 3000);
+      }
+    }
   };
   
-  // Find an available port starting with 5000
-  const port = await tryPort(5000);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  tryListen();
 })();

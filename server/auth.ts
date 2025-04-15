@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request, Response } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -272,5 +272,61 @@ export function setupAuth(app: Express) {
     const { password, ...userWithoutPassword } = req.user as SelectUser;
     console.log(`[Auth] Returning user data for ${userWithoutPassword.username}`);
     res.json(userWithoutPassword);
+  });
+
+  // Google Authentication endpoint
+  app.post("/api/auth/google", async (req: Request, res: Response) => {
+    try {
+      console.log('[Auth] Google authentication request received');
+      
+      const { uid, email, displayName, photoURL } = req.body;
+      
+      if (!uid || !email) {
+        console.log('[Auth] Google auth failed: Missing uid or email');
+        return res.status(400).json({ message: "UID and email are required" });
+      }
+      
+      // Check if user exists by username (which is the email for Google auth)
+      let user = await storage.getUserByUsername(email);
+      
+      if (!user) {
+        console.log(`[Auth] Creating new user from Google auth: ${email}`);
+        // Generate a secure random password - user will never use this
+        const randomPassword = randomBytes(32).toString('hex');
+        const hashedPassword = await hashPassword(randomPassword);
+        
+        // Create the user
+        user = await storage.createUser({
+          username: email,
+          password: hashedPassword,
+          displayName: displayName || email.split('@')[0],
+          bio: null,
+          interests: [],
+          skills: [],
+          avatarUrl: photoURL || null
+        });
+        
+        console.log(`[Auth] New Google user created with ID: ${user.id}`);
+      } else {
+        console.log(`[Auth] Google user already exists: ${email}`);
+      }
+      
+      // Log the user in
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          console.error(`[Auth] req.login error for Google auth:`, loginErr);
+          return res.status(500).json({ message: "Login failed" });
+        }
+        
+        console.log(`[Auth] Google authentication complete for ${user.username}`);
+        
+        // Return user data without password
+        const { password, ...userWithoutPassword } = user;
+        res.status(200).json(userWithoutPassword);
+      });
+    } catch (error) {
+      console.error(`[Auth] Google authentication error:`, error);
+      res.status(500).json({ message: "Authentication failed" });
+    }
   });
 }

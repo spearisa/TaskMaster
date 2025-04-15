@@ -4,6 +4,8 @@ import { User as SelectUser, insertUserSchema } from "@shared/schema";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+import { auth, signInWithGoogle } from "@/lib/firebase";
+import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 
 // Local storage key for persisting user data
 const USER_STORAGE_KEY = "taskManager_user";
@@ -37,6 +39,8 @@ type AuthContextType = {
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<AuthUser, Error, RegisterData>;
   refreshUser: () => Promise<any>; // Use 'any' to fix type compatibility
+  googleSignIn: () => Promise<void>;
+  googleAuthMutation: UseMutationResult<AuthUser, Error, FirebaseUser>;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -214,6 +218,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setCachedUser(null);
       // Clear browser-stored credentials
       document.cookie = "connect.sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      
+      // Sign out from Firebase as well (if signed in)
+      try {
+        await auth.signOut();
+      } catch (error) {
+        console.error("Firebase sign out error:", error);
+      }
     },
     onSuccess: () => {
       // Force a page refresh to ensure all state is cleared
@@ -237,6 +248,85 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
   });
+  
+  // Google sign in function
+  const googleSignIn = useCallback(async () => {
+    try {
+      // Check if Firebase is properly configured before attempting sign-in
+      if (!auth) {
+        toast({
+          title: "Google Sign In Not Available",
+          description: "Firebase authentication is not configured. Please use username and password login.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      await signInWithGoogle();
+    } catch (error) {
+      console.error("Google sign in error:", error);
+      toast({
+        title: "Google Sign In Failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+  
+  // Mutation to authenticate with Google on the server
+  const googleAuthMutation = useMutation({
+    mutationFn: async (firebaseUser: FirebaseUser) => {
+      const { uid, email, displayName, photoURL } = firebaseUser;
+      const res = await apiRequest("POST", "/api/auth/google", {
+        uid, 
+        email, 
+        displayName, 
+        photoURL
+      });
+      
+      return await res.json();
+    },
+    onSuccess: (userData: AuthUser) => {
+      queryClient.setQueryData(["/api/user"], userData);
+      saveUserToStorage(userData);
+      
+      toast({
+        title: "Google Sign In Successful",
+        description: `Welcome, ${userData.displayName || userData.username}!`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Authentication Failed",
+        description: error.message || "Could not authenticate with Google",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Listen for Firebase auth state changes
+  useEffect(() => {
+    // Only set up auth state listener if Firebase auth is initialized
+    if (!auth) {
+      console.log("Firebase auth not initialized, skipping auth state listener");
+      return () => {}; // Return empty cleanup function
+    }
+    
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        console.log("Firebase user signed in:", firebaseUser.email);
+        try {
+          // Attempt to authenticate with our server using Firebase credentials
+          await googleAuthMutation.mutateAsync(firebaseUser);
+        } catch (error) {
+          console.error("Error authenticating with server:", error);
+        }
+      }
+    });
+    
+    // Clean up subscription
+    return () => unsubscribe();
+  }, [googleAuthMutation]);
 
   return (
     <AuthContext.Provider
@@ -247,7 +337,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
-        refreshUser
+        refreshUser,
+        googleSignIn,
+        googleAuthMutation
       }}
     >
       {children}

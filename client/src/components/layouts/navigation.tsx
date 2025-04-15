@@ -64,74 +64,54 @@ export function MobileNavigation() {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-1 py-2 z-50">
-      <div className="flex justify-around items-center">
+    <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-1 py-1 z-50">
+      <div className="grid grid-cols-5 gap-1">
         <Link href="/">
           <div className={cn(
             "flex flex-col items-center p-1 cursor-pointer",
-            isActive('/') ? "text-primary" : "text-gray-500"
+            isActive('/') ? "text-primary" : "text-muted-foreground"
           )}>
-            <Home size={18} />
+            <Home size={22} />
             <span className="text-xs mt-1">Home</span>
+          </div>
+        </Link>
+        
+        <Link href="/ai-tools">
+          <div className={cn(
+            "flex flex-col items-center p-1 cursor-pointer",
+            isActive('/ai-tools') ? "text-primary" : "text-muted-foreground"
+          )}>
+            <Sparkles size={22} />
+            <span className="text-xs mt-1">AI</span>
+          </div>
+        </Link>
+        
+        <Link href="/new-task">
+          <div className="flex flex-col items-center p-1 cursor-pointer">
+            <div className="flex items-center justify-center bg-primary text-primary-foreground rounded-full w-12 h-12 mb-0.5">
+              <Plus size={24} />
+            </div>
+            <span className="text-xs">New</span>
           </div>
         </Link>
         
         <Link href="/calendar">
           <div className={cn(
             "flex flex-col items-center p-1 cursor-pointer",
-            isActive('/calendar') ? "text-primary" : "text-gray-500"
+            isActive('/calendar') ? "text-primary" : "text-muted-foreground"
           )}>
-            <Calendar size={18} />
+            <Calendar size={22} />
             <span className="text-xs mt-1">Calendar</span>
-          </div>
-        </Link>
-        
-        <Link href="/new-task">
-          <div className="flex flex-col items-center p-1 -mt-5 cursor-pointer">
-            <div className="flex items-center justify-center bg-primary text-primary-foreground rounded-full w-12 h-12">
-              <Plus size={24} />
-            </div>
-            <span className="text-xs mt-1">New Task</span>
-          </div>
-        </Link>
-        
-        <Link href="/public-tasks">
-          <div className={cn(
-            "flex flex-col items-center p-1 cursor-pointer",
-            isActive('/public-tasks') ? "text-primary" : "text-gray-500"
-          )}>
-            <Globe size={18} />
-            <span className="text-xs mt-1">Public</span>
-          </div>
-        </Link>
-        
-        <Link href="/task-templates">
-          <div className={cn(
-            "flex flex-col items-center p-1 cursor-pointer",
-            isActive('/task-templates') ? "text-primary" : "text-gray-500"
-          )}>
-            <BookTemplate size={18} />
-            <span className="text-xs mt-1">Templates</span>
           </div>
         </Link>
         
         <Link href="/messenger">
           <div className={cn(
             "flex flex-col items-center p-1 cursor-pointer",
-            isActive('/messenger') ? "text-primary" : "text-gray-500"
+            isActive('/messenger') ? "text-primary" : "text-muted-foreground"
           )}>
-            <MessageSquare size={18} />
-            <span className="text-xs mt-1">Messages</span>
-          </div>
-        </Link>
-
-        <Link href="/ai-tools">
-          <div className={cn(
-            "flex flex-col items-center p-1 cursor-pointer",
-            isActive('/ai-tools') ? "text-primary" : "text-gray-500"
-          )}>
-            <Sparkles size={18} />
-            <span className="text-xs mt-1">AI Tools</span>
+            <MessageSquare size={22} />
+            <span className="text-xs mt-1">Chat</span>
           </div>
         </Link>
       </div>
