@@ -4,7 +4,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { MobileLayout } from "@/components/layouts/mobile-layout";
 import { FloatingAIButton } from "@/components/floating-ai-button";
-import { FloatingAddButton } from "@/components/floating-add-button";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import HomePage from "@/pages/home";
@@ -67,8 +66,7 @@ function AppContent() {
         <Router />
       </MobileLayout>
       {user && <FloatingAIButton />}
-      {/* Always render the add button on its own to ensure it doesn't get affected by other components */}
-      {user && <FloatingAddButton />}
+      {/* Removed FloatingAddButton as requested */}
       <Toaster />
     </div>
   );
