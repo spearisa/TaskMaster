@@ -102,15 +102,8 @@ export function AddTaskForm() {
   };
 
   return (
-    <div>
-      <header className="px-5 py-4 flex items-center">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="mr-2">
-          <ChevronLeft className="h-6 w-6" />
-        </Button>
-        <h1 className="text-xl font-semibold">New Task</h1>
-      </header>
-
-      <div className="px-5 py-2">
+    <div className="py-4">
+      <div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField

@@ -184,7 +184,14 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* We're removing the New Task button since it's now in the bottom navigation */}
+      {/* Add a floating action button for creating new tasks */}
+      <Button
+        className="fixed bottom-20 right-6 h-14 w-14 rounded-full bg-primary hover:bg-primary/90 shadow-lg flex items-center justify-center"
+        onClick={() => navigate('/new-task')}
+      >
+        <Plus size={24} className="text-white" />
+        <span className="sr-only">Add new task</span>
+      </Button>
     </div>
   );
 }
