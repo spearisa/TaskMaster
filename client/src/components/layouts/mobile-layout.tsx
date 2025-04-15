@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
-import { User, ChevronLeft, Menu, X, FileText, LayoutTemplate, MessageSquare, Sparkles, Globe } from 'lucide-react';
+import { User, ChevronLeft, Menu, X, FileText, LayoutTemplate, MessageSquare, Sparkles, Globe, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from "@/components/ui/button";
 import { BottomNavigation } from './bottom-navigation';
@@ -195,6 +195,17 @@ export function MobileLayout({
       
       {/* Always show bottom navigation - hide only on very large screens */}
       <BottomNavigation />
+      
+      {/* Add a fixed "Add Task" button */}
+      {!location.startsWith('/new-task') && !location.startsWith('/task/') && location !== '/auth' && (
+        <button
+          onClick={() => navigate("/new-task")}
+          className="fixed bottom-28 right-6 w-20 h-20 rounded-full bg-[#6366F1] hover:bg-[#4F46E5] border-4 border-white flex items-center justify-center z-50 shadow-xl"
+          aria-label="Add new task"
+        >
+          <Plus size={36} className="text-white" />
+        </button>
+      )}
     </div>
   );
 }

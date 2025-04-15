@@ -184,7 +184,16 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Removed floating action button since it's now in the global layout */}
+      {/* Add a regular button directly in the content area */}
+      <div className="mt-6">
+        <Button
+          onClick={() => navigate('/new-task')}
+          className="w-full bg-primary text-white flex items-center justify-center gap-2 p-4 rounded-xl"
+        >
+          <Plus size={20} />
+          <span className="font-medium">Add New Task</span>
+        </Button>
+      </div>
     </div>
   );
 }

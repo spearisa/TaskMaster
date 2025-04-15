@@ -66,12 +66,9 @@ function AppContent() {
       <MobileLayout>
         <Router />
       </MobileLayout>
-      {user && (
-        <>
-          <FloatingAIButton />
-          <FloatingAddButton />
-        </>
-      )}
+      {user && <FloatingAIButton />}
+      {/* Always render the add button on its own to ensure it doesn't get affected by other components */}
+      {user && <FloatingAddButton />}
       <Toaster />
     </div>
   );
