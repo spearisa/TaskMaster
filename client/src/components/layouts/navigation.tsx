@@ -73,48 +73,118 @@ export function SideNavigation() {
         </SheetTrigger>
         <SheetContent side="left" className="w-64 p-0">
           <div className="flex flex-col py-4">
-            <NavItem
-              icon={<LayoutTemplate size={18} />}
-              label="Templates"
-              href="/task-templates"
-              active={isActive('/task-templates')}
-            />
-            <NavItem
-              icon={<FileText size={18} />}
-              label="My Tasks"
-              href="/"
-              active={isActive('/')}
-            />
-            <NavItem
-              icon={<Globe size={18} />}
-              label="Public Tasks"
-              href="/public-tasks"
-              active={isActive('/public-tasks')}
-            />
-            <NavItem
-              icon={<MessageSquare size={18} />}
-              label="Messages"
-              href="/messenger"
-              active={isActive('/messenger')}
-            />
-            <NavItem
-              icon={<Sparkles size={18} />}
-              label="AI Assistant"
-              href="/ai-assistant"
-              active={isActive('/ai-assistant')}
-            />
-            <NavItem
-              icon={<Sparkles size={18} />}
-              label="AI Tools"
-              href="/ai-tools"
-              active={isActive('/ai-tools')}
-            />
-            <NavItem
-              icon={<User size={18} />}
-              label="Profile"
-              href="/profile"
-              active={isActive('/profile')}
-            />
+            {/* Use direct Link components to ensure proper navigation */}
+            <Link href="/task-templates">
+              <div 
+                className={cn(
+                  "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
+                  isActive('/task-templates') 
+                    ? "border-l-primary text-primary" 
+                    : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+                )}
+              >
+                <div className="flex items-center justify-center w-6 h-6">
+                  <LayoutTemplate size={18} />
+                </div>
+                <span className="font-medium">Templates</span>
+              </div>
+            </Link>
+            
+            <Link href="/">
+              <div 
+                className={cn(
+                  "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
+                  isActive('/') 
+                    ? "border-l-primary text-primary" 
+                    : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+                )}
+              >
+                <div className="flex items-center justify-center w-6 h-6">
+                  <FileText size={18} />
+                </div>
+                <span className="font-medium">My Tasks</span>
+              </div>
+            </Link>
+            
+            <Link href="/public-tasks">
+              <div 
+                className={cn(
+                  "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
+                  isActive('/public-tasks') 
+                    ? "border-l-primary text-primary" 
+                    : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+                )}
+              >
+                <div className="flex items-center justify-center w-6 h-6">
+                  <Globe size={18} />
+                </div>
+                <span className="font-medium">Public Tasks</span>
+              </div>
+            </Link>
+            
+            <Link href="/messenger">
+              <div 
+                className={cn(
+                  "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
+                  isActive('/messenger') 
+                    ? "border-l-primary text-primary" 
+                    : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+                )}
+              >
+                <div className="flex items-center justify-center w-6 h-6">
+                  <MessageSquare size={18} />
+                </div>
+                <span className="font-medium">Messages</span>
+              </div>
+            </Link>
+            
+            <Link href="/ai-assistant">
+              <div 
+                className={cn(
+                  "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
+                  isActive('/ai-assistant') 
+                    ? "border-l-primary text-primary" 
+                    : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+                )}
+              >
+                <div className="flex items-center justify-center w-6 h-6">
+                  <Sparkles size={18} />
+                </div>
+                <span className="font-medium">AI Assistant</span>
+              </div>
+            </Link>
+            
+            <Link href="/ai-tools">
+              <div 
+                className={cn(
+                  "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
+                  isActive('/ai-tools') 
+                    ? "border-l-primary text-primary" 
+                    : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+                )}
+              >
+                <div className="flex items-center justify-center w-6 h-6">
+                  <Sparkles size={18} />
+                </div>
+                <span className="font-medium">AI Tools</span>
+              </div>
+            </Link>
+            
+            <Link href="/profile">
+              <div 
+                className={cn(
+                  "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
+                  isActive('/profile') 
+                    ? "border-l-primary text-primary" 
+                    : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+                )}
+              >
+                <div className="flex items-center justify-center w-6 h-6">
+                  <User size={18} />
+                </div>
+                <span className="font-medium">Profile</span>
+              </div>
+            </Link>
           </div>
         </SheetContent>
       </Sheet>

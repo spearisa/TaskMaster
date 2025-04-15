@@ -106,19 +106,20 @@ export function FloatingAIButton() {
           
           <div className="space-y-2">
             {aiTools.map((tool) => (
-              <button
-                key={tool.id}
-                onClick={() => handleToolSelect(tool.path)}
-                className="w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 rounded-lg transition-colors"
-              >
-                <div className={cn("p-2 rounded-full", tool.color)}>
-                  {tool.icon}
+              <Link key={tool.id} href={tool.path}>
+                <div
+                  onClick={() => setMenuOpen(false)}
+                  className="w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 rounded-lg transition-colors"
+                >
+                  <div className={cn("p-2 rounded-full", tool.color)}>
+                    {tool.icon}
+                  </div>
+                  <div className="text-left">
+                    <div className="font-medium text-sm">{tool.label}</div>
+                    <div className="text-xs text-gray-500">{tool.description}</div>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <div className="font-medium text-sm">{tool.label}</div>
-                  <div className="text-xs text-gray-500">{tool.description}</div>
-                </div>
-              </button>
+              </Link>
             ))}
           </div>
         </div>
