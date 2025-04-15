@@ -3,7 +3,8 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { MobileLayout } from "@/components/layouts/mobile-layout";
-import { AuthProvider } from "@/hooks/use-auth";
+import { FloatingAIButton } from "@/components/floating-ai-button";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import HomePage from "@/pages/home";
 import NewTaskPage from "@/pages/new-task";
@@ -48,14 +49,23 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <div className="app-container">
-          <MobileLayout>
-            <Router />
-          </MobileLayout>
-          <Toaster />
-        </div>
+        <AppContent />
       </AuthProvider>
     </QueryClientProvider>
+  );
+}
+
+function AppContent() {
+  const { user } = useAuth();
+  
+  return (
+    <div className="app-container">
+      <MobileLayout>
+        <Router />
+      </MobileLayout>
+      {user && <FloatingAIButton />}
+      <Toaster />
+    </div>
   );
 }
 
