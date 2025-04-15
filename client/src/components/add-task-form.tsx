@@ -60,17 +60,16 @@ export function AddTaskForm() {
       console.log("Form data before submission:", data);
       
       // Create a new object with the same data
-      // NOTE: Convert dueDate to ISO string - our server will now handle the conversion back to Date
+      // NOTE: Convert dueDate to ISO string and ensure all values are of the correct type
       const taskData = {
-        ...data,
-        // The server now handles conversion from ISO string to Date
-        dueDate: data.dueDate ? data.dueDate.toISOString() : undefined,
-        estimatedTime: typeof data.estimatedTime === 'number' ? data.estimatedTime : undefined,
+        title: data.title,
         description: data.description || '', // Ensure description is never undefined
-        // Ensure all required fields are present
-        priority: data.priority || 'medium',
+        dueDate: data.dueDate ? data.dueDate.toISOString() : null, // Using null instead of undefined
+        completed: Boolean(data.completed), // Ensure boolean
+        priority: (data.priority || 'medium') as 'high' | 'medium' | 'low', // Ensure enum value
         category: data.category || 'Work',
-        completed: false,
+        estimatedTime: data.estimatedTime ? Number(data.estimatedTime) : null, // Using null instead of undefined
+        userId: 1, // Using the demo user ID
         isPublic: false
       };
       
