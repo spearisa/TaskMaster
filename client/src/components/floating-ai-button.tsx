@@ -10,14 +10,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter 
-} from '@/components/ui/dialog';
 
 interface AIToolOption {
   id: string;
