@@ -10,7 +10,8 @@ import {
   User,
   Sparkles,
   Bell,
-  BellOff
+  BellOff,
+  Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -85,6 +86,12 @@ export function SideNavigation() {
               active={isActive('/')}
             />
             <NavItem
+              icon={<Globe size={18} />}
+              label="Public Tasks"
+              href="/public-tasks"
+              active={isActive('/public-tasks')}
+            />
+            <NavItem
               icon={<MessageSquare size={18} />}
               label="Messages"
               href="/messenger"
@@ -128,6 +135,12 @@ export function SideNavigation() {
         label="My Tasks"
         href="/"
         active={isActive('/')}
+      />
+      <NavItem
+        icon={<Globe size={18} />}
+        label="Public Tasks"
+        href="/public-tasks"
+        active={isActive('/public-tasks')}
       />
       <NavItem
         icon={<MessageSquare size={18} />}

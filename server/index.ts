@@ -113,33 +113,20 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Try ports in sequence 5000, 5001, 5002, etc
-  const tryListen = (port = 5000, maxPort = 5010) => {
-    try {
-      server.listen({
-        port,
-        host: "0.0.0.0",
-      }, () => {
-        log(`serving on port ${port}`);
-      });
+  // Start server only on port 5000 (required by Replit workflow)
+  const port = 5000;
+  try {
+    server.listen({
+      port,
+      host: "0.0.0.0",
+    }, () => {
+      log(`serving on port ${port}`);
+    });
       
-      server.on('error', (err: any) => {
-        if (err.code === 'EADDRINUSE' && port < maxPort) {
-          log(`Port ${port} is already in use, trying port ${port + 1}...`);
-          server.close();
-          tryListen(port + 1, maxPort);
-        } else {
-          log(`Server error: ${err.message}`);
-        }
-      });
-    } catch (err: any) {
-      log(`Error starting server: ${err.message}`);
-      if (err.code === 'EADDRINUSE' && port < maxPort) {
-        log(`Port ${port} is already in use, trying port ${port + 1}...`);
-        tryListen(port + 1, maxPort);
-      }
-    }
-  };
-  
-  tryListen();
+    server.on('error', (err: any) => {
+      log(`Server error: ${err.message}`);
+    });
+  } catch (err: any) {
+    log(`Error starting server: ${err.message}`);
+  }
 })();

@@ -5,7 +5,8 @@ import {
   Calendar, 
   MessageSquare, 
   Plus,
-  Sparkles
+  Sparkles,
+  Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -22,7 +23,7 @@ export function BottomNavigation() {
     { path: '/', label: 'Home', icon: Home },
     { path: '/calendar', label: 'Calendar', icon: Calendar },
     { path: '/new-task', label: 'New', icon: Plus, highlight: true },
-    { path: '/ai-assistant', label: 'AI', icon: Sparkles },
+    { path: '/public-tasks', label: 'Public', icon: Globe },
     { path: '/messenger', label: 'Chat', icon: MessageSquare },
   ];
 
