@@ -196,7 +196,16 @@ export function MobileLayout({
       {/* Always show bottom navigation - hide only on very large screens */}
       <BottomNavigation />
       
-      {/* Removed the fixed floating Add Task button as it was overlapping with the AI bubble */}
+      {/* Add a fixed "Add Task" button - position on left side of screen */}
+      {!location.startsWith('/new-task') && !location.startsWith('/task/') && location !== '/auth' && (
+        <button
+          onClick={() => navigate("/new-task")}
+          className="fixed bottom-28 left-6 w-16 h-16 rounded-full bg-[#6366F1] hover:bg-[#4F46E5] border-4 border-white flex items-center justify-center z-40 shadow-lg"
+          aria-label="Add new task"
+        >
+          <Plus size={28} className="text-white" />
+        </button>
+      )}
     </div>
   );
 }
