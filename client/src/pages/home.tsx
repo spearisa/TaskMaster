@@ -184,14 +184,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Add a floating action button for creating new tasks */}
-      <Button
-        className="fixed bottom-20 right-6 h-14 w-14 rounded-full bg-primary hover:bg-primary/90 shadow-lg flex items-center justify-center"
-        onClick={() => navigate('/new-task')}
-      >
-        <Plus size={24} className="text-white" />
-        <span className="sr-only">Add new task</span>
-      </Button>
+      {/* Removed floating action button since it's now in the global layout */}
     </div>
   );
 }
