@@ -113,34 +113,30 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Try to use port 5000, but handle when it's in use
-  const tryListen = () => {
-    const port = 5000;
+  // Try ports in sequence 5000, 5001, 5002, etc
+  const tryListen = (port = 5000, maxPort = 5010) => {
     try {
       server.listen({
         port,
         host: "0.0.0.0",
-        reusePort: true,
       }, () => {
         log(`serving on port ${port}`);
       });
       
       server.on('error', (err: any) => {
-        if (err.code === 'EADDRINUSE') {
-          log(`Port ${port} is already in use, retrying in 3 seconds...`);
-          setTimeout(() => {
-            server.close();
-            tryListen();
-          }, 3000);
+        if (err.code === 'EADDRINUSE' && port < maxPort) {
+          log(`Port ${port} is already in use, trying port ${port + 1}...`);
+          server.close();
+          tryListen(port + 1, maxPort);
         } else {
           log(`Server error: ${err.message}`);
         }
       });
     } catch (err: any) {
       log(`Error starting server: ${err.message}`);
-      if (err.code === 'EADDRINUSE') {
-        log(`Port ${port} is already in use, retrying in 3 seconds...`);
-        setTimeout(tryListen, 3000);
+      if (err.code === 'EADDRINUSE' && port < maxPort) {
+        log(`Port ${port} is already in use, trying port ${port + 1}...`);
+        tryListen(port + 1, maxPort);
       }
     }
   };

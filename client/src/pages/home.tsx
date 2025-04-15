@@ -184,16 +184,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* New Task Button */}
-      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-10 w-[calc(100%-40px)] max-w-md">
-        <Button
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 h-12 rounded-xl text-base font-medium shadow-md flex items-center justify-center gap-2"
-          onClick={() => navigate('/new-task')}
-        >
-          <Plus className="h-5 w-5" />
-          New Task
-        </Button>
-      </div>
+      {/* We're removing the New Task button since it's now in the bottom navigation */}
     </div>
   );
 }
