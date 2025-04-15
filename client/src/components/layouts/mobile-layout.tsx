@@ -40,8 +40,8 @@ export function MobileLayout({
     }
   }, [location, user]);
   
-  // Skip layout if on auth page or not authenticated
-  if (location === '/auth' || !user) {
+  // Skip layout only if on auth page
+  if (location === '/auth') {
     return <>{children}</>;
   }
 
@@ -71,14 +71,18 @@ export function MobileLayout({
   // Determine current page title
   const currentPageTitle = pageTitle || pageTitles[location] || 'TaskFlow';
 
-  // Menu items for sidebar navigation
-  const menuItems = [
-    { path: '/task-templates', icon: <LayoutTemplate size={18} />, label: 'Templates' },
+  // Menu items for sidebar navigation - different items based on authentication
+  const menuItems = user ? [
     { path: '/', icon: <FileText size={18} />, label: 'My Tasks' },
+    { path: '/task-templates', icon: <LayoutTemplate size={18} />, label: 'Templates' },
     { path: '/public-tasks', icon: <Globe size={18} />, label: 'Public Tasks' },
     { path: '/messenger', icon: <MessageSquare size={18} />, label: 'Messages' },
     { path: '/ai-assistant', icon: <Sparkles size={18} />, label: 'AI Assistant' },
     { path: '/ai-tools', icon: <Sparkles size={18} />, label: 'AI Tools' },
+  ] : [
+    // Only show public tasks and login for unauthenticated users
+    { path: '/public-tasks', icon: <Globe size={18} />, label: 'Public Tasks' },
+    { path: '/auth', icon: <User size={18} />, label: 'Sign In' },
   ];
 
   const isActive = (path: string) => {
@@ -114,14 +118,25 @@ export function MobileLayout({
           <h1 className="text-lg font-semibold">{currentPageTitle}</h1>
         </div>
         
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => navigate('/profile')}
-          className="rounded-full" 
-        >
-          <User className="h-5 w-5" />
-        </Button>
+        {user ? (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate('/profile')}
+            className="rounded-full" 
+          >
+            <User className="h-5 w-5" />
+          </Button>
+        ) : (
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => navigate('/auth')}
+            className="rounded-full" 
+          >
+            Login
+          </Button>
+        )}
       </header>
 
       {/* Mobile menu overlay */}
@@ -160,24 +175,27 @@ export function MobileLayout({
                 </Link>
               ))}
               
-              <Link 
-                href="/profile"
-                onClick={() => setMenuOpen(false)}
-              >
-                <div 
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4 my-1 rounded-r-md",
-                    isActive('/profile') 
-                      ? "border-l-primary text-primary bg-primary/5" 
-                      : "border-l-transparent text-gray-700 hover:bg-gray-50"
-                  )}
+              {/* Only show profile link for authenticated users */}
+              {user && (
+                <Link 
+                  href="/profile"
+                  onClick={() => setMenuOpen(false)}
                 >
-                  <div className="flex items-center justify-center w-6 h-6">
-                    <User size={18} />
+                  <div 
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4 my-1 rounded-r-md",
+                      isActive('/profile') 
+                        ? "border-l-primary text-primary bg-primary/5" 
+                        : "border-l-transparent text-gray-700 hover:bg-gray-50"
+                    )}
+                  >
+                    <div className="flex items-center justify-center w-6 h-6">
+                      <User size={18} />
+                    </div>
+                    <span className="font-medium">Profile</span>
                   </div>
-                  <span className="font-medium">Profile</span>
-                </div>
-              </Link>
+                </Link>
+              )}
             </div>
           </div>
         </div>
