@@ -1,12 +1,12 @@
 import { ReactNode, useState, useEffect } from 'react';
-import { useLocation } from 'wouter';
-import { User, ChevronLeft, Menu } from 'lucide-react';
+import { useLocation, Link } from 'wouter';
+import { User, ChevronLeft, Menu, X, FileText, LayoutTemplate, MessageSquare, Sparkles, Globe } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { BottomNavigation } from './bottom-navigation';
 import { SideNavigation } from './navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface MobileLayoutProps {
   children: ReactNode;
@@ -24,6 +24,7 @@ export function MobileLayout({
   const [location, navigate] = useLocation();
   const { user } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   
   // Handle scroll for header shadow effect - always register this effect
@@ -70,6 +71,22 @@ export function MobileLayout({
   // Determine current page title
   const currentPageTitle = pageTitle || pageTitles[location] || 'TaskFlow';
 
+  // Menu items for sidebar navigation
+  const menuItems = [
+    { path: '/task-templates', icon: <LayoutTemplate size={18} />, label: 'Templates' },
+    { path: '/', icon: <FileText size={18} />, label: 'My Tasks' },
+    { path: '/public-tasks', icon: <Globe size={18} />, label: 'Public Tasks' },
+    { path: '/messenger', icon: <MessageSquare size={18} />, label: 'Messages' },
+    { path: '/ai-assistant', icon: <Sparkles size={18} />, label: 'AI Assistant' },
+    { path: '/ai-tools', icon: <Sparkles size={18} />, label: 'AI Tools' },
+  ];
+
+  const isActive = (path: string) => {
+    if (path === '/' && location === '/') return true;
+    if (path !== '/' && location.startsWith(path)) return true;
+    return false;
+  };
+
   return (
     <div className="bg-white min-h-screen">
       {/* Header with title and menu button */}
@@ -85,16 +102,14 @@ export function MobileLayout({
               <ChevronLeft className="h-5 w-5" />
             </Button>
           ) : (
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="mr-2 md:hidden">
-                  <Menu size={22} />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-64 p-0">
-                <SideNavigation />
-              </SheetContent>
-            </Sheet>
+            <Button 
+                variant="ghost" 
+                size="icon" 
+                className="mr-2 md:hidden"
+                onClick={() => setMenuOpen(true)}
+              >
+                <Menu size={22} />
+              </Button>
           )}
           <h1 className="text-lg font-semibold">{currentPageTitle}</h1>
         </div>
@@ -108,6 +123,65 @@ export function MobileLayout({
           <User className="h-5 w-5" />
         </Button>
       </header>
+
+      {/* Mobile menu overlay */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-40" onClick={() => setMenuOpen(false)}>
+          <div 
+            className="fixed top-0 left-0 bottom-0 w-64 bg-white shadow-lg z-10" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center p-4 border-b">
+              <h2 className="font-semibold">Menu</h2>
+              <Button variant="ghost" size="sm" onClick={() => setMenuOpen(false)}>
+                <X size={20} />
+              </Button>
+            </div>
+            <div className="p-2">
+              {menuItems.map((item) => (
+                <Link 
+                  key={item.path} 
+                  href={item.path}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <div 
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4 my-1 rounded-r-md",
+                      isActive(item.path) 
+                        ? "border-l-primary text-primary bg-primary/5" 
+                        : "border-l-transparent text-gray-700 hover:bg-gray-50"
+                    )}
+                  >
+                    <div className="flex items-center justify-center w-6 h-6">
+                      {item.icon}
+                    </div>
+                    <span className="font-medium">{item.label}</span>
+                  </div>
+                </Link>
+              ))}
+              
+              <Link 
+                href="/profile"
+                onClick={() => setMenuOpen(false)}
+              >
+                <div 
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4 my-1 rounded-r-md",
+                    isActive('/profile') 
+                      ? "border-l-primary text-primary bg-primary/5" 
+                      : "border-l-transparent text-gray-700 hover:bg-gray-50"
+                  )}
+                >
+                  <div className="flex items-center justify-center w-6 h-6">
+                    <User size={18} />
+                  </div>
+                  <span className="font-medium">Profile</span>
+                </div>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Left sidebar - only visible on desktop */}
       <div className="hidden md:block fixed left-0 top-0 h-full">
