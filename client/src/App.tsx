@@ -34,7 +34,7 @@ function Router() {
       <ProtectedRoute path="/completed" component={CompletedPage} />
       <ProtectedRoute path="/task/:id" component={TaskDetailPage} />
       <ProtectedRoute path="/assigned-tasks" component={AssignedTasksPage} />
-      <ProtectedRoute path="/public-tasks" component={PublicTasksPage} />
+      <Route path="/public-tasks" component={PublicTasksPage} />
       <ProtectedRoute path="/task-templates" component={TaskTemplatesPage} />
       <ProtectedRoute path="/task-templates/new" component={NewTaskTemplatePage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />

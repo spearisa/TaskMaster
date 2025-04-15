@@ -56,7 +56,13 @@ export default function PublicTasksPage() {
     : [];
 
   const handleTaskClick = (taskId: number) => {
-    navigate(`/task/${taskId}`);
+    // If user is logged in, navigate to task detail page
+    // Otherwise, navigate to shared task page that doesn't require login
+    if (user) {
+      navigate(`/task/${taskId}`);
+    } else {
+      navigate(`/shared-task/${taskId}`);
+    }
   };
 
   const formatDate = (dateString: string | null) => {
