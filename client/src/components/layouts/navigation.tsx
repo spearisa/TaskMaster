@@ -77,19 +77,20 @@ export function SideNavigation() {
             {user ? (
               // Authenticated user navigation
               <>
+                {/* My Tasks - Featured as main navigation item */}
                 <Link href="/">
                   <div 
                     className={cn(
-                      "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
+                      "flex items-center gap-2 px-4 py-4 transition-colors cursor-pointer border-l-4 bg-primary/5 mb-1",
                       isActive('/') 
-                        ? "border-l-primary text-primary" 
+                        ? "border-l-primary text-primary font-bold" 
                         : "border-l-transparent text-gray-700 hover:border-l-gray-200"
                     )}
                   >
                     <div className="flex items-center justify-center w-6 h-6">
-                      <FileText size={18} />
+                      <FileText size={20} />
                     </div>
-                    <span className="font-medium">My Tasks</span>
+                    <span className="font-medium text-lg">My Tasks</span>
                   </div>
                 </Link>
                 
@@ -253,12 +254,22 @@ export function SideNavigation() {
       {user ? (
         // Authenticated user sidebar
         <>
-          <NavItem
-            icon={<FileText size={18} />}
-            label="My Tasks"
-            href="/"
-            active={isActive('/')}
-          />
+          {/* My Tasks - Featured as main navigation item */}
+          <Link href="/">
+            <div 
+              className={cn(
+                "flex items-center gap-2 px-4 py-3 mb-1 transition-colors cursor-pointer border-l-4 bg-primary/5",
+                isActive('/') 
+                  ? "border-l-primary text-primary font-bold" 
+                  : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+              )}
+            >
+              <div className="flex items-center justify-center w-6 h-6">
+                <FileText size={20} />
+              </div>
+              <span className="font-medium text-lg">My Tasks</span>
+            </div>
+          </Link>
           <NavItem
             icon={<Plus size={18} />}
             label="New Task"
