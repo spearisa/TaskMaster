@@ -189,14 +189,12 @@ export function MobileLayout({
       </div>
       
       {/* Main content area - always add pb-24 to ensure content doesn't get hidden behind bottom nav */}
-      <main className="pb-24 md:ml-56 md:pb-0">
+      <main className="pb-24 md:ml-56">
         {children}
       </main>
       
-      {/* Bottom navigation - always render on mobile screens */}
-      <div className="md:hidden">
-        <BottomNavigation />
-      </div>
+      {/* Always show bottom navigation - hide only on very large screens */}
+      <BottomNavigation />
     </div>
   );
 }
