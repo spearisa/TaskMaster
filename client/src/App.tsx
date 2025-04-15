@@ -17,6 +17,7 @@ import AssignedTasksPage from "@/pages/assigned-tasks";
 import PublicTasksPage from "@/pages/public-tasks";
 import TaskTemplatesPage from "@/pages/task-templates";
 import NewTaskTemplatePage from "@/pages/new-task-template";
+import SharedTaskPage from "@/pages/shared-task";
 import AuthPage from "@/pages/auth-page";
 import ProfilePage from "@/pages/profile";
 import MessengerPage from "@/pages/messenger";
@@ -40,6 +41,7 @@ function Router() {
       <ProtectedRoute path="/messenger" component={MessengerPage} />
       <ProtectedRoute path="/messenger/:userId" component={MessengerPage} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/shared-task/:id" component={SharedTaskPage} />
       <Route component={NotFound} />
     </Switch>
   );
