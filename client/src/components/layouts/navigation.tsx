@@ -61,6 +61,24 @@ export function SideNavigation() {
     if (path !== '/' && location.startsWith(path)) return true;
     return false;
   };
+  
+  // Define navigation items with headers
+  const navigationSections = [
+    {
+      title: "Tasks",
+      icon: <FileText size={18} className="text-gray-500" />,
+      items: [
+        { label: "My Tasks", href: "/", icon: <FileText size={18} /> }
+      ]
+    },
+    {
+      title: "Templates",
+      icon: <LayoutTemplate size={18} className="text-gray-500" />,
+      items: [
+        { label: "Templates", href: "/task-templates", icon: <LayoutTemplate size={18} /> }
+      ]
+    }
+  ];
 
   // For mobile devices, show the hamburger menu
   if (isMobile) {
@@ -77,167 +95,171 @@ export function SideNavigation() {
             {user ? (
               // Authenticated user navigation
               <>
+                {/* Tasks Section */}
+                <div className="flex gap-2 mb-1 px-4 pt-2">
+                  <FileText size={18} className="text-gray-500" />
+                  <span className="font-semibold text-gray-600">Tasks</span>
+                </div>
                 {/* My Tasks - Featured as main navigation item */}
                 <Link href="/">
                   <div 
                     className={cn(
-                      "flex items-center gap-2 px-4 py-4 transition-colors cursor-pointer border-l-4 bg-primary/5 mb-1",
+                      "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
                       isActive('/') 
                         ? "border-l-primary text-primary font-bold" 
                         : "border-l-transparent text-gray-700 hover:border-l-gray-200"
                     )}
                   >
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <FileText size={20} />
-                    </div>
-                    <span className="font-medium text-lg">My Tasks</span>
+                    <span className="font-medium">My Tasks</span>
                   </div>
                 </Link>
-                
                 <Link href="/new-task">
                   <div 
                     className={cn(
-                      "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
+                      "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
                       isActive('/new-task') 
                         ? "border-l-primary text-primary" 
-                        : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+                        : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
                     )}
                   >
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <Plus size={18} />
-                    </div>
-                    <span className="font-medium">New Task</span>
+                    <span className="text-sm">New Task</span>
                   </div>
                 </Link>
                 
+                {/* Templates Section */}
+                <div className="flex gap-2 mt-4 mb-1 px-4 pt-2">
+                  <LayoutTemplate size={18} className="text-gray-500" />
+                  <span className="font-semibold text-gray-600">Templates</span>
+                </div>
                 <Link href="/task-templates">
                   <div 
                     className={cn(
-                      "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
+                      "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
                       isActive('/task-templates') 
                         ? "border-l-primary text-primary" 
-                        : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+                        : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
                     )}
                   >
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <LayoutTemplate size={18} />
-                    </div>
-                    <span className="font-medium">Templates</span>
+                    <span className="text-sm">Templates</span>
                   </div>
                 </Link>
                 
+                {/* Other links */}
+                <div className="flex gap-2 mt-4 mb-1 px-4 pt-2">
+                  <Globe size={18} className="text-gray-500" />
+                  <span className="font-semibold text-gray-600">Discover</span>
+                </div>
                 <Link href="/public-tasks">
                   <div 
                     className={cn(
-                      "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
+                      "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
                       isActive('/public-tasks') 
                         ? "border-l-primary text-primary" 
-                        : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+                        : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
                     )}
                   >
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <Globe size={18} />
-                    </div>
-                    <span className="font-medium">Public Tasks</span>
+                    <span className="text-sm">Public Tasks</span>
                   </div>
                 </Link>
                 
                 <Link href="/messenger">
                   <div 
                     className={cn(
-                      "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
+                      "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
                       isActive('/messenger') 
                         ? "border-l-primary text-primary" 
-                        : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+                        : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
                     )}
                   >
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <MessageSquare size={18} />
-                    </div>
-                    <span className="font-medium">Messages</span>
+                    <span className="text-sm">Messages</span>
                   </div>
                 </Link>
                 
+                {/* AI Section */}
+                <div className="flex gap-2 mt-4 mb-1 px-4 pt-2">
+                  <Sparkles size={18} className="text-gray-500" />
+                  <span className="font-semibold text-gray-600">AI Tools</span>
+                </div>
                 <Link href="/ai-assistant">
                   <div 
                     className={cn(
-                      "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
+                      "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
                       isActive('/ai-assistant') 
                         ? "border-l-primary text-primary" 
-                        : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+                        : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
                     )}
                   >
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <Sparkles size={18} />
-                    </div>
-                    <span className="font-medium">AI Assistant</span>
+                    <span className="text-sm">AI Assistant</span>
                   </div>
                 </Link>
                 
                 <Link href="/ai-tools">
                   <div 
                     className={cn(
-                      "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
+                      "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
                       isActive('/ai-tools') 
                         ? "border-l-primary text-primary" 
-                        : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+                        : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
                     )}
                   >
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <Sparkles size={18} />
-                    </div>
-                    <span className="font-medium">AI Tools</span>
+                    <span className="text-sm">AI Tools</span>
                   </div>
                 </Link>
                 
+                {/* Profile */}
+                <div className="flex gap-2 mt-4 mb-1 px-4 pt-2">
+                  <User size={18} className="text-gray-500" />
+                  <span className="font-semibold text-gray-600">Account</span>
+                </div>
                 <Link href="/profile">
                   <div 
                     className={cn(
-                      "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
+                      "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
                       isActive('/profile') 
                         ? "border-l-primary text-primary" 
-                        : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+                        : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
                     )}
                   >
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <User size={18} />
-                    </div>
-                    <span className="font-medium">Profile</span>
+                    <span className="text-sm">Profile</span>
                   </div>
                 </Link>
               </>
             ) : (
               // Non-authenticated user navigation - show limited options
               <>
+                {/* Discover Section */}
+                <div className="flex gap-2 mb-1 px-4 pt-2">
+                  <Globe size={18} className="text-gray-500" />
+                  <span className="font-semibold text-gray-600">Discover</span>
+                </div>
                 <Link href="/public-tasks">
                   <div 
                     className={cn(
-                      "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
+                      "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
                       isActive('/public-tasks') 
                         ? "border-l-primary text-primary" 
-                        : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+                        : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
                     )}
                   >
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <Globe size={18} />
-                    </div>
-                    <span className="font-medium">Public Tasks</span>
+                    <span className="text-sm">Public Tasks</span>
                   </div>
                 </Link>
                 
+                {/* Account Section */}
+                <div className="flex gap-2 mt-4 mb-1 px-4 pt-2">
+                  <User size={18} className="text-gray-500" />
+                  <span className="font-semibold text-gray-600">Account</span>
+                </div>
                 <Link href="/auth">
                   <div 
                     className={cn(
-                      "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
+                      "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
                       isActive('/auth') 
                         ? "border-l-primary text-primary" 
-                        : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+                        : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
                     )}
                   >
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <User size={18} />
-                    </div>
-                    <span className="font-medium">Sign In</span>
+                    <span className="text-sm">Sign In</span>
                   </div>
                 </Link>
               </>
@@ -254,80 +276,173 @@ export function SideNavigation() {
       {user ? (
         // Authenticated user sidebar
         <>
+          {/* Tasks Section */}
+          <div className="flex gap-2 mb-1 px-4 pt-2">
+            <FileText size={18} className="text-gray-500" />
+            <span className="font-semibold text-gray-600">Tasks</span>
+          </div>
           {/* My Tasks - Featured as main navigation item */}
           <Link href="/">
             <div 
               className={cn(
-                "flex items-center gap-2 px-4 py-3 mb-1 transition-colors cursor-pointer border-l-4 bg-primary/5",
+                "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
                 isActive('/') 
                   ? "border-l-primary text-primary font-bold" 
                   : "border-l-transparent text-gray-700 hover:border-l-gray-200"
               )}
             >
-              <div className="flex items-center justify-center w-6 h-6">
-                <FileText size={20} />
-              </div>
-              <span className="font-medium text-lg">My Tasks</span>
+              <span className="font-medium">My Tasks</span>
             </div>
           </Link>
-          <NavItem
-            icon={<Plus size={18} />}
-            label="New Task"
-            href="/new-task"
-            active={isActive('/new-task')}
-          />
-          <NavItem
-            icon={<LayoutTemplate size={18} />}
-            label="Templates"
-            href="/task-templates"
-            active={isActive('/task-templates')}
-          />
-          <NavItem
-            icon={<Globe size={18} />}
-            label="Public Tasks"
-            href="/public-tasks"
-            active={isActive('/public-tasks')}
-          />
-          <NavItem
-            icon={<MessageSquare size={18} />}
-            label="Messages"
-            href="/messenger"
-            active={isActive('/messenger')}
-          />
-          <NavItem
-            icon={<Sparkles size={18} />}
-            label="AI Assistant"
-            href="/ai-assistant"
-            active={isActive('/ai-assistant')}
-          />
-          <NavItem
-            icon={<Sparkles size={18} />}
-            label="AI Tools"
-            href="/ai-tools"
-            active={isActive('/ai-tools')}
-          />
-          <NavItem
-            icon={<User size={18} />}
-            label="Profile"
-            href="/profile"
-            active={isActive('/profile')}
-          />
+          <Link href="/new-task">
+            <div 
+              className={cn(
+                "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                isActive('/new-task') 
+                  ? "border-l-primary text-primary" 
+                  : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+              )}
+            >
+              <span className="text-sm">New Task</span>
+            </div>
+          </Link>
+          
+          {/* Templates Section */}
+          <div className="flex gap-2 mt-4 mb-1 px-4 pt-2">
+            <LayoutTemplate size={18} className="text-gray-500" />
+            <span className="font-semibold text-gray-600">Templates</span>
+          </div>
+          <Link href="/task-templates">
+            <div 
+              className={cn(
+                "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                isActive('/task-templates') 
+                  ? "border-l-primary text-primary" 
+                  : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+              )}
+            >
+              <span className="text-sm">Templates</span>
+            </div>
+          </Link>
+          
+          {/* Discover Section */}
+          <div className="flex gap-2 mt-4 mb-1 px-4 pt-2">
+            <Globe size={18} className="text-gray-500" />
+            <span className="font-semibold text-gray-600">Discover</span>
+          </div>
+          <Link href="/public-tasks">
+            <div 
+              className={cn(
+                "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                isActive('/public-tasks') 
+                  ? "border-l-primary text-primary" 
+                  : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+              )}
+            >
+              <span className="text-sm">Public Tasks</span>
+            </div>
+          </Link>
+          
+          <Link href="/messenger">
+            <div 
+              className={cn(
+                "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                isActive('/messenger') 
+                  ? "border-l-primary text-primary" 
+                  : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+              )}
+            >
+              <span className="text-sm">Messages</span>
+            </div>
+          </Link>
+          
+          {/* AI Section */}
+          <div className="flex gap-2 mt-4 mb-1 px-4 pt-2">
+            <Sparkles size={18} className="text-gray-500" />
+            <span className="font-semibold text-gray-600">AI Tools</span>
+          </div>
+          <Link href="/ai-assistant">
+            <div 
+              className={cn(
+                "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                isActive('/ai-assistant') 
+                  ? "border-l-primary text-primary" 
+                  : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+              )}
+            >
+              <span className="text-sm">AI Assistant</span>
+            </div>
+          </Link>
+          
+          <Link href="/ai-tools">
+            <div 
+              className={cn(
+                "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                isActive('/ai-tools') 
+                  ? "border-l-primary text-primary" 
+                  : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+              )}
+            >
+              <span className="text-sm">AI Tools</span>
+            </div>
+          </Link>
+          
+          {/* Profile Section */}
+          <div className="flex gap-2 mt-4 mb-1 px-4 pt-2">
+            <User size={18} className="text-gray-500" />
+            <span className="font-semibold text-gray-600">Account</span>
+          </div>
+          <Link href="/profile">
+            <div 
+              className={cn(
+                "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                isActive('/profile') 
+                  ? "border-l-primary text-primary" 
+                  : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+              )}
+            >
+              <span className="text-sm">Profile</span>
+            </div>
+          </Link>
         </>
       ) : (
         // Non-authenticated user sidebar - limited options
         <>
-          <NavItem
-            icon={<Globe size={18} />}
-            label="Public Tasks"
-            href="/public-tasks"
-            active={isActive('/public-tasks')}
-          />
-          <NavItem
-            icon={<User size={18} />}
-            label="Sign In"
-            href="/auth"
-            active={isActive('/auth')}
-          />
+          {/* Discover Section */}
+          <div className="flex gap-2 mb-1 px-4 pt-2">
+            <Globe size={18} className="text-gray-500" />
+            <span className="font-semibold text-gray-600">Discover</span>
+          </div>
+          <Link href="/public-tasks">
+            <div 
+              className={cn(
+                "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                isActive('/public-tasks') 
+                  ? "border-l-primary text-primary" 
+                  : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+              )}
+            >
+              <span className="text-sm">Public Tasks</span>
+            </div>
+          </Link>
+          
+          {/* Account Section */}
+          <div className="flex gap-2 mt-4 mb-1 px-4 pt-2">
+            <User size={18} className="text-gray-500" />
+            <span className="font-semibold text-gray-600">Account</span>
+          </div>
+          <Link href="/auth">
+            <div 
+              className={cn(
+                "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                isActive('/auth') 
+                  ? "border-l-primary text-primary" 
+                  : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+              )}
+            >
+              <span className="text-sm">Sign In</span>
+            </div>
+          </Link>
         </>
       )}
     </div>
