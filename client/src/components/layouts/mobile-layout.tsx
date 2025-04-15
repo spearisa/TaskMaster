@@ -44,6 +44,11 @@ export function MobileLayout({
   const [isScrolled, setIsScrolled] = useState(false);
   const isMobile = useIsMobile();
   
+  // Skip layout if on auth page or not authenticated
+  if (location === '/auth' || !user) {
+    return <>{children}</>;
+  }
+  
   // Handle scroll for header shadow effect
   useEffect(() => {
     const handleScroll = () => {

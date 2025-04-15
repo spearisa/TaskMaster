@@ -49,7 +49,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <div className="app-container">
-          <Router />
+          <MobileLayout>
+            <Router />
+          </MobileLayout>
           <Toaster />
         </div>
       </AuthProvider>
