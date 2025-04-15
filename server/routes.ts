@@ -114,6 +114,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
       
+      console.log("Task creation request received:", JSON.stringify(req.body, null, 2));
+      
       // Validate request body against the schema
       const result = insertTaskSchema.safeParse({
         ...req.body,
@@ -122,22 +124,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!result.success) {
         const errorMessage = fromZodError(result.error).message;
+        console.error("Task validation error:", errorMessage);
         return res.status(400).json({ message: errorMessage });
       }
       
+      console.log("Validated task data:", JSON.stringify(result.data, null, 2));
+      
       // Create the task in storage
-      const task = await storage.createTask(result.data);
-      
-      // Convert dates for response
-      const taskWithFormattedDates = {
-        ...task,
-        dueDate: task.dueDate ? task.dueDate.toISOString() : null,
-        completedAt: task.completedAt ? task.completedAt.toISOString() : null,
-      };
-      
-      return res.status(201).json(taskWithFormattedDates);
+      try {
+        const task = await storage.createTask(result.data);
+        
+        // Convert dates for response
+        const taskWithFormattedDates = {
+          ...task,
+          dueDate: task.dueDate ? task.dueDate.toISOString() : null,
+          completedAt: task.completedAt ? task.completedAt.toISOString() : null,
+        };
+        
+        console.log("Task created successfully:", JSON.stringify(taskWithFormattedDates, null, 2));
+        
+        return res.status(201).json(taskWithFormattedDates);
+      } catch (storageError) {
+        console.error("Storage error creating task:", storageError);
+        
+        // Return a more detailed error message including the original error
+        if (storageError instanceof Error) {
+          return res.status(500).json({ 
+            message: "Error creating task in database",
+            details: storageError.message,
+            errorName: storageError.name
+          });
+        }
+        
+        // Generic error fallback
+        return res.status(500).json({ message: "Unknown error creating task in database" });
+      }
     } catch (error) {
-      console.error("Error creating task:", error);
+      console.error("Unexpected error creating task:", error);
       return res.status(500).json({ message: "Failed to create task" });
     }
   });

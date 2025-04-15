@@ -65,27 +65,60 @@ export function AddTaskForm() {
         dueDate: data.dueDate ? data.dueDate.toISOString() : undefined,
         estimatedTime: typeof data.estimatedTime === 'number' ? data.estimatedTime : undefined,
         description: data.description || '', // Ensure description is never undefined
+        // Ensure all required fields are present
+        priority: data.priority || 'medium',
+        category: data.category || 'Work',
+        completed: false,
+        isPublic: false
       };
       
       console.log("Task data being sent to API:", taskData);
       
-      const response = await apiRequest("POST", "/api/tasks", taskData);
-      
-      if (response.ok) {
-        queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      try {
+        const response = await apiRequest("POST", "/api/tasks", taskData);
         
-        toast({
-          title: "Task created",
-          description: "Your task has been created successfully.",
-        });
+        console.log("API response status:", response.status);
         
-        navigate("/");
-      } else {
-        const errorData = await response.json();
-        console.error("Server error response:", errorData);
+        if (response.ok) {
+          const responseData = await response.json();
+          console.log("Success response data:", responseData);
+          
+          queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+          
+          toast({
+            title: "Task created",
+            description: "Your task has been created successfully.",
+          });
+          
+          navigate("/");
+        } else {
+          let errorMessage = "Failed to create task";
+          
+          try {
+            const errorData = await response.json();
+            console.error("Server error response:", errorData);
+            
+            if (errorData.details) {
+              errorMessage = `${errorData.message}: ${errorData.details}`;
+            } else if (errorData.message) {
+              errorMessage = errorData.message;
+            }
+          } catch (jsonError) {
+            console.error("Error parsing error response:", jsonError);
+            errorMessage = `Server error (${response.status}): ${response.statusText}`;
+          }
+          
+          toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
+      } catch (networkError) {
+        console.error("Network error:", networkError);
         toast({
-          title: "Error",
-          description: errorData.message || "Failed to create task",
+          title: "Connection Error",
+          description: "Could not connect to the server. Please check your internet connection and try again.",
           variant: "destructive",
         });
       }
