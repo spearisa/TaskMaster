@@ -130,6 +130,20 @@ export default function PublicTasksPage() {
           </div>
         </div>
 
+        {/* Login prompt for non-authenticated users */}
+        {!user && !isLoading && (
+          <div className="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-md text-indigo-700">
+            <p className="font-medium">Browsing as a guest</p>
+            <p className="text-sm mb-3">Sign in to create your own tasks, use templates, and access AI assistance.</p>
+            <Button 
+              onClick={() => navigate('/auth')}
+              className="bg-indigo-600 hover:bg-indigo-700"
+            >
+              Sign In
+            </Button>
+          </div>
+        )}
+
         {/* Tasks grid */}
         <div className="space-y-4">
           {isLoading ? (

@@ -21,6 +21,7 @@ type SharedTaskResponse = {
 export default function SharedTaskPage() {
   const [location, navigate] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [task, setTask] = useState<TaskWithStringDates | null>(null);
   const [userInfo, setUserInfo] = useState<{username: string, displayName: string} | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,7 +108,7 @@ export default function SharedTaskPage() {
       <Button
         variant="ghost"
         className="mb-6 flex items-center gap-1"
-        onClick={() => navigate('/')}
+        onClick={() => navigate(user ? '/' : '/public-tasks')}
       >
         <ArrowLeft className="h-4 w-4" />
         Back
@@ -207,6 +208,20 @@ export default function SharedTaskPage() {
         <div className="mt-6 p-4 bg-red-50 border border-red-100 rounded-md text-red-700">
           <p className="font-medium">Error</p>
           <p className="text-sm">{error}</p>
+        </div>
+      )}
+      
+      {/* Login prompt for non-authenticated users */}
+      {!user && !error && !loading && (
+        <div className="mt-6 p-4 bg-indigo-50 border border-indigo-100 rounded-md text-indigo-700">
+          <p className="font-medium">Want to create your own tasks?</p>
+          <p className="text-sm mb-3">Sign in to create tasks, use templates, and access AI assistance.</p>
+          <Button 
+            onClick={() => navigate('/auth')}
+            className="bg-indigo-600 hover:bg-indigo-700"
+          >
+            Sign In
+          </Button>
         </div>
       )}
     </div>
