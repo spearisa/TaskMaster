@@ -4,10 +4,11 @@ import {
   Home, 
   Calendar, 
   MessageSquare, 
-  Plus,
+  User,
   Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/use-auth';
 
 // Define the type for navigation items
 interface NavItem {
@@ -18,6 +19,7 @@ interface NavItem {
 
 export function BottomNavigation() {
   const [location, navigate] = useLocation();
+  const { user } = useAuth();
   
   // Log when component mounts and shows current location
   useEffect(() => {
@@ -30,11 +32,17 @@ export function BottomNavigation() {
     return false;
   };
 
-  const navItems: NavItem[] = [
+  // Different navigation items based on authentication status
+  const navItems: NavItem[] = user ? [
+    // Authenticated user navigation
     { path: '/', label: 'Home', icon: Home },
     { path: '/calendar', label: 'Calendar', icon: Calendar },
     { path: '/public-tasks', label: 'Public', icon: Globe },
     { path: '/messenger', label: 'Chat', icon: MessageSquare },
+  ] : [
+    // Non-authenticated user navigation - limited options
+    { path: '/public-tasks', label: 'Public', icon: Globe },
+    { path: '/auth', label: 'Sign In', icon: User },
   ];
 
   return (
