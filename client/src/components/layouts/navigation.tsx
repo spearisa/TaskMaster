@@ -125,13 +125,13 @@ export function MobileNavigation() {
           </div>
         </Link>
 
-        <Link href="/ai-assistant">
+        <Link href="/ai-tools">
           <div className={cn(
             "flex flex-col items-center p-1 cursor-pointer",
-            isActive('/ai-assistant') ? "text-primary" : "text-gray-500"
+            isActive('/ai-tools') ? "text-primary" : "text-gray-500"
           )}>
             <Sparkles size={18} />
-            <span className="text-xs mt-1">AI Help</span>
+            <span className="text-xs mt-1">AI Tools</span>
           </div>
         </Link>
       </div>
@@ -212,6 +212,12 @@ export function SideNavigation() {
               active={isActive('/ai-assistant')}
             />
             <NavItem
+              icon={<Sparkles size={18} />}
+              label="AI Tools"
+              href="/ai-tools"
+              active={isActive('/ai-tools')}
+            />
+            <NavItem
               icon={<Settings size={18} />}
               label="Profile"
               href="/profile"
@@ -274,6 +280,12 @@ export function SideNavigation() {
         label="AI Assistant"
         href="/ai-assistant"
         active={isActive('/ai-assistant')}
+      />
+      <NavItem
+        icon={<Sparkles size={18} />}
+        label="AI Tools"
+        href="/ai-tools"
+        active={isActive('/ai-tools')}
       />
       <NavItem
         icon={<Settings size={18} />}

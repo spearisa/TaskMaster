@@ -17,7 +17,11 @@ interface SuggestionGroup {
   recommendation: string;
 }
 
-export function AiAssistant() {
+interface AiAssistantProps {
+  delegationMode?: boolean;
+}
+
+export function AiAssistant({ delegationMode = false }: AiAssistantProps) {
   const [suggestions, setSuggestions] = useState<SuggestionGroup[]>([]);
   const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

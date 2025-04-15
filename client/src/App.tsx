@@ -9,6 +9,7 @@ import HomePage from "@/pages/home";
 import NewTaskPage from "@/pages/new-task";
 import CalendarSimplePage from "@/pages/calendar-simple";
 import AIAssistantPage from "@/pages/ai-assistant";
+import AiToolsPage from "@/pages/ai-tools";
 import CompletedPage from "@/pages/completed";
 import TaskDetailPage from "@/pages/task-detail";
 import AssignedTasksPage from "@/pages/assigned-tasks";
@@ -27,6 +28,7 @@ function Router() {
       <ProtectedRoute path="/new-task" component={NewTaskPage} />
       <ProtectedRoute path="/calendar" component={CalendarSimplePage} />
       <ProtectedRoute path="/ai-assistant" component={AIAssistantPage} />
+      <ProtectedRoute path="/ai-tools" component={AiToolsPage} />
       <ProtectedRoute path="/completed" component={CompletedPage} />
       <ProtectedRoute path="/task/:id" component={TaskDetailPage} />
       <ProtectedRoute path="/assigned-tasks" component={AssignedTasksPage} />

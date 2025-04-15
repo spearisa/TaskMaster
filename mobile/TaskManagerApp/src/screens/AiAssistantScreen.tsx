@@ -13,6 +13,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Ionicons } from 'react-native-vector-icons';
 import { AiAPI, TaskAPI } from '../services/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import SmartTasks from '../components/SmartTasks';
 
 // AI suggestion types
 interface Task {
@@ -41,10 +42,10 @@ interface DelegationResult {
   nextActions: string;
 }
 
-const AiAssistantScreen = () => {
+const AiAssistantScreen = ({ navigation }: any) => {
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
   const [context, setContext] = useState('');
-  const [activeTab, setActiveTab] = useState<'suggestions' | 'delegation'>('suggestions');
+  const [activeTab, setActiveTab] = useState<'suggestions' | 'delegation' | 'smart_tasks'>('smart_tasks');
 
   // Fetch AI suggestions
   const {
@@ -306,9 +307,32 @@ const AiAssistantScreen = () => {
     );
   };
 
+  // Render Smart Tasks tab
+  const renderSmartTasks = () => {
+    return <SmartTasks navigation={navigation} />;
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'smart_tasks' && styles.activeTabButton]}
+          onPress={() => setActiveTab('smart_tasks')}
+        >
+          <Ionicons
+            name="flash-outline"
+            size={20}
+            color={activeTab === 'smart_tasks' ? '#6366f1' : '#6b7280'}
+          />
+          <Text
+            style={[
+              styles.tabButtonText,
+              activeTab === 'smart_tasks' && styles.activeTabButtonText,
+            ]}
+          >
+            AI Tools
+          </Text>
+        </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tabButton, activeTab === 'suggestions' && styles.activeTabButton]}
           onPress={() => setActiveTab('suggestions')}
@@ -342,12 +366,16 @@ const AiAssistantScreen = () => {
               activeTab === 'delegation' && styles.activeTabButtonText,
             ]}
           >
-            Delegate Tasks
+            Delegate
           </Text>
         </TouchableOpacity>
       </View>
 
-      {activeTab === 'suggestions' ? renderSuggestions() : renderDelegation()}
+      {activeTab === 'smart_tasks' 
+        ? renderSmartTasks() 
+        : activeTab === 'suggestions' 
+          ? renderSuggestions() 
+          : renderDelegation()}
     </SafeAreaView>
   );
 };

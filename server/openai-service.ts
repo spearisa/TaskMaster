@@ -1,9 +1,16 @@
 import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import { TaskWithStringDates } from "@shared/schema";
 
 // Initialize the OpenAI client
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+
+// Initialize Anthropic client if API key is available
+const anthropic = process.env.ANTHROPIC_API_KEY 
+  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  : null;
+// the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
 
 /**
  * Helper function to safely parse JSON or return a fallback
@@ -304,5 +311,111 @@ export async function delegateTaskToAI(task: TaskWithStringDates, context?: stri
   } catch (error) {
     console.error("Error delegating task to AI:", error);
     throw new Error("Failed to delegate task to AI");
+  }
+}
+
+/**
+ * Generate chat completion using either OpenAI or Anthropic based on availability and preference
+ */
+export async function generateChatCompletion(prompt: string, useModel: 'openai' | 'anthropic' = 'openai') {
+  try {
+    if (useModel === 'anthropic' && anthropic) {
+      // Use Anthropic Claude if requested and available
+      const response = await anthropic.messages.create({
+        max_tokens: 1024,
+        model: "claude-3-7-sonnet-20250219",
+        messages: [
+          { role: "user", content: prompt }
+        ],
+      });
+
+      // Extract content correctly based on the response structure
+      const content = typeof response.content[0] === 'object' && 'text' in response.content[0]
+        ? response.content[0].text
+        : '';
+
+      return {
+        content,
+        model: "Claude"
+      };
+    } else {
+      // Default to OpenAI
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are a helpful AI assistant that provides concise, accurate, and helpful information."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ]
+      });
+
+      return {
+        content: response.choices[0].message.content,
+        model: "GPT-4o"
+      };
+    }
+  } catch (error) {
+    console.error("Error generating chat completion:", error);
+    throw new Error("Failed to generate AI response");
+  }
+}
+
+/**
+ * Generate image using DALL-E
+ */
+export async function generateImage(prompt: string) {
+  try {
+    const response = await openai.images.generate({
+      model: "dall-e-3",
+      prompt: prompt,
+      n: 1,
+      size: "1024x1024",
+      quality: "standard",
+    });
+
+    return {
+      url: response.data[0].url,
+      revisedPrompt: response.data[0].revised_prompt
+    };
+  } catch (error) {
+    console.error("Error generating image:", error);
+    throw new Error("Failed to generate image");
+  }
+}
+
+/**
+ * Generate code using OpenAI
+ */
+export async function generateCode(prompt: string, language: string) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert programmer with deep knowledge of ${language} programming.
+          When responding to the user, provide only the code without explanation or comments outside the code.
+          Make sure to include proper comments inside the code to explain important sections.
+          Follow best practices for ${language} and ensure the code is secure, efficient, and well-structured.`
+        },
+        {
+          role: "user",
+          content: `Please write code in ${language} that ${prompt}`
+        }
+      ]
+    });
+
+    return {
+      code: response.choices[0].message.content,
+      language: language
+    };
+  } catch (error) {
+    console.error("Error generating code:", error);
+    throw new Error("Failed to generate code");
   }
 }

@@ -6,7 +6,10 @@ import {
   updateProfileSchema, insertTaskTemplateSchema, taskTemplateSchema
 } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
-import { getTaskSuggestions, generateTaskReminder, generateDailySchedule, delegateTaskToAI } from "./openai-service";
+import { 
+  getTaskSuggestions, generateTaskReminder, generateDailySchedule, delegateTaskToAI,
+  generateChatCompletion, generateImage, generateCode
+} from "./openai-service";
 import { setupAuth } from "./auth";
 import { WebSocketServer, WebSocket } from "ws";
 
@@ -594,6 +597,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error in AI suggestions route:", error);
       return res.status(500).json({ message: "Failed to generate task suggestions" });
+    }
+  });
+  
+  // Chat generation endpoint
+  app.post("/api/ai/chat", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { prompt, model = 'openai' } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ message: "Prompt is required" });
+      }
+      
+      // Check if we have API keys
+      if (!process.env.OPENAI_API_KEY && (!process.env.ANTHROPIC_API_KEY || model === 'openai')) {
+        return res.status(400).json({ message: "AI provider API key not configured" });
+      }
+      
+      const result = await generateChatCompletion(prompt, model as 'openai' | 'anthropic');
+      return res.json(result);
+    } catch (error) {
+      console.error("Error in AI chat route:", error);
+      return res.status(500).json({ message: "Failed to generate AI response" });
+    }
+  });
+  
+  // Image generation endpoint
+  app.post("/api/ai/image", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { prompt } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ message: "Prompt is required" });
+      }
+      
+      // Check if we have OpenAI API key
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(400).json({ message: "OpenAI API key not configured" });
+      }
+      
+      const result = await generateImage(prompt);
+      return res.json(result);
+    } catch (error) {
+      console.error("Error in AI image generation route:", error);
+      return res.status(500).json({ message: "Failed to generate image" });
+    }
+  });
+  
+  // Code generation endpoint
+  app.post("/api/ai/code", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { prompt, language = 'javascript' } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ message: "Prompt is required" });
+      }
+      
+      // Check if we have OpenAI API key
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(400).json({ message: "OpenAI API key not configured" });
+      }
+      
+      const result = await generateCode(prompt, language);
+      return res.json(result);
+    } catch (error) {
+      console.error("Error in AI code generation route:", error);
+      return res.status(500).json({ message: "Failed to generate code" });
     }
   });
 
