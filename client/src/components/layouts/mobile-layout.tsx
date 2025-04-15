@@ -188,13 +188,15 @@ export function MobileLayout({
         <SideNavigation />
       </div>
       
-      {/* Main content area - add pb-24 to ensure content doesn't get hidden behind bottom nav */}
-      <main className={`${isMobile ? 'pb-24' : 'md:ml-56'}`}>
+      {/* Main content area - always add pb-24 to ensure content doesn't get hidden behind bottom nav */}
+      <main className="pb-24 md:ml-56 md:pb-0">
         {children}
       </main>
       
-      {/* Bottom navigation - only visible on mobile */}
-      {isMobile && <BottomNavigation />}
+      {/* Bottom navigation - always render on mobile screens */}
+      <div className="md:hidden">
+        <BottomNavigation />
+      </div>
     </div>
   );
 }

@@ -1,17 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
 import { 
   Home, 
   Calendar, 
   MessageSquare, 
   Plus,
-  Sparkles,
   Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function BottomNavigation() {
   const [location] = useLocation();
+  
+  // Log when component mounts and shows current location
+  useEffect(() => {
+    console.log("[BottomNavigation] Mounted, current location:", location);
+  }, [location]);
   
   const isActive = (path: string) => {
     if (path === '/' && location === '/') return true;
@@ -28,7 +32,7 @@ export function BottomNavigation() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 py-2 z-50">
+    <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 py-2 z-50 shadow-lg">
       <div className="flex justify-around items-center w-full max-w-lg mx-auto px-4">
         {navItems.map((item) => (
           <Link
@@ -38,7 +42,7 @@ export function BottomNavigation() {
           >
             {item.highlight ? (
               <div className="flex flex-col items-center justify-center">
-                <div className="bg-blue-600 p-3 rounded-full mb-1">
+                <div className="bg-primary p-3 rounded-full mb-1">
                   <item.icon size={20} className="text-white" />
                 </div>
                 <span className="text-xs font-medium text-gray-700">{item.label}</span>
