@@ -93,6 +93,22 @@ export function SideNavigation() {
                   </div>
                 </Link>
                 
+                <Link href="/new-task">
+                  <div 
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4",
+                      isActive('/new-task') 
+                        ? "border-l-primary text-primary" 
+                        : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+                    )}
+                  >
+                    <div className="flex items-center justify-center w-6 h-6">
+                      <Plus size={18} />
+                    </div>
+                    <span className="font-medium">New Task</span>
+                  </div>
+                </Link>
+                
                 <Link href="/task-templates">
                   <div 
                     className={cn(
@@ -242,6 +258,12 @@ export function SideNavigation() {
             label="My Tasks"
             href="/"
             active={isActive('/')}
+          />
+          <NavItem
+            icon={<Plus size={18} />}
+            label="New Task"
+            href="/new-task"
+            active={isActive('/new-task')}
           />
           <NavItem
             icon={<LayoutTemplate size={18} />}

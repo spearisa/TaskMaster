@@ -144,7 +144,7 @@ export default function HomePage() {
             className="text-amber-600 hover:text-amber-800 hover:bg-amber-50 px-2 h-8 text-sm"
             onClick={() => navigate('/calendar')}
           >
-            Hide
+            View Calendar
           </Button>
         </div>
 
@@ -171,16 +171,54 @@ export default function HomePage() {
               </div>
             </div>
           ))}
+          
+          {limitedUpcomingTasks.length === 0 && (
+            <div className="text-center py-6 bg-gray-50 rounded-lg">
+              <p className="text-gray-500">No upcoming deadlines</p>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* All Tasks */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">
+              My Tasks ({tasks?.length || 0})
+            </h2>
+          </div>
         </div>
 
-        <div className="mt-4">
-          <Button
-            variant="outline"
-            className="w-full text-center py-2 px-4 border border-gray-200 bg-gray-50 text-gray-700 rounded-md"
-            onClick={() => navigate('/calendar')}
-          >
-            View All in Calendar
-          </Button>
+        <div className="space-y-3">
+          {tasks?.map(task => (
+            <div 
+              key={task.id} 
+              className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm"
+              onClick={() => navigate(`/task/${task.id}`)}
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                  <Calendar className="text-gray-600" size={20} />
+                </div>
+                <div className="flex-grow">
+                  <h3 className="font-medium mb-1">{task.title}</h3>
+                  <div className="text-sm text-gray-500">
+                    {task.dueDate ? formatDueDate(task.dueDate) : 'No due date'}
+                  </div>
+                </div>
+                <div className={`px-2 py-1 rounded-md text-xs font-medium ${priorityColors[task.priority || 'medium']}`}>
+                  {task.priority || 'medium'}
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          {(!tasks || tasks.length === 0) && (
+            <div className="text-center py-6 bg-gray-50 rounded-lg">
+              <p className="text-gray-500">No tasks found</p>
+            </div>
+          )}
         </div>
       </div>
 
