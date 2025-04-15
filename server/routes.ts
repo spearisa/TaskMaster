@@ -116,11 +116,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Task creation request received:", JSON.stringify(req.body, null, 2));
       
+      // Convert date strings to proper Date objects for Zod validation
+      let processedTaskData = { ...req.body };
+      
+      // If dueDate is an ISO string, convert it to a Date object
+      if (req.body.dueDate && typeof req.body.dueDate === 'string') {
+        try {
+          processedTaskData.dueDate = new Date(req.body.dueDate);
+          console.log("Converted dueDate string to Date object:", processedTaskData.dueDate);
+        } catch (dateError) {
+          console.error("Error converting dueDate string to Date:", dateError);
+          return res.status(400).json({ 
+            message: "Invalid date format for dueDate",
+            details: "Please provide a valid date string that can be parsed by JavaScript Date constructor"
+          });
+        }
+      }
+      
+      // Always use the authenticated user's ID 
+      processedTaskData.userId = req.user!.id;
+      
       // Validate request body against the schema
-      const result = insertTaskSchema.safeParse({
-        ...req.body,
-        userId: req.user!.id  // Always use the authenticated user's ID
-      });
+      const result = insertTaskSchema.safeParse(processedTaskData);
       
       if (!result.success) {
         const errorMessage = fromZodError(result.error).message;

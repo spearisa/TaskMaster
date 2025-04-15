@@ -60,11 +60,11 @@ export function AddTaskForm() {
       console.log("Form data before submission:", data);
       
       // Create a new object with the same data
-      // NOTE: We keep dueDate as a Date object since the server expects it
+      // NOTE: Convert dueDate to ISO string - our server will now handle the conversion back to Date
       const taskData = {
         ...data,
-        // Don't convert dueDate to ISO string - server expects a Date object
-        dueDate: data.dueDate, // Keep as Date object
+        // The server now handles conversion from ISO string to Date
+        dueDate: data.dueDate ? data.dueDate.toISOString() : undefined,
         estimatedTime: typeof data.estimatedTime === 'number' ? data.estimatedTime : undefined,
         description: data.description || '', // Ensure description is never undefined
         // Ensure all required fields are present
