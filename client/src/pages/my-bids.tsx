@@ -35,15 +35,20 @@ export default function MyBidsPage() {
     
     try {
       const endpoint = `/api/bids/${activeTab}`;
+      console.log(`Fetching bids from ${endpoint}...`);
+      
       const response = await fetch(endpoint, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include' // Explicitly include credentials
       });
       
+      console.log(`Bid fetch response status:`, response.status, response.statusText);
+      
       if (!response.ok) {
-        throw new Error(`Failed to load ${activeTab} bids: ${response.statusText}`);
+        throw new Error(`Failed to load ${activeTab} bids: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
@@ -58,6 +63,7 @@ export default function MyBidsPage() {
         setPlacedBids(bidsArray);
       }
     } catch (err) {
+      console.error(`Error loading ${activeTab} bids:`, err);
       setError(err instanceof Error ? err : new Error('An unknown error occurred'));
     } finally {
       setIsLoading(false);
@@ -84,16 +90,21 @@ export default function MyBidsPage() {
     );
     
     try {
+      console.log(`Accepting bid ${bidId}...`);
+      
       // Make the API call
       const response = await fetch(`/api/bids/${bidId}/accept`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include' // Explicitly include credentials
       });
       
+      console.log(`Bid accept response status:`, response.status, response.statusText);
+      
       if (!response.ok) {
-        throw new Error('Failed to accept bid');
+        throw new Error(`Failed to accept bid: ${response.status} ${response.statusText}`);
       }
       
       // Show success toast
@@ -107,6 +118,8 @@ export default function MyBidsPage() {
       setTimeout(() => loadBids(), 500);
       
     } catch (err) {
+      console.error('Error accepting bid:', err);
+      
       // On error, revert the optimistic update
       toast({
         title: "Failed to accept bid",
@@ -134,16 +147,21 @@ export default function MyBidsPage() {
     );
     
     try {
+      console.log(`Rejecting bid ${bidId}...`);
+      
       // Make the API call
       const response = await fetch(`/api/bids/${bidId}/reject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include' // Explicitly include credentials
       });
       
+      console.log(`Bid reject response status:`, response.status, response.statusText);
+      
       if (!response.ok) {
-        throw new Error('Failed to reject bid');
+        throw new Error(`Failed to reject bid: ${response.status} ${response.statusText}`);
       }
       
       // Show success toast
@@ -157,6 +175,8 @@ export default function MyBidsPage() {
       setTimeout(() => loadBids(), 500);
       
     } catch (err) {
+      console.error('Error rejecting bid:', err);
+      
       // On error, revert the optimistic update
       toast({
         title: "Failed to reject bid",
