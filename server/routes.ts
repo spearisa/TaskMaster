@@ -1625,10 +1625,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Only the task owner can reject bids" });
       }
       
-      // Update the bid status to rejected
-      const updatedBid = await storage.updateTaskBid(bidId, { status: 'rejected' });
+      // Update the bid status to rejected with explicit timestamp
+      const updatedBid = await storage.updateTaskBid(bidId, { 
+        status: 'rejected',
+        updatedAt: new Date() 
+      });
       if (!updatedBid) {
         return res.status(500).json({ message: "Failed to reject bid" });
+      }
+      
+      // Double-check that the bid was actually updated
+      const verifyBid = await storage.getTaskBidById(bidId);
+      if (!verifyBid || verifyBid.status !== 'rejected') {
+        console.error(`Bid ${bidId} status update verification failed: ${verifyBid?.status}`);
+        return res.status(500).json({ message: "Failed to verify bid status update" });
       }
       
       // Notify bidder via WebSocket
