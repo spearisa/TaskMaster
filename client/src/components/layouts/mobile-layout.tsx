@@ -92,7 +92,7 @@ export function MobileLayout({
   };
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white min-h-screen flex flex-col">
       {/* Header with title and menu button - minimized height */}
       <header className="sticky top-0 z-40 bg-white border-b border-gray-100 px-4 h-10 flex justify-between items-center">
         <div className="flex items-center">
@@ -206,15 +206,18 @@ export function MobileLayout({
         <SideNavigation />
       </div>
       
-      {/* Main content area - only needs pb-12 for our compact nav */}
-      <main className="pb-12 md:ml-56 px-3 pt-0">
-        {children}
+      {/* Main content area - flex-grow to fill all available space */}
+      <main className="flex-grow md:ml-56 px-3 pt-0">
+        <div className="flex flex-col min-h-[calc(100vh-72px)]">
+          {children}
+        </div>
       </main>
       
       {/* Always show bottom navigation - hide only on very large screens */}
+      <div className="h-12 md:hidden">
+        {/* Spacer for bottom navigation */}
+      </div>
       <BottomNavigation />
-      
-      {/* No floating add button as requested */}
     </div>
   );
 }
