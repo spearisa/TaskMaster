@@ -1188,40 +1188,44 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`Accepting bid ${bidId} for task ${taskId}, current status: ${bid.status}`);
       
-      // Update the bid status to 'accepted' with explicit timestamp
-      const updatedBid = await this.updateTaskBid(bidId, { 
-        status: 'accepted',
-        updatedAt: new Date()
-      });
-      
-      if (!updatedBid) {
-        throw new Error(`Failed to update bid ${bidId} status to accepted`);
+      // CRITICAL FIX: Use direct SQL query to ensure the status is updated properly
+      try {
+        await pool.query(
+          `UPDATE task_bids SET status = $1, updated_at = $2 WHERE id = $3`,
+          ['accepted', new Date(), bidId]
+        );
+        console.log(`Executed direct SQL update for bid ${bidId} status to 'accepted'`);
+      } catch (sqlError) {
+        console.error(`SQL error updating bid ${bidId} status:`, sqlError);
+        throw new Error(`Database error updating bid status: ${sqlError.message}`);
       }
       
-      console.log(`Bid ${bidId} updated to accepted, verifying...`);
+      // Verify the update worked
+      console.log(`Verifying bid ${bidId} status update...`);
       const verifyBid = await this.getTaskBidById(bidId);
-      if (!verifyBid || verifyBid.status !== 'accepted') {
-        console.error(`Failed to verify bid ${bidId} status change. Current status: ${verifyBid?.status}`);
-        throw new Error(`Failed to verify bid ${bidId} status update to accepted`);
+      
+      if (!verifyBid) {
+        throw new Error(`Could not retrieve bid ${bidId} after status update`);
       }
       
-      console.log(`Successfully verified bid ${bidId} status is now: ${verifyBid.status}. Updating other bids...`);
+      console.log(`Verification result: Bid ${bidId} status is now '${verifyBid.status}'`);
+      
+      if (verifyBid.status !== 'accepted') {
+        console.error(`Failed to update bid ${bidId} status. Current status: ${verifyBid.status}`);
+        throw new Error(`Failed to update bid status to 'accepted'`);
+      }
       
       // Update other bids for this task to 'rejected'
       try {
-        await db.update(taskBids)
-          .set({ 
-            status: 'rejected',
-            updatedAt: new Date()
-          })
-          .where(and(
-            eq(taskBids.taskId, taskId),
-            not(eq(taskBids.id, bidId))
-          ));
-        
-        console.log(`Updated other bids for task ${taskId} to rejected`);
-      } catch (error) {
-        console.error("Error updating other bids:", error);
+        // CRITICAL FIX: Use direct SQL query to ensure rejected statuses are updated properly
+        await pool.query(
+          `UPDATE task_bids SET status = $1, updated_at = $2 WHERE task_id = $3 AND id != $4`,
+          ['rejected', new Date(), taskId, bidId]
+        );
+        console.log(`Executed direct SQL update to reject other bids for task ${taskId}`);
+      } catch (sqlError) {
+        console.error(`SQL error updating other bids:`, sqlError);
+        // Continue even if this fails, as the accepted bid is more important
       }
       
       // Update the task with the winning bid ID and stop accepting bids

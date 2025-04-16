@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { pool } from "./db";
 import { 
   insertTaskSchema, taskSchema, insertDirectMessageSchema, 
   updateProfileSchema, insertTaskTemplateSchema, taskTemplateSchema,
@@ -1563,24 +1564,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Only the task owner can accept bids" });
       }
       
-      console.log(`Accepting bid ${bidId} for task ${task.id}...`);
+      console.log(`Accepting bid ${bidId} for task ${task.id}, current status: ${bid.status}`);
       
-      // Accept the bid - this will update the bid status and other bids for this task
-      const updatedTask = await storage.acceptTaskBid(task.id, bidId);
+      // CRITICAL FIX: Use direct SQL query to ensure the status is updated properly
+      try {
+        await pool.query(
+          `UPDATE task_bids SET status = $1, updated_at = $2 WHERE id = $3`,
+          ['accepted', new Date(), bidId]
+        );
+        console.log(`Executed direct SQL update for bid ${bidId} status to 'accepted'`);
+      } catch (sqlError) {
+        console.error(`SQL error updating bid ${bidId} status:`, sqlError);
+        return res.status(500).json({ message: `Database error updating bid status: ${sqlError.message}` });
+      }
+      
+      // Update the task with the winning bid ID and stop accepting bids
+      const updatedTask = await storage.updateTask(task.id, { 
+        winningBidId: bidId,
+        acceptingBids: false
+      });
+      
       if (!updatedTask) {
-        console.error(`Failed to accept bid ${bidId}`);
-        return res.status(500).json({ message: "Failed to accept bid" });
+        return res.status(500).json({ message: "Failed to update task with winning bid" });
       }
       
-      // Double-check that the bid was actually updated
+      // Update other bids for this task to 'rejected'
+      try {
+        // CRITICAL FIX: Use direct SQL query to ensure rejected statuses are updated properly
+        await pool.query(
+          `UPDATE task_bids SET status = $1, updated_at = $2 WHERE task_id = $3 AND id != $4`,
+          ['rejected', new Date(), task.id, bidId]
+        );
+        console.log(`Executed direct SQL update to reject other bids for task ${task.id}`);
+      } catch (sqlError) {
+        console.error(`SQL error updating other bids:`, sqlError);
+        // Continue even if this fails, as the accepted bid is more important
+      }
+      
+      // Verify the update worked
       const verifyBid = await storage.getTaskBidById(bidId);
-      if (!verifyBid || verifyBid.status !== 'accepted') {
-        console.error(`Bid ${bidId} status update verification failed: ${verifyBid?.status}`);
-        return res.status(500).json({ message: "Failed to verify bid status update" });
+      
+      if (!verifyBid) {
+        console.error(`Could not retrieve bid ${bidId} after status update`);
+        return res.status(500).json({ message: "Failed to verify bid status update - bid not found" });
       }
       
-      console.log(`Successfully accepted bid ${bidId}, status is now: ${verifyBid.status}`);
+      console.log(`Verification result: Bid ${bidId} status is now '${verifyBid.status}'`);
       
+      if (verifyBid.status !== 'accepted') {
+        console.error(`Failed to update bid ${bidId} status. Current status: ${verifyBid.status}`);
+        return res.status(500).json({ message: "Failed to verify bid status update - status not changed" });
+      }
       
       // Notify bidder via WebSocket
       notifyWebSocketClients({
@@ -1599,7 +1633,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `🎉 Your bid on "${task.title}" was accepted!`
       );
       
-      res.json({ message: "Bid accepted successfully", task: updatedTask });
+      res.json({ 
+        message: "Bid accepted successfully", 
+        task: updatedTask, 
+        bid: verifyBid  // Return verified bid with updated status
+      });
     } catch (error) {
       console.error("Error accepting bid:", error);
       res.status(500).json({ message: "Failed to accept bid" });
@@ -1636,20 +1674,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Only the task owner can reject bids" });
       }
       
-      // Update the bid status to rejected with explicit timestamp
-      const updatedBid = await storage.updateTaskBid(bidId, { 
-        status: 'rejected',
-        updatedAt: new Date() 
-      });
-      if (!updatedBid) {
-        return res.status(500).json({ message: "Failed to reject bid" });
+      console.log(`Rejecting bid ${bidId} for task ${task.id}, current status: ${bid.status}`);
+      
+      // CRITICAL FIX: Use direct SQL query to ensure the status is updated properly
+      try {
+        await pool.query(
+          `UPDATE task_bids SET status = $1, updated_at = $2 WHERE id = $3`,
+          ['rejected', new Date(), bidId]
+        );
+        console.log(`Executed direct SQL update for bid ${bidId} status to 'rejected'`);
+      } catch (sqlError) {
+        console.error(`SQL error updating bid ${bidId} status:`, sqlError);
+        return res.status(500).json({ message: `Database error updating bid status: ${sqlError.message}` });
       }
       
-      // Double-check that the bid was actually updated
+      // Verify the update worked
       const verifyBid = await storage.getTaskBidById(bidId);
-      if (!verifyBid || verifyBid.status !== 'rejected') {
-        console.error(`Bid ${bidId} status update verification failed: ${verifyBid?.status}`);
-        return res.status(500).json({ message: "Failed to verify bid status update" });
+      
+      if (!verifyBid) {
+        console.error(`Could not retrieve bid ${bidId} after status update`);
+        return res.status(500).json({ message: "Failed to verify bid status update - bid not found" });
+      }
+      
+      console.log(`Verification result: Bid ${bidId} status is now '${verifyBid.status}'`);
+      
+      if (verifyBid.status !== 'rejected') {
+        console.error(`Failed to update bid ${bidId} status. Current status: ${verifyBid.status}`);
+        return res.status(500).json({ message: "Failed to verify bid status update - status not changed" });
       }
       
       // Notify bidder via WebSocket
@@ -1669,7 +1720,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `❌ Your bid on "${task.title}" was not selected.`
       );
       
-      res.json({ message: "Bid rejected successfully", bid: updatedBid });
+      res.json({ 
+        message: "Bid rejected successfully", 
+        bid: verifyBid // Return the verified bid with updated status 
+      });
     } catch (error) {
       console.error("Error rejecting bid:", error);
       res.status(500).json({ message: "Failed to reject bid" });
