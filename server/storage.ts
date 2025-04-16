@@ -49,6 +49,14 @@ export interface IStorage {
   setTaskTemplatePublic(templateId: number, isPublic: boolean): Promise<TaskTemplate | undefined>;
   createTaskFromTemplate(templateId: number, userId: number, dueDate?: Date): Promise<Task>;
   
+  // Task bidding methods
+  getTaskBids(taskId: number): Promise<TaskBid[]>;
+  getTaskBidById(bidId: number): Promise<TaskBid | undefined>;
+  createTaskBid(bid: InsertTaskBid): Promise<TaskBid>;
+  updateTaskBid(bidId: number, bid: Partial<InsertTaskBid>): Promise<TaskBid | undefined>;
+  deleteTaskBid(bidId: number): Promise<boolean>;
+  acceptTaskBid(taskId: number, bidId: number): Promise<Task | undefined>;
+  
   // Direct message methods
   getConversations(userId: number): Promise<{conversation: Conversation, user: UserProfile}[]>;
   getMessages(user1Id: number, user2Id: number): Promise<DirectMessage[]>;
