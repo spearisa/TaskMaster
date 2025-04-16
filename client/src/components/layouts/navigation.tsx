@@ -11,7 +11,8 @@ import {
   Sparkles,
   Bell,
   BellOff,
-  Globe
+  Globe,
+  Calendar
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -123,6 +124,19 @@ export function SideNavigation() {
                     )}
                   >
                     <span className="text-sm">New Task</span>
+                  </div>
+                </Link>
+                
+                <Link href="/calendar">
+                  <div 
+                    className={cn(
+                      "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                      isActive('/calendar') 
+                        ? "border-l-primary text-primary" 
+                        : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+                    )}
+                  >
+                    <span className="text-sm">Calendar</span>
                   </div>
                 </Link>
                 
