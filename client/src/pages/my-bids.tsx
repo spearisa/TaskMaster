@@ -56,8 +56,8 @@ export default function MyBidsPage() {
       // Log the full response data
       console.log(`Raw response data for ${activeTab} bids:`, data);
       
-      // Make sure we're extracting the bids array from the response
-      const bidsArray = data.bids || [];
+      // Make sure we're handling the response correctly
+      const bidsArray = Array.isArray(data) ? data : (data.bids || []);
       console.log(`Loaded ${bidsArray.length} ${activeTab} bids:`, bidsArray);
       
       // Check the structure of the first bid if available
