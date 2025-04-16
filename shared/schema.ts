@@ -195,6 +195,7 @@ export const insertTaskBidSchema = z.object({
   amount: z.number().positive({ message: "Bid amount must be positive" }),
   estimatedTime: z.number().int().positive().optional().nullable(),
   proposal: z.string().min(1, { message: "Proposal is required" }),
+  status: z.enum(["pending", "accepted", "rejected", "completed"]).optional(),
 });
 
 // Schema for task bids with string dates

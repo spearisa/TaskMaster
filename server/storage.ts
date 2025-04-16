@@ -1116,19 +1116,29 @@ export class DatabaseStorage implements IStorage {
   /**
    * Update an existing bid
    */
-  async updateTaskBid(bidId: number, bid: Partial<InsertTaskBid>): Promise<TaskBid | undefined> {
+  async updateTaskBid(bidId: number, bid: Partial<InsertTaskBid> | {status: string, updatedAt?: Date}): Promise<TaskBid | undefined> {
     try {
       await this.ensureTaskBidsColumns();
       
-      const updateData = {
-        ...bid,
-        updatedAt: new Date()
+      // Extract bid-specific properties and add updatedAt
+      const updateData: any = {
+        ...(bid.taskId !== undefined && { taskId: bid.taskId }),
+        ...(bid.bidderId !== undefined && { bidderId: bid.bidderId }),
+        ...(bid.amount !== undefined && { amount: bid.amount }),
+        ...(bid.estimatedTime !== undefined && { estimatedTime: bid.estimatedTime }),
+        ...(bid.proposal !== undefined && { proposal: bid.proposal }),
+        ...(bid.status !== undefined && { status: bid.status }),
+        updatedAt: bid.updatedAt || new Date()
       };
+      
+      console.log(`Updating bid ${bidId} with data:`, JSON.stringify(updateData));
       
       const [updatedBid] = await db.update(taskBids)
         .set(updateData)
         .where(eq(taskBids.id, bidId))
         .returning();
+      
+      console.log(`Updated bid result:`, JSON.stringify(updatedBid));
       
       return updatedBid;
     } catch (error) {
