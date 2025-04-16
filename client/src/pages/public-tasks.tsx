@@ -97,18 +97,19 @@ export default function PublicTasksPage() {
 
   return (
     <MobileLayout pageTitle="Public Task Board">
-      <div className="space-y-3">
-        <p className="text-muted-foreground -mt-1">
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground -mt-1">
           Browse and explore tasks shared by the community
         </p>
 
         {/* Category filters */}
-        <div>
-          <h2 className="text-sm font-medium text-gray-500 mb-2">Categories</h2>
-          <div className="flex flex-wrap gap-2">
+        <div className="my-1">
+          <h2 className="text-xs font-medium text-gray-500 mb-1">Categories</h2>
+          <div className="flex flex-wrap gap-1">
             <Button
               variant={selectedCategory === null ? "secondary" : "outline"}
               size="sm"
+              className="h-6 text-xs py-0 px-2"
               onClick={() => setSelectedCategory(null)}
             >
               All
@@ -119,6 +120,7 @@ export default function PublicTasksPage() {
                 key={category}
                 variant={selectedCategory === category ? "secondary" : "outline"}
                 size="sm"
+                className="h-6 text-xs py-0 px-2"
                 onClick={() => setSelectedCategory(category)}
               >
                 {category}
@@ -129,12 +131,12 @@ export default function PublicTasksPage() {
 
         {/* Login prompt for non-authenticated users */}
         {!user && !isLoading && (
-          <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-md text-indigo-700">
-            <p className="font-medium">Browsing as a guest</p>
-            <p className="text-sm mb-2">Sign in to create your own tasks, use templates, and access AI assistance.</p>
+          <div className="p-2 bg-indigo-50 border border-indigo-100 rounded-md text-indigo-700">
+            <p className="font-medium text-sm">Browsing as a guest</p>
+            <p className="text-xs mb-1">Sign in to create tasks, use templates, and access AI.</p>
             <Button 
               onClick={() => navigate('/auth')}
-              className="bg-indigo-600 hover:bg-indigo-700"
+              className="bg-indigo-600 hover:bg-indigo-700 h-7 text-xs py-0"
             >
               Sign In
             </Button>
@@ -142,32 +144,32 @@ export default function PublicTasksPage() {
         )}
 
         {/* Tasks grid */}
-        <div className="space-y-3 mt-1">
+        <div className="space-y-2">
           {isLoading ? (
             // Loading skeleton
             Array.from({ length: 3 }).map((_, i) => (
               <Card key={i} className="w-full cursor-pointer hover:shadow-md transition-shadow">
-                <CardHeader className="pb-2">
-                  <Skeleton className="h-4 w-2/3 mb-2" />
+                <CardHeader className="pb-1 pt-2 px-3">
+                  <Skeleton className="h-4 w-2/3 mb-1" />
                   <Skeleton className="h-3 w-1/2" />
                 </CardHeader>
-                <CardContent className="pb-2">
-                  <Skeleton className="h-3 w-full mb-2" />
+                <CardContent className="py-1 px-3">
+                  <Skeleton className="h-3 w-full mb-1" />
                   <Skeleton className="h-3 w-3/4" />
                 </CardContent>
-                <CardFooter>
-                  <Skeleton className="h-8 w-8 rounded-full" />
+                <CardFooter className="py-1 px-3">
+                  <Skeleton className="h-6 w-6 rounded-full" />
                   <Skeleton className="h-3 w-1/3 ml-2" />
                 </CardFooter>
               </Card>
             ))
           ) : filteredTasks.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500">No public tasks found</p>
+            <div className="text-center py-6">
+              <p className="text-gray-500 text-sm">No public tasks found</p>
               {selectedCategory && (
                 <Button 
                   variant="ghost" 
-                  className="mt-2"
+                  className="mt-1 h-7 text-xs"
                   onClick={() => setSelectedCategory(null)}
                 >
                   Clear filter
@@ -181,56 +183,56 @@ export default function PublicTasksPage() {
                 className="w-full cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => handleTaskClick(task.id)}
               >
-                <CardHeader className="pb-2 pt-3 px-4">
+                <CardHeader className="pb-1 pt-2 px-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{task.title}</CardTitle>
-                    <Badge className={getPriorityColor(task.priority)}>
+                    <CardTitle className="text-base">{task.title}</CardTitle>
+                    <Badge className={`${getPriorityColor(task.priority)} text-xs py-0 px-1.5`}>
                       {task.priority}
                     </Badge>
                   </div>
-                  <CardDescription className="flex items-center">
-                    <Tag size={14} className="mr-1" />
+                  <CardDescription className="flex items-center text-xs">
+                    <Tag size={12} className="mr-1" />
                     {task.category}
                   </CardDescription>
                 </CardHeader>
                 
-                <CardContent className="py-1 px-4">
+                <CardContent className="py-1 px-3">
                   {task.description && (
-                    <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                    <p className="text-xs text-gray-600 line-clamp-2 mb-1">
                       {task.description}
                     </p>
                   )}
-                  <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+                  <div className="flex flex-wrap gap-2 text-[10px] text-gray-500">
                     {task.dueDate && (
                       <div className="flex items-center">
-                        <Calendar size={14} className="mr-1" />
+                        <Calendar size={12} className="mr-1" />
                         {formatDate(task.dueDate)}
                       </div>
                     )}
                     {task.estimatedTime && (
-                      <div className="flex items-center ml-2">
-                        <Clock size={14} className="mr-1" />
+                      <div className="flex items-center ml-1">
+                        <Clock size={12} className="mr-1" />
                         {task.estimatedTime} min
                       </div>
                     )}
                   </div>
                 </CardContent>
                 
-                <CardFooter className="py-2 px-4 flex items-center justify-between border-t">
+                <CardFooter className="py-1 px-3 flex items-center justify-between border-t">
                   <div className="flex items-center">
-                    <Avatar className="h-7 w-7">
-                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                    <Avatar className="h-5 w-5">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-[10px]">
                         {task.user?.username ? getInitials(task.user.username) : '?'}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-xs ml-2 text-gray-600">
-                      Shared by {task.user?.username || 'Anonymous'}
+                    <span className="text-[10px] ml-1 text-gray-600">
+                      {task.user?.username || 'Anonymous'}
                     </span>
                   </div>
                   
                   {task.assignedToUserId && (
-                    <Badge variant="outline" className="flex items-center">
-                      <Users size={12} className="mr-1" />
+                    <Badge variant="outline" className="flex items-center text-[10px] py-0 h-4">
+                      <Users size={10} className="mr-1" />
                       Assigned
                     </Badge>
                   )}

@@ -93,29 +93,29 @@ export function MobileLayout({
 
   return (
     <div className="bg-white min-h-screen">
-      {/* Header with title and menu button */}
-      <header className="sticky top-0 z-40 bg-white border-b border-gray-100 px-4 py-2 flex justify-between items-center">
+      {/* Header with title and menu button - minimized height */}
+      <header className="sticky top-0 z-40 bg-white border-b border-gray-100 px-4 h-10 flex justify-between items-center">
         <div className="flex items-center">
           {showBackButton ? (
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={() => navigate(backButtonPath)}
-              className="mr-2 h-8 w-8"
+              className="mr-2 h-6 w-6 p-0"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-4 w-4" />
             </Button>
           ) : (
             <Button 
                 variant="ghost" 
                 size="icon" 
-                className="mr-2 md:hidden h-8 w-8"
+                className="mr-2 md:hidden h-6 w-6 p-0"
                 onClick={() => setMenuOpen(true)}
               >
-                <Menu size={20} />
+                <Menu size={16} />
               </Button>
           )}
-          <h1 className="text-lg font-semibold">{currentPageTitle}</h1>
+          <h1 className="text-base font-semibold">{currentPageTitle}</h1>
         </div>
         
         {user ? (
@@ -123,7 +123,7 @@ export function MobileLayout({
             variant="ghost" 
             size="icon" 
             onClick={() => navigate('/profile')}
-            className="rounded-full h-8 w-8" 
+            className="rounded-full h-6 w-6 p-0" 
           >
             <User className="h-4 w-4" />
           </Button>
@@ -132,7 +132,7 @@ export function MobileLayout({
             variant="ghost" 
             size="sm"
             onClick={() => navigate('/auth')}
-            className="rounded-full h-8" 
+            className="rounded-full h-6 p-0 text-xs" 
           >
             Login
           </Button>
@@ -207,7 +207,7 @@ export function MobileLayout({
       </div>
       
       {/* Main content area - always add pb-24 to ensure content doesn't get hidden behind bottom nav */}
-      <main className="pb-24 md:ml-56 px-4 py-2">
+      <main className="pb-24 md:ml-56 px-3 pt-0">
         {children}
       </main>
       

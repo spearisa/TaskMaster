@@ -46,7 +46,7 @@ export function BottomNavigation() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 py-2 z-50 shadow-lg md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 py-1 z-50 shadow-lg md:hidden">
       <div className="flex justify-around items-center w-full max-w-lg mx-auto px-4">
         {navItems.map((item) => (
           <Link
@@ -56,13 +56,13 @@ export function BottomNavigation() {
           >
             <div className="flex flex-col items-center justify-center">
               <div className={cn(
-                "p-2 mb-1",
+                "p-1 mb-0.5",
                 isActive(item.path) ? "text-primary" : "text-gray-400"
               )}>
-                <item.icon size={20} />
+                <item.icon size={18} />
               </div>
               <span className={cn(
-                "text-xs font-medium",
+                "text-[10px] font-medium",
                 isActive(item.path) ? "text-primary" : "text-gray-400"
               )}>
                 {item.label}
