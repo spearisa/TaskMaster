@@ -1834,7 +1834,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bid.bidderId,            // bidder (receiver)
         task.id,                 // task ID
         bid.amount,              // bid amount
-        `Your bid on "${task.title}" was not selected.`
+        `❌ Your bid on "${task.title}" was not selected.`
       );
       
       res.json({ message: "Bid rejected successfully", bid: updatedBid });
