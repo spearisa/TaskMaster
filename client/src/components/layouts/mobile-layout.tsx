@@ -206,8 +206,8 @@ export function MobileLayout({
         <SideNavigation />
       </div>
       
-      {/* Main content area - always add pb-24 to ensure content doesn't get hidden behind bottom nav */}
-      <main className="pb-24 md:ml-56 px-3 pt-0">
+      {/* Main content area - only needs pb-12 for our compact nav */}
+      <main className="pb-12 md:ml-56 px-3 pt-0">
         {children}
       </main>
       
