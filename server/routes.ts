@@ -1172,6 +1172,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Helper function to send system messages about bids
+  async function sendBidNotification(senderId: number, receiverId: number, taskId: number, bidAmount: number, taskTitle: string) {
+    try {
+      // Create a message about the bid
+      const bidMessage = {
+        senderId,
+        receiverId,
+        content: `📝 New bid: $${bidAmount.toFixed(2)} for task "${taskTitle}" (Task #${taskId})`,
+        read: false
+      };
+      
+      // Send the message
+      await storage.sendMessage(bidMessage);
+      
+      console.log(`Bid notification sent from user ${senderId} to user ${receiverId} for task ${taskId}`);
+    } catch (error) {
+      console.error("Error sending bid notification message:", error);
+    }
+  }
+  
   // Create a new bid on a task
   app.post("/api/tasks/:taskId/bid", async (req, res) => {
     try {
@@ -1225,6 +1245,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: task.userId
       });
       
+      // Send a direct message notification to the task owner
+      await sendBidNotification(
+        req.user.id,            // bidder (sender)
+        task.userId,            // task owner (receiver)
+        taskId,                 // task ID
+        req.body.amount,        // bid amount
+        task.title              // task title
+      );
+      
+      // Send a copy of the bid confirmation to the bidder
+      await sendBidNotification(
+        req.user.id,            // bidder (sender)
+        req.user.id,            // also the bidder (receiver) - sending to self
+        taskId,                 // task ID
+        req.body.amount,        // bid amount
+        task.title              // task title
+      );
+      
       res.status(201).json(newBid);
     } catch (error) {
       console.error("Error creating task bid:", error);
@@ -1257,22 +1295,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Only the task owner can accept bids" });
       }
       
+      // Get the bid before accepting it
+      const bid = await storage.getTaskBidById(bidId);
+      if (!bid) {
+        return res.status(404).json({ message: "Bid not found" });
+      }
+      
       // Accept the bid
       const updatedTask = await storage.acceptTaskBid(taskId, bidId);
       if (!updatedTask) {
         return res.status(500).json({ message: "Failed to accept bid" });
       }
       
-      // Get the bid to notify the bidder
-      const bid = await storage.getTaskBidById(bidId);
-      if (bid) {
-        notifyWebSocketClients({
-          type: 'BID_ACCEPTED',
-          taskId,
-          bidId,
-          userId: bid.bidderId
-        });
-      }
+      // Notify bidder via WebSocket
+      notifyWebSocketClients({
+        type: 'BID_ACCEPTED',
+        taskId,
+        bidId,
+        userId: bid.bidderId
+      });
+      
+      // Send a message notification to the bidder
+      await sendBidNotification(
+        task.userId,             // task owner (sender)
+        bid.bidderId,            // bidder (receiver)
+        taskId,                  // task ID
+        bid.amount,              // bid amount
+        `🎉 Your bid on "${task.title}" was accepted!`
+      );
+      
+      // Send a confirmation to the task owner
+      await sendBidNotification(
+        task.userId,             // task owner (sender)
+        task.userId,             // also task owner (receiver) - sending to self
+        taskId,                  // task ID
+        bid.amount,              // bid amount
+        `You accepted a bid on "${task.title}"`
+      );
       
       res.json({ message: "Bid accepted successfully", task: updatedTask });
     } catch (error) {
