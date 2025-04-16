@@ -46,24 +46,29 @@ export function BottomNavigation() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 py-0 h-12 z-50 shadow-lg md:hidden">
-      <div className="flex justify-around items-center w-full max-w-lg mx-auto px-2 h-full">
+    <div className="fixed bottom-4 left-0 right-0 w-full z-50 md:hidden px-4">
+      <div className="bg-white backdrop-blur-md border border-gray-100 rounded-full shadow-xl flex justify-around items-center max-w-md mx-auto h-16">
         {navItems.map((item) => (
           <Link
             key={item.path}
             href={item.path}
-            className="flex flex-col items-center justify-center w-1/4 h-full"
+            className="flex flex-col items-center justify-center h-full flex-1"
           >
-            <div className="flex flex-col items-center justify-center">
+            <div className={cn(
+              "flex flex-col items-center justify-center transition-all duration-200",
+              isActive(item.path) ? "scale-110" : "scale-100" 
+            )}>
               <div className={cn(
-                "p-0 mb-0",
-                isActive(item.path) ? "text-primary" : "text-gray-400"
+                "rounded-full p-1.5 mb-0.5 transition-colors",
+                isActive(item.path) 
+                  ? "bg-primary/10 text-primary" 
+                  : "text-gray-500 hover:text-gray-700"
               )}>
-                <item.icon size={16} />
+                <item.icon size={18} strokeWidth={2.5} />
               </div>
               <span className={cn(
-                "text-[9px] font-medium",
-                isActive(item.path) ? "text-primary" : "text-gray-400"
+                "text-[10px] font-medium tracking-tight",
+                isActive(item.path) ? "text-primary" : "text-gray-500"
               )}>
                 {item.label}
               </span>
