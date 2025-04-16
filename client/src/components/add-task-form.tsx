@@ -136,20 +136,20 @@ export function AddTaskForm() {
   };
 
   return (
-    <div className="py-4">
+    <div className="py-6">
       <div>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="form-container">
             <FormField
               control={form.control}
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-neutral-500">Title</FormLabel>
+                  <FormLabel className="text-sm font-medium text-gray-700">Title</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Task title"
-                      className="p-3 border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary"
+                      className="p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/50"
                       {...field}
                     />
                   </FormControl>
@@ -163,11 +163,11 @@ export function AddTaskForm() {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-neutral-500">Description</FormLabel>
+                  <FormLabel className="text-sm font-medium text-gray-700">Description</FormLabel>
                   <FormControl>
                     <textarea
                       placeholder="Task description"
-                      className="w-full p-3 border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary min-h-[80px]"
+                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/50 min-h-[100px]"
                       onChange={(e) => field.onChange(e.target.value)}
                       value={field.value ?? ''}
                       name={field.name}
@@ -184,18 +184,18 @@ export function AddTaskForm() {
               name="dueDate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-neutral-500">Due Date</FormLabel>
+                  <FormLabel className="text-sm font-medium text-gray-700">Due Date</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
                           variant="outline"
-                          className="w-full p-3 h-auto border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary text-left font-normal"
+                          className="w-full p-3 h-auto border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/50 text-left font-normal"
                         >
                           {field.value ? (
                             format(field.value, "PPP")
                           ) : (
-                            <span className="text-neutral-400">Select date</span>
+                            <span className="text-gray-400">Select date</span>
                           )}
                         </Button>
                       </FormControl>
@@ -289,11 +289,11 @@ export function AddTaskForm() {
               )}
             />
 
-            <div className="flex space-x-3 mt-6">
+            <div className="button-group mt-8">
               <Button
                 type="button"
                 variant="outline"
-                className="w-1/3 py-3 h-auto border border-primary text-primary font-medium rounded-xl"
+                className="w-1/3 py-3.5 h-auto border border-gray-200 text-gray-700 font-medium rounded-full hover:bg-gray-50"
                 onClick={() => navigate("/")}
                 disabled={isSubmitting}
               >
@@ -301,10 +301,17 @@ export function AddTaskForm() {
               </Button>
               <Button
                 type="submit"
-                className="w-2/3 bg-primary text-white py-3 h-auto font-medium rounded-xl"
+                className="w-2/3 bg-primary hover:bg-primary/90 text-white py-3.5 h-auto font-medium rounded-full shadow-sm"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Adding..." : "Add Task"}
+                {isSubmitting ? (
+                  <div className="flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Adding...
+                  </div>
+                ) : (
+                  "Add Task"
+                )}
               </Button>
             </div>
           </form>
