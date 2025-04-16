@@ -1595,7 +1595,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const taskIds = userTasks.map(task => task.id);
       
       // Get all bids for these tasks with additional user and task data
-      const bids = [];
+      const receivedBids = [];
       
       for (const taskId of taskIds) {
         const taskBids = await storage.getTaskBids(taskId);
@@ -1607,7 +1607,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const bidder = await storage.getUserProfile(bid.bidderId);
             
             if (bidder) {
-              bids.push({
+              receivedBids.push({
                 ...bid,
                 task,
                 bidder: {
@@ -1620,7 +1620,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      res.json({ bids });
+      // Format dates for response
+      const formattedBids = receivedBids.map(bid => ({
+        ...bid,
+        createdAt: bid.createdAt ? bid.createdAt.toISOString() : null,
+        updatedAt: bid.updatedAt ? bid.updatedAt.toISOString() : null,
+        completedAt: bid.completedAt ? bid.completedAt.toISOString() : null,
+        task: {
+          ...bid.task,
+          dueDate: bid.task.dueDate ? bid.task.dueDate.toISOString() : null,
+          completedAt: bid.task.completedAt ? bid.task.completedAt.toISOString() : null,
+        }
+      }));
+      
+      res.json({ bids: formattedBids });
     } catch (error) {
       console.error("Error getting received bids:", error);
       res.status(500).json({ message: "Failed to get received bids" });
@@ -1636,14 +1649,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get all bids by the user
       const placedBids = [];
+      const userId = req.user.id;
       
-      // Find all task bids where the user is the bidder
-      const allBids = await db.select().from(taskBids).where(eq(taskBids.bidderId, req.user.id));
+      // Get all public tasks - we need to check each for bids
+      const publicTasks = await storage.getPublicTasks();
       
-      for (const bid of allBids) {
-        const task = await storage.getTaskById(bid.taskId);
+      for (const task of publicTasks) {
+        // Skip tasks owned by the current user
+        if (task.userId === userId) continue;
         
-        if (task) {
+        // Get bids for this task
+        const taskBids = await storage.getTaskBids(task.id);
+        
+        // Find bids placed by the current user
+        const userBidsOnTask = taskBids.filter(bid => bid.bidderId === userId);
+        
+        for (const bid of userBidsOnTask) {
+          // Get the task owner profile
           const owner = await storage.getUserProfile(task.userId);
           
           if (owner) {
@@ -1659,7 +1681,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      res.json({ bids: placedBids });
+      // Format dates for response
+      const formattedBids = placedBids.map(bid => ({
+        ...bid,
+        createdAt: bid.createdAt ? bid.createdAt.toISOString() : null,
+        updatedAt: bid.updatedAt ? bid.updatedAt.toISOString() : null,
+        completedAt: bid.completedAt ? bid.completedAt.toISOString() : null,
+        task: {
+          ...bid.task,
+          dueDate: bid.task.dueDate ? bid.task.dueDate.toISOString() : null,
+          completedAt: bid.task.completedAt ? bid.task.completedAt.toISOString() : null,
+        }
+      }));
+      
+      res.json({ bids: formattedBids });
     } catch (error) {
       console.error("Error getting placed bids:", error);
       res.status(500).json({ message: "Failed to get placed bids" });

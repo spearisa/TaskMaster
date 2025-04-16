@@ -182,7 +182,7 @@ export default function MyBidsPage() {
                         <span className="text-gray-600 text-sm">Bid Amount:</span>
                         <span className="font-bold text-primary flex items-center">
                           <DollarSign className="h-4 w-4 mr-1" />
-                          {formatCurrency(parseFloat(bid.amount))}
+                          {formatCurrency(bid.amount)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -264,7 +264,7 @@ export default function MyBidsPage() {
                         <span className="text-gray-600 text-sm">Your Bid:</span>
                         <span className="font-bold text-primary flex items-center">
                           <DollarSign className="h-4 w-4 mr-1" />
-                          {formatCurrency(parseFloat(bid.amount))}
+                          {formatCurrency(bid.amount)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -276,7 +276,7 @@ export default function MyBidsPage() {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-gray-600 text-sm">Submitted:</span>
-                        <span className="text-sm text-gray-600">{formatDate(new Date(bid.createdAt))}</span>
+                        <span className="text-sm text-gray-600">{formatDate(bid.createdAt)}</span>
                       </div>
                       
                       <div className="pt-3 border-t border-gray-100">
