@@ -136,20 +136,20 @@ export function AddTaskForm() {
   };
 
   return (
-    <div className="py-6">
+    <div className="py-4">
       <div>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="form-container">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">Title</FormLabel>
+                  <FormLabel className="text-sm font-medium text-neutral-500">Title</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Task title"
-                      className="p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/50"
+                      className="p-3 border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary"
                       {...field}
                     />
                   </FormControl>
@@ -163,11 +163,11 @@ export function AddTaskForm() {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">Description</FormLabel>
+                  <FormLabel className="text-sm font-medium text-neutral-500">Description</FormLabel>
                   <FormControl>
                     <textarea
                       placeholder="Task description"
-                      className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/50 min-h-[100px]"
+                      className="w-full p-3 border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary min-h-[80px]"
                       onChange={(e) => field.onChange(e.target.value)}
                       value={field.value ?? ''}
                       name={field.name}
@@ -184,18 +184,18 @@ export function AddTaskForm() {
               name="dueDate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">Due Date</FormLabel>
+                  <FormLabel className="text-sm font-medium text-neutral-500">Due Date</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
                           variant="outline"
-                          className="w-full p-3 h-auto border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/50 text-left font-normal"
+                          className="w-full p-3 h-auto border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary text-left font-normal"
                         >
                           {field.value ? (
                             format(field.value, "PPP")
                           ) : (
-                            <span className="text-gray-400">Select date</span>
+                            <span className="text-neutral-400">Select date</span>
                           )}
                         </Button>
                       </FormControl>
@@ -219,14 +219,14 @@ export function AddTaskForm() {
               name="priority"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">Priority</FormLabel>
+                  <FormLabel className="text-sm font-medium text-neutral-500">Priority</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                     value={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger className="w-full p-3 h-auto border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/50">
+                      <SelectTrigger className="w-full p-3 h-auto border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary">
                         <SelectValue placeholder="Select priority" />
                       </SelectTrigger>
                     </FormControl>
@@ -246,14 +246,14 @@ export function AddTaskForm() {
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">Category</FormLabel>
+                  <FormLabel className="text-sm font-medium text-neutral-500">Category</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                     value={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger className="w-full p-3 h-auto border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/50">
+                      <SelectTrigger className="w-full p-3 h-auto border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                     </FormControl>
@@ -274,12 +274,12 @@ export function AddTaskForm() {
               name="estimatedTime"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">Estimated Time (minutes)</FormLabel>
+                  <FormLabel className="text-sm font-medium text-neutral-500">Estimated Time (minutes)</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       placeholder="e.g., 30"
-                      className="p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/50"
+                      className="p-3 border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary"
                       onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                       value={field.value || ''}
                     />
@@ -289,11 +289,11 @@ export function AddTaskForm() {
               )}
             />
 
-            <div className="button-group mt-8">
+            <div className="flex space-x-3 mt-6">
               <Button
                 type="button"
                 variant="outline"
-                className="w-1/3 py-3.5 h-auto border border-gray-200 text-gray-700 font-medium rounded-full hover:bg-gray-50"
+                className="w-1/3 py-3 h-auto border border-primary text-primary font-medium rounded-xl"
                 onClick={() => navigate("/")}
                 disabled={isSubmitting}
               >
@@ -301,17 +301,10 @@ export function AddTaskForm() {
               </Button>
               <Button
                 type="submit"
-                className="w-2/3 bg-primary hover:bg-primary/90 text-white py-3.5 h-auto font-medium rounded-full shadow-sm"
+                className="w-2/3 bg-primary text-white py-3 h-auto font-medium rounded-xl"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? (
-                  <div className="flex items-center justify-center">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Adding...
-                  </div>
-                ) : (
-                  "Add Task"
-                )}
+                {isSubmitting ? "Adding..." : "Add Task"}
               </Button>
             </div>
           </form>

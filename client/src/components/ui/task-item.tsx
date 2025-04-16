@@ -82,8 +82,8 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
 
   return (
     <Link href={`/task/${task.id}`}>
-      <div className="card mb-4 p-5 hover:shadow-md transition-all hover:translate-y-[-2px] cursor-pointer">
-        <div className="flex items-start gap-4">
+      <div className="bg-lightGray rounded-xl p-4 mb-3 shadow-sm transition-all hover:translate-y-[-2px] cursor-pointer">
+        <div className="flex items-start gap-3">
           <div onClick={stopPropagation} className="flex-shrink-0 mt-1">
             <TaskCheckbox 
               checked={task.completed} 
@@ -92,12 +92,12 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
             />
           </div>
           <div className="flex-grow overflow-hidden">
-            <div className="flex justify-between items-start mb-2.5">
-              <h3 className={`card-title mr-3 ${task.completed ? 'line-through text-neutral-500' : 'text-gray-800'}`}>
+            <div className="flex justify-between items-start">
+              <h3 className={`font-medium text-base mr-2 ${task.completed ? 'line-through text-neutral-500' : ''}`}>
                 {task.title}
               </h3>
               {task.completed ? (
-                <div className="px-2.5 py-1 rounded-full text-xs font-medium text-green-500 bg-green-50 flex-shrink-0">
+                <div className="px-2 py-1 rounded-full text-xs text-green-500 bg-green-50 flex-shrink-0">
                   Completed
                 </div>
               ) : (
@@ -106,17 +106,19 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
                 </div>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-1">
-              <div className="flex items-center">
-                {task.completed ? (
-                  <Clock className="h-4 w-4 mr-1.5 text-gray-400" />
-                ) : (
-                  <Calendar className="h-4 w-4 mr-1.5 text-gray-400" />
-                )}
-                <span>{getTimeText()}</span>
-              </div>
-              
-              <span className="text-gray-300">•</span>
+            <div className="flex items-center mt-2 text-sm text-neutral-500">
+              {task.completed ? (
+                <>
+                  <Clock className="h-4 w-4 mr-1" />
+                  <span>{getTimeText()}</span>
+                </>
+              ) : (
+                <>
+                  <Calendar className="h-4 w-4 mr-1" />
+                  <span>{getTimeText()}</span>
+                </>
+              )}
+              <span className="mx-2">•</span>
               <CategoryBadge category={task.category} />
               
               {/* Deadline warning for upcoming tasks with close deadlines */}
@@ -125,8 +127,8 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
                (getDaysUntilDeadline(task.dueDate) as number) <= 2 && 
                (getDaysUntilDeadline(task.dueDate) as number) >= 0 && (
                 <>
-                  <span className="text-gray-300">•</span>
-                  <span className="px-2.5 py-0.5 bg-red-50 text-red-500 rounded-full text-xs font-medium">
+                  <span className="mx-2">•</span>
+                  <span className="px-2 py-0.5 bg-red-50 text-red-500 rounded-lg text-xs">
                     {getDaysUntilDeadline(task.dueDate)} days left
                   </span>
                 </>
@@ -135,8 +137,8 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
               {/* Accepting bids indicator */}
               {task.acceptingBids && (
                 <>
-                  <span className="text-gray-300">•</span>
-                  <span className="px-2.5 py-0.5 bg-yellow-50 text-yellow-600 rounded-full text-xs font-medium flex items-center">
+                  <span className="mx-2">•</span>
+                  <span className="px-2 py-0.5 bg-yellow-50 text-yellow-600 rounded-lg text-xs flex items-center">
                     <DollarSign className="h-3 w-3 mr-1" />
                     Accepting Bids
                     {task.budget && ` up to $${task.budget}`}
@@ -147,17 +149,17 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
             
             {/* Action buttons row */}
             {!task.completed && (
-              <div className="button-group mt-4" onClick={stopPropagation}>
+              <div className="mt-3 flex space-x-2" onClick={stopPropagation}>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-xs text-primary border border-primary/20 bg-primary/5 hover:bg-primary/10 px-3 py-1.5 h-auto rounded-full"
+                  className="text-xs text-primary border border-primary/20 bg-primary/5 hover:bg-primary/10 px-2 py-1 h-auto"
                   onClick={(e) => {
                     e.stopPropagation();
                     window.location.href = `/task/${task.id}`;
                   }}
                 >
-                  <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                  <Sparkles className="h-3 w-3 mr-1" />
                   Delegate to AI
                 </Button>
                 
@@ -173,13 +175,13 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-xs text-yellow-600 border border-yellow-200 bg-yellow-50 hover:bg-yellow-100 px-3 py-1.5 h-auto rounded-full"
+                    className="text-xs text-yellow-600 border border-yellow-200 bg-yellow-50 hover:bg-yellow-100 px-2 py-1 h-auto"
                     onClick={(e) => {
                       e.stopPropagation();
                       window.location.href = `/task/${task.id}?tab=bidding`;
                     }}
                   >
-                    <DollarSign className="h-3.5 w-3.5 mr-1.5" />
+                    <DollarSign className="h-3 w-3 mr-1" />
                     Bid Now
                   </Button>
                 )}
