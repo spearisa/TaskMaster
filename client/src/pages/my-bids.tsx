@@ -104,19 +104,44 @@ export default function MyBidsPage() {
     rejectBidMutation.mutate(bidId);
   };
 
-  // Render bid status badge
+  // Render bid status badge with improved visual indicators
   const renderBidStatus = (status: string) => {
     switch (status) {
       case 'pending':
-        return <span className="text-yellow-500 bg-yellow-100 px-2 py-1 rounded-full text-xs font-medium">Pending</span>;
+        return (
+          <span className="text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full text-xs font-medium flex items-center">
+            <span className="w-2 h-2 bg-yellow-400 rounded-full mr-1.5 animate-pulse"></span>
+            Pending
+          </span>
+        );
       case 'accepted':
-        return <span className="text-green-500 bg-green-100 px-2 py-1 rounded-full text-xs font-medium">Accepted</span>;
+        return (
+          <span className="text-green-600 bg-green-100 px-2 py-1 rounded-full text-xs font-medium flex items-center">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Accepted
+          </span>
+        );
       case 'rejected':
-        return <span className="text-red-500 bg-red-100 px-2 py-1 rounded-full text-xs font-medium">Rejected</span>;
+        return (
+          <span className="text-red-600 bg-red-100 px-2 py-1 rounded-full text-xs font-medium flex items-center">
+            <XCircle className="w-3 h-3 mr-1" />
+            Rejected
+          </span>
+        );
       case 'completed':
-        return <span className="text-blue-500 bg-blue-100 px-2 py-1 rounded-full text-xs font-medium">Completed</span>;
+        return (
+          <span className="text-blue-600 bg-blue-100 px-2 py-1 rounded-full text-xs font-medium flex items-center">
+            <span className="w-3 h-3 mr-1">✓</span>
+            Completed
+          </span>
+        );
       default:
-        return <span className="text-gray-500 bg-gray-100 px-2 py-1 rounded-full text-xs font-medium">Unknown</span>;
+        return (
+          <span className="text-gray-600 bg-gray-100 px-2 py-1 rounded-full text-xs font-medium flex items-center">
+            <span className="w-2 h-2 bg-gray-400 rounded-full mr-1.5"></span>
+            Unknown
+          </span>
+        );
     }
   };
 
@@ -163,8 +188,16 @@ export default function MyBidsPage() {
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {receivedBids.map((bid) => (
-                <Card key={bid.id} className="overflow-hidden">
+              {receivedBids.map((bid) => {
+                // Dynamic card class based on bid status
+                const cardClass = bid.status === 'accepted' 
+                  ? 'overflow-hidden border-green-200 bg-green-50/30' 
+                  : bid.status === 'rejected' 
+                    ? 'overflow-hidden border-red-200 bg-red-50/30' 
+                    : 'overflow-hidden';
+                
+                return (
+                <Card key={bid.id} className={cardClass}>
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
                       <div>
@@ -232,7 +265,8 @@ export default function MyBidsPage() {
                     </CardFooter>
                   )}
                 </Card>
-              ))}
+                );
+              })}
             </div>
           )}
         </TabsContent>
@@ -245,8 +279,16 @@ export default function MyBidsPage() {
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {placedBids.map((bid) => (
-                <Card key={bid.id} className="overflow-hidden">
+              {placedBids.map((bid) => {
+                // Dynamic card class based on bid status
+                const cardClass = bid.status === 'accepted' 
+                  ? 'overflow-hidden border-green-200 bg-green-50/30' 
+                  : bid.status === 'rejected' 
+                    ? 'overflow-hidden border-red-200 bg-red-50/30' 
+                    : 'overflow-hidden';
+                
+                return (
+                <Card key={bid.id} className={cardClass}>
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
                       <div>
@@ -288,7 +330,8 @@ export default function MyBidsPage() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           )}
         </TabsContent>
