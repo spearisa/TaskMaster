@@ -53,15 +53,26 @@ export default function MyBidsPage() {
       
       const data = await response.json();
       
+      // Log the full response data
+      console.log(`Raw response data for ${activeTab} bids:`, data);
+      
       // Make sure we're extracting the bids array from the response
       const bidsArray = data.bids || [];
       console.log(`Loaded ${bidsArray.length} ${activeTab} bids:`, bidsArray);
+      
+      // Check the structure of the first bid if available
+      if (bidsArray.length > 0) {
+        console.log(`First bid structure:`, bidsArray[0]);
+      }
       
       if (activeTab === 'received') {
         setReceivedBids(bidsArray);
       } else {
         setPlacedBids(bidsArray);
       }
+      
+      // Log state update
+      console.log(`Updated ${activeTab} bids state variable with ${bidsArray.length} bids`);
     } catch (err) {
       console.error(`Error loading ${activeTab} bids:`, err);
       setError(err instanceof Error ? err : new Error('An unknown error occurred'));
@@ -348,8 +359,8 @@ export default function MyBidsPage() {
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg">{bid.task.title}</CardTitle>
-                      <CardDescription className="line-clamp-2 mt-1">{bid.task.description}</CardDescription>
+                      <CardTitle className="text-lg">{bid.task?.title || 'Task Title Missing'}</CardTitle>
+                      <CardDescription className="line-clamp-2 mt-1">{bid.task?.description || 'No task description available.'}</CardDescription>
                     </div>
                     {renderBidStatus(bid.status || 'pending')}
                   </div>
@@ -362,8 +373,8 @@ export default function MyBidsPage() {
                       </span>
                       <span className="font-medium">
                         {activeTab === 'received'
-                          ? (bid.user.displayName || bid.user.username)
-                          : (bid.task.user.displayName || bid.task.user.username)}
+                          ? (bid.user?.displayName || bid.user?.username || 'Unknown User')
+                          : (bid.task?.user?.displayName || bid.task?.user?.username || 'Unknown User')}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
