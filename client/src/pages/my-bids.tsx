@@ -127,6 +127,9 @@ export default function MyBidsPage() {
 
   // Handle accept bid with immediate UI update
   const handleAcceptBid = (bidId: number) => {
+    // Cache the current state for potential rollback
+    const originalState = [...receivedBidsState];
+    
     // Immediately update the UI before the API call
     setReceivedBidsState((prevBids) => 
       prevBids?.map(bid => 
@@ -134,12 +137,20 @@ export default function MyBidsPage() {
       )
     );
     
-    // Then make the API call
-    acceptBidMutation.mutate(bidId);
+    // Then make the API call with error handling
+    acceptBidMutation.mutate(bidId, {
+      onError: () => {
+        // If the API call fails, revert to the original state
+        setReceivedBidsState(originalState);
+      }
+    });
   };
 
   // Handle reject bid with immediate UI update
   const handleRejectBid = (bidId: number) => {
+    // Cache the current state for potential rollback
+    const originalState = [...receivedBidsState];
+    
     // Immediately update the UI before the API call
     setReceivedBidsState((prevBids) => 
       prevBids?.map(bid => 
@@ -147,8 +158,13 @@ export default function MyBidsPage() {
       )
     );
     
-    // Then make the API call
-    rejectBidMutation.mutate(bidId);
+    // Then make the API call with error handling
+    rejectBidMutation.mutate(bidId, {
+      onError: () => {
+        // If the API call fails, revert to the original state
+        setReceivedBidsState(originalState);
+      }
+    });
   };
 
   // Render bid status badge with improved visual indicators
@@ -348,35 +364,51 @@ export default function MyBidsPage() {
                     </div>
                   </CardContent>
                   
-                  {(!bid.status || bid.status === 'pending') && (
-                    <CardFooter className="flex justify-between space-x-3 pt-0">
-                      <Button 
-                        variant="outline" 
-                        className="flex-1 border-red-200 hover:bg-red-50 hover:text-red-600" 
-                        onClick={() => handleRejectBid(bid.id)}
-                        disabled={rejectBidMutation.isPending}
-                      >
-                        {rejectBidMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <CardFooter className="flex justify-between space-x-3 pt-0">
+                    {(!bid.status || bid.status === 'pending') ? (
+                      <>
+                        <Button 
+                          variant="outline" 
+                          className="flex-1 border-red-200 hover:bg-red-50 hover:text-red-600" 
+                          onClick={() => handleRejectBid(bid.id)}
+                          disabled={rejectBidMutation.isPending}
+                        >
+                          {rejectBidMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <XCircle className="h-4 w-4 mr-2" />
+                          )}
+                          Reject
+                        </Button>
+                        <Button
+                          className="flex-1"
+                          onClick={() => handleAcceptBid(bid.id)}
+                          disabled={acceptBidMutation.isPending}
+                        >
+                          {acceptBidMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                          )}
+                          Accept
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="w-full flex items-center justify-center">
+                        {bid.status === 'accepted' ? (
+                          <span className="text-green-600 flex items-center py-2 font-medium">
+                            <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
+                            Accepted
+                          </span>
                         ) : (
-                          <XCircle className="h-4 w-4 mr-2" />
+                          <span className="text-red-600 flex items-center py-2 font-medium">
+                            <XCircle className="h-5 w-5 mr-2 text-red-600" />
+                            Rejected
+                          </span>
                         )}
-                        Reject
-                      </Button>
-                      <Button
-                        className="flex-1"
-                        onClick={() => handleAcceptBid(bid.id)}
-                        disabled={acceptBidMutation.isPending}
-                      >
-                        {acceptBidMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                        )}
-                        Accept
-                      </Button>
-                    </CardFooter>
-                  )}
+                      </div>
+                    )}
+                  </CardFooter>
                 </Card>
                 );
               })}
