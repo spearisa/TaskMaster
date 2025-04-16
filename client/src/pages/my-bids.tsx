@@ -39,6 +39,8 @@ export default function MyBidsPage() {
       const res = await apiRequest('GET', '/api/bids/received');
       const data = await res.json();
       console.log("Received bids API response:", data);
+      // Update the local state when we get new data
+      setReceivedBidsState(data);
       return data;
     },
     enabled: !!user && activeTab === "received"
@@ -55,6 +57,8 @@ export default function MyBidsPage() {
       const res = await apiRequest('GET', '/api/bids/placed');
       const data = await res.json();
       console.log("Placed bids API response:", data);
+      // Update the local state when we get new data
+      setPlacedBidsState(data);
       return data;
     },
     enabled: !!user && activeTab === "placed"
@@ -68,7 +72,7 @@ export default function MyBidsPage() {
     },
     onSuccess: (data) => {
       // Update UI immediately for better user experience
-      setReceivedBids((prevBids) => 
+      setReceivedBidsState((prevBids) => 
         prevBids?.map(bid => 
           bid.id === data.id ? { ...bid, status: 'accepted' } : bid
         )
@@ -99,7 +103,7 @@ export default function MyBidsPage() {
     },
     onSuccess: (data) => {
       // Update UI immediately for better user experience
-      setReceivedBids((prevBids) => 
+      setReceivedBidsState((prevBids) => 
         prevBids?.map(bid => 
           bid.id === data.id ? { ...bid, status: 'rejected' } : bid
         )
@@ -199,16 +203,16 @@ export default function MyBidsPage() {
 
   // Calculate bid statistics
   const getBidStats = () => {
-    if (activeTab === 'received' && receivedBids) {
-      const accepted = receivedBids.filter(bid => bid.status === 'accepted').length;
-      const rejected = receivedBids.filter(bid => bid.status === 'rejected').length;
-      const pending = receivedBids.filter(bid => !bid.status || bid.status === 'pending').length;
-      return { accepted, rejected, pending, total: receivedBids.length };
-    } else if (activeTab === 'placed' && placedBids) {
-      const accepted = placedBids.filter(bid => bid.status === 'accepted').length;
-      const rejected = placedBids.filter(bid => bid.status === 'rejected').length;
-      const pending = placedBids.filter(bid => !bid.status || bid.status === 'pending').length;
-      return { accepted, rejected, pending, total: placedBids.length };
+    if (activeTab === 'received' && receivedBidsState) {
+      const accepted = receivedBidsState.filter(bid => bid.status === 'accepted').length;
+      const rejected = receivedBidsState.filter(bid => bid.status === 'rejected').length;
+      const pending = receivedBidsState.filter(bid => !bid.status || bid.status === 'pending').length;
+      return { accepted, rejected, pending, total: receivedBidsState.length };
+    } else if (activeTab === 'placed' && placedBidsState) {
+      const accepted = placedBidsState.filter(bid => bid.status === 'accepted').length;
+      const rejected = placedBidsState.filter(bid => bid.status === 'rejected').length;
+      const pending = placedBidsState.filter(bid => !bid.status || bid.status === 'pending').length;
+      return { accepted, rejected, pending, total: placedBidsState.length };
     }
     return { accepted: 0, rejected: 0, pending: 0, total: 0 };
   };
@@ -265,14 +269,14 @@ export default function MyBidsPage() {
         </div>
         
         {activeTab === "received" && (
-          !receivedBids || receivedBids.length === 0 ? (
+          !receivedBidsState || receivedBidsState.length === 0 ? (
             <div className="p-8 text-center bg-gray-50 rounded-lg">
               <p className="text-gray-600 mb-2">You haven't received any bids yet.</p>
               <p className="text-sm text-gray-500">When you create tasks that accept bids, they'll appear here.</p>
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {receivedBids.map((bid) => {
+              {receivedBidsState.map((bid) => {
                 // Use helper function to get card class
                 const cardClass = getBidCardClass(bid.status);
                 
@@ -365,14 +369,14 @@ export default function MyBidsPage() {
         )}
         
         {activeTab === "placed" && (
-          !placedBids || placedBids.length === 0 ? (
+          !placedBidsState || placedBidsState.length === 0 ? (
             <div className="p-8 text-center bg-gray-50 rounded-lg">
               <p className="text-gray-600 mb-2">You haven't placed any bids yet.</p>
               <p className="text-sm text-gray-500">Browse public tasks to find opportunities to bid on.</p>
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {placedBids.map((bid) => {
+              {placedBidsState.map((bid) => {
                 // Use helper function to get card class
                 const cardClass = getBidCardClass(bid.status);
                 
