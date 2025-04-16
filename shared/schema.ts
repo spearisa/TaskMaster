@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -27,6 +27,10 @@ export const tasks = pgTable("tasks", {
   userId: integer("user_id").references(() => users.id),
   assignedToUserId: integer("assigned_to_user_id").references(() => users.id),
   isPublic: boolean("is_public").default(false).notNull(),
+  budget: decimal("budget", { precision: 10, scale: 2 }), // Budget for task in dollars
+  acceptingBids: boolean("accepting_bids").default(false), // Whether the task is open for bidding
+  biddingDeadline: timestamp("bidding_deadline"), // Deadline for submitting bids
+  winningBidId: integer("winning_bid_id"), // Reference to the selected bid
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -70,6 +74,9 @@ export const insertTaskSchema = z.object({
   userId: z.number().optional().nullable(),
   assignedToUserId: z.number().optional().nullable(),
   isPublic: z.boolean().default(false).optional(),
+  budget: z.number().optional().nullable(),
+  acceptingBids: z.boolean().default(false).optional(),
+  biddingDeadline: z.date().optional().nullable(),
 });
 
 export const taskSchema = z.object({
@@ -85,6 +92,10 @@ export const taskSchema = z.object({
   userId: z.number().optional().nullable(),
   assignedToUserId: z.number().optional().nullable(),
   isPublic: z.boolean().default(false),
+  budget: z.number().optional().nullable(),
+  acceptingBids: z.boolean().default(false).optional(),
+  biddingDeadline: z.string().optional().nullable(),
+  winningBidId: z.number().optional().nullable(),
 });
 
 // Create the direct messages table
@@ -146,6 +157,22 @@ export const insertTaskTemplateSchema = z.object({
 });
 
 // Schema for task templates with string dates
+// Task bids table for the bidding system
+export const taskBids = pgTable("task_bids", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id").references(() => tasks.id).notNull(),
+  bidderId: integer("bidder_id").references(() => users.id).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  estimatedTime: integer("estimated_time"), // in minutes
+  proposal: text("proposal").notNull(),
+  status: text("status").notNull().default("pending"), // pending, accepted, rejected, completed
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  stripePaymentStatus: text("stripe_payment_status"),
+});
+
 export const taskTemplateSchema = z.object({
   id: z.number(),
   title: z.string().min(1, { message: "Title is required" }),
@@ -161,6 +188,31 @@ export const taskTemplateSchema = z.object({
   isPublic: z.boolean().default(false),
 });
 
+// Schema for inserting task bids
+export const insertTaskBidSchema = z.object({
+  taskId: z.number(),
+  bidderId: z.number(),
+  amount: z.number().positive({ message: "Bid amount must be positive" }),
+  estimatedTime: z.number().int().positive().optional().nullable(),
+  proposal: z.string().min(1, { message: "Proposal is required" }),
+});
+
+// Schema for task bids with string dates
+export const taskBidSchema = z.object({
+  id: z.number(),
+  taskId: z.number(),
+  bidderId: z.number(),
+  amount: z.number(),
+  estimatedTime: z.number().optional().nullable(),
+  proposal: z.string(),
+  status: z.enum(["pending", "accepted", "rejected", "completed"]),
+  createdAt: z.string().optional().nullable(),
+  updatedAt: z.string().optional().nullable(),
+  completedAt: z.string().optional().nullable(),
+  stripePaymentIntentId: z.string().optional().nullable(),
+  stripePaymentStatus: z.string().optional().nullable(),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type UserProfile = z.infer<typeof userProfileSchema>;
@@ -174,3 +226,6 @@ export type Conversation = typeof conversations.$inferSelect;
 export type InsertTaskTemplate = z.infer<typeof insertTaskTemplateSchema>;
 export type TaskTemplate = typeof taskTemplates.$inferSelect;
 export type TaskTemplateWithStringDates = z.infer<typeof taskTemplateSchema>;
+export type InsertTaskBid = z.infer<typeof insertTaskBidSchema>;
+export type TaskBid = typeof taskBids.$inferSelect;
+export type TaskBidWithStringDates = z.infer<typeof taskBidSchema>;
