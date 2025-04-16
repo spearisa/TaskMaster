@@ -10,6 +10,17 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle, XCircle, DollarSign, CalendarClock } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
+// Helper function to get card class based on bid status
+const getBidCardClass = (status: string | undefined) => {
+  if (status === 'accepted') {
+    return 'overflow-hidden border-green-200 bg-green-50/30 shadow-[0_0_15px_rgba(0,150,0,0.15)]';
+  } else if (status === 'rejected') {
+    return 'overflow-hidden border-red-200 bg-red-50/30 shadow-[0_0_15px_rgba(150,0,0,0.15)]';
+  } else {
+    return 'overflow-hidden';
+  }
+};
+
 export default function MyBidsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -189,12 +200,8 @@ export default function MyBidsPage() {
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {receivedBids.map((bid) => {
-                // Dynamic card class based on bid status
-                const cardClass = bid.status === 'accepted' 
-                  ? 'overflow-hidden border-green-200 bg-green-50/30' 
-                  : bid.status === 'rejected' 
-                    ? 'overflow-hidden border-red-200 bg-red-50/30' 
-                    : 'overflow-hidden';
+                // Use helper function to get card class
+                const cardClass = getBidCardClass(bid.status);
                 
                 return (
                 <Card key={bid.id} className={cardClass}>
@@ -280,12 +287,8 @@ export default function MyBidsPage() {
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {placedBids.map((bid) => {
-                // Dynamic card class based on bid status
-                const cardClass = bid.status === 'accepted' 
-                  ? 'overflow-hidden border-green-200 bg-green-50/30' 
-                  : bid.status === 'rejected' 
-                    ? 'overflow-hidden border-red-200 bg-red-50/30' 
-                    : 'overflow-hidden';
+                // Use helper function to get card class
+                const cardClass = getBidCardClass(bid.status);
                 
                 return (
                 <Card key={bid.id} className={cardClass}>
