@@ -25,6 +25,7 @@ export default function MyBidsPage() {
     queryFn: async () => {
       const res = await apiRequest('GET', '/api/bids/received');
       const data = await res.json();
+      console.log("Received bids API response:", data);
       return data;
     },
     enabled: !!user && activeTab === "received"
@@ -40,6 +41,7 @@ export default function MyBidsPage() {
     queryFn: async () => {
       const res = await apiRequest('GET', '/api/bids/placed');
       const data = await res.json();
+      console.log("Placed bids API response:", data);
       return data;
     },
     enabled: !!user && activeTab === "placed"

@@ -1584,26 +1584,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
       
+      console.log("Getting bids received for user ID:", req.user.id);
+      
       // Get all tasks created by the user
       const userTasks = await storage.getTasksByUserId(req.user.id);
+      console.log("Found user tasks:", userTasks.length);
       
       if (userTasks.length === 0) {
+        console.log("No tasks found for this user");
         return res.json({ bids: [] });
       }
       
       // Get all task IDs
       const taskIds = userTasks.map(task => task.id);
+      console.log("Task IDs:", taskIds);
       
       // Get all bids for these tasks with additional user and task data
       const receivedBids = [];
       
       for (const taskId of taskIds) {
         const taskBids = await storage.getTaskBids(taskId);
+        console.log(`Found ${taskBids.length} bids for task ID ${taskId}`);
         
         if (taskBids.length > 0) {
           const task = userTasks.find(t => t.id === taskId);
           
           for (const bid of taskBids) {
+            console.log("Processing bid:", bid.id, "from bidder:", bid.bidderId);
             const bidder = await storage.getUserProfile(bid.bidderId);
             
             if (bidder) {
@@ -1615,10 +1622,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   displayName: bidder.displayName
                 }
               });
+            } else {
+              console.log("Could not find bidder profile for ID:", bid.bidderId);
             }
           }
         }
       }
+      
+      console.log("Total received bids found:", receivedBids.length);
       
       // Format dates for response
       const formattedBids = receivedBids.map(bid => ({
@@ -1633,6 +1644,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }));
       
+      console.log("Sending response with bids:", formattedBids.length);
       res.json({ bids: formattedBids });
     } catch (error) {
       console.error("Error getting received bids:", error);
@@ -1647,12 +1659,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
       
+      console.log("Getting bids placed by user ID:", req.user.id);
+      
       // Get all bids by the user
       const placedBids = [];
       const userId = req.user.id;
       
       // Get all public tasks - we need to check each for bids
       const publicTasks = await storage.getPublicTasks();
+      console.log("Found public tasks:", publicTasks.length);
       
       for (const task of publicTasks) {
         // Skip tasks owned by the current user
@@ -1663,9 +1678,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Find bids placed by the current user
         const userBidsOnTask = taskBids.filter(bid => bid.bidderId === userId);
+        console.log(`Found ${userBidsOnTask.length} bids by user ${userId} on task ${task.id}`);
         
         for (const bid of userBidsOnTask) {
           // Get the task owner profile
+          console.log("Processing bid:", bid.id, "on task:", task.id, "with owner:", task.userId);
           const owner = await storage.getUserProfile(task.userId);
           
           if (owner) {
@@ -1677,9 +1694,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 displayName: owner.displayName
               }
             });
+          } else {
+            console.log("Could not find owner profile for ID:", task.userId);
           }
         }
       }
+      
+      console.log("Total placed bids found:", placedBids.length);
       
       // Format dates for response
       const formattedBids = placedBids.map(bid => ({
@@ -1694,6 +1715,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }));
       
+      console.log("Sending response with formatted bids:", formattedBids.length);
+      console.log("First bid (if exists):", formattedBids[0] ? JSON.stringify(formattedBids[0].id) : "None");
       res.json({ bids: formattedBids });
     } catch (error) {
       console.error("Error getting placed bids:", error);
