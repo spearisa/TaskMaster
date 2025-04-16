@@ -1186,8 +1186,26 @@ export class DatabaseStorage implements IStorage {
         throw new Error(`Bid ${bidId} does not belong to task ${taskId}`);
       }
       
-      // Update the bid status to 'accepted'
-      await this.updateTaskBid(bidId, { status: 'accepted' });
+      console.log(`Accepting bid ${bidId} for task ${taskId}, current status: ${bid.status}`);
+      
+      // Update the bid status to 'accepted' with explicit timestamp
+      const updatedBid = await this.updateTaskBid(bidId, { 
+        status: 'accepted',
+        updatedAt: new Date()
+      });
+      
+      if (!updatedBid) {
+        throw new Error(`Failed to update bid ${bidId} status to accepted`);
+      }
+      
+      console.log(`Bid ${bidId} updated to accepted, verifying...`);
+      const verifyBid = await this.getTaskBidById(bidId);
+      if (!verifyBid || verifyBid.status !== 'accepted') {
+        console.error(`Failed to verify bid ${bidId} status change. Current status: ${verifyBid?.status}`);
+        throw new Error(`Failed to verify bid ${bidId} status update to accepted`);
+      }
+      
+      console.log(`Successfully verified bid ${bidId} status is now: ${verifyBid.status}. Updating other bids...`);
       
       // Update other bids for this task to 'rejected'
       try {
@@ -1200,6 +1218,8 @@ export class DatabaseStorage implements IStorage {
             eq(taskBids.taskId, taskId),
             not(eq(taskBids.id, bidId))
           ));
+        
+        console.log(`Updated other bids for task ${taskId} to rejected`);
       } catch (error) {
         console.error("Error updating other bids:", error);
       }
@@ -1209,6 +1229,12 @@ export class DatabaseStorage implements IStorage {
         winningBidId: bidId,
         acceptingBids: false
       });
+      
+      if (!updatedTask) {
+        throw new Error(`Failed to update task ${taskId} with winning bid ${bidId}`);
+      }
+      
+      console.log(`Task ${taskId} updated with winning bid ${bidId}`);
       
       return updatedTask;
     } catch (error) {

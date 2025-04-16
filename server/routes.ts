@@ -1565,11 +1565,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Only the task owner can accept bids" });
       }
       
-      // Accept the bid
+      console.log(`Accepting bid ${bidId} for task ${task.id}...`);
+      
+      // Accept the bid - this will update the bid status and other bids for this task
       const updatedTask = await storage.acceptTaskBid(task.id, bidId);
       if (!updatedTask) {
+        console.error(`Failed to accept bid ${bidId}`);
         return res.status(500).json({ message: "Failed to accept bid" });
       }
+      
+      // Double-check that the bid was actually updated
+      const verifyBid = await storage.getTaskBidById(bidId);
+      if (!verifyBid || verifyBid.status !== 'accepted') {
+        console.error(`Bid ${bidId} status update verification failed: ${verifyBid?.status}`);
+        return res.status(500).json({ message: "Failed to verify bid status update" });
+      }
+      
+      console.log(`Successfully accepted bid ${bidId}, status is now: ${verifyBid.status}`);
+      
       
       // Notify bidder via WebSocket
       notifyWebSocketClients({
