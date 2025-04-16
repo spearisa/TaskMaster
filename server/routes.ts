@@ -745,7 +745,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate content with AI
+  // Generate content with AI (Legacy API)
   app.post("/api/ai/generate", async (req, res) => {
     try {
       // Check if user is authenticated
@@ -784,6 +784,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating with AI:", error);
       return res.status(500).json({ message: "Failed to generate with AI", error: error.message });
+    }
+  });
+  
+  // AI Tools API Endpoints
+  
+  // Chat completion API
+  app.post("/api/ai/chat", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { prompt, model = 'openai' } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ message: "Prompt is required" });
+      }
+      
+      // Generate chat completion
+      const result = await generateChatCompletion(prompt, model);
+      
+      return res.json(result);
+    } catch (error) {
+      console.error("Error generating chat completion:", error);
+      return res.status(500).json({ message: "Failed to generate chat completion", error: error.message });
+    }
+  });
+
+  // Image generation API
+  app.post("/api/ai/image", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { prompt } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ message: "Prompt is required" });
+      }
+      
+      // Generate image
+      const result = await generateImage(prompt);
+      
+      return res.json(result);
+    } catch (error) {
+      console.error("Error generating image:", error);
+      return res.status(500).json({ message: "Failed to generate image", error: error.message });
+    }
+  });
+
+  // Code generation API
+  app.post("/api/ai/code", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { prompt, language } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ message: "Prompt is required" });
+      }
+      if (!language) {
+        return res.status(400).json({ message: "Language is required" });
+      }
+      
+      // Generate code
+      const result = await generateCode(prompt, language);
+      
+      return res.json(result);
+    } catch (error) {
+      console.error("Error generating code:", error);
+      return res.status(500).json({ message: "Failed to generate code", error: error.message });
     }
   });
 
