@@ -137,17 +137,15 @@ export default function ProfilePage() {
     .slice(0, 3);
 
   return (
-    <MobileLayout>
-      <div className="p-4 pb-20">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          </TabsList>
+    <MobileLayout pageTitle="My Profile">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+        </TabsList>
           
           {/* Profile Tab Content */}
           <TabsContent value="profile" className="space-y-4">
-            <h1 className="text-2xl font-bold">My Profile</h1>
             
             {/* Profile Card */}
             <Card>
@@ -424,7 +422,6 @@ export default function ProfilePage() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
     </MobileLayout>
   );
 }

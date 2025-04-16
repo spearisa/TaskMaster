@@ -207,7 +207,7 @@ export function MobileLayout({
       </div>
       
       {/* Main content area - always add pb-24 to ensure content doesn't get hidden behind bottom nav */}
-      <main className="pb-24 md:ml-56">
+      <main className="pb-24 md:ml-56 p-4">
         {children}
       </main>
       
