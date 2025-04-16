@@ -91,7 +91,11 @@ export default function MessengerPage() {
       pageTitle="Messages"
     >
       
-      <div className="flex flex-col space-y-2">
+      <div className="flex flex-col h-full">
+        <p className="text-xs text-muted-foreground mb-2">
+          Connect with others and discuss tasks
+        </p>
+        
         {/* Message type tabs */}
         <div className="flex mb-2 bg-gray-100 rounded-lg overflow-hidden">
           <div className="flex-1">
@@ -126,7 +130,7 @@ export default function MessengerPage() {
           </div>
         </div>
         
-        <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto">
           {conversations?.length === 0 ? (
             <div className="text-center py-6 text-gray-500">
               <p>No conversations yet</p>
@@ -140,33 +144,36 @@ export default function MessengerPage() {
               </Button>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1">
               {conversations?.map(({ conversation, user: otherUser }) => (
                 <div 
                   key={conversation.id}
-                  className="flex items-center hover:bg-gray-50 cursor-pointer p-3 rounded-lg border border-gray-100"
+                  className="flex items-center hover:bg-gray-50 cursor-pointer p-2 rounded-lg border border-gray-100 mb-1"
                   onClick={() => openConversation(otherUser.id)}
                 >
-                  <div className="flex h-10 w-10 mr-3 items-center justify-center rounded-full bg-gray-100">
-                    <span className="text-gray-600 font-medium">
+                  <div className="flex h-8 w-8 mr-2 items-center justify-center rounded-full bg-gray-100">
+                    <span className="text-gray-600 font-medium text-xs">
                       {(otherUser.displayName || otherUser.username).substring(0, 2).toUpperCase()}
                     </span>
                   </div>
                   <div className="flex-1">
-                    <div className="font-medium">
+                    <div className="font-medium text-sm">
                       {otherUser.displayName || otherUser.username}
                     </div>
-                    <div className="text-sm text-gray-500">
-                      {new Date(conversation.lastMessageAt).toLocaleDateString("en-US", {month: "numeric", day: "numeric", year: "numeric"})}
+                    <div className="text-xs text-gray-500">
+                      {new Date(conversation.lastMessageAt).toLocaleDateString("en-US", {month: "short", day: "numeric"})}
                     </div>
                   </div>
                   {conversation.unreadCount > 0 && (
-                    <div className="rounded-full bg-primary text-white h-6 w-6 flex items-center justify-center text-xs">
+                    <div className="rounded-full bg-primary text-white h-5 w-5 flex items-center justify-center text-xs">
                       {conversation.unreadCount}
                     </div>
                   )}
                 </div>
               ))}
+              
+              {/* Add spacer at the bottom for bottom navigation */}
+              <div className="h-16"></div>
             </div>
           )}
         </div>
