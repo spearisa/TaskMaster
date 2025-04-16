@@ -454,7 +454,9 @@ export class DatabaseStorage implements IStorage {
   async updateTask(id: number, updatedTask: Partial<InsertTask>): Promise<Task | undefined> {
     try {
       // First, ensure all necessary columns exist if we're trying to update them
-      if (updatedTask.assignedToUserId !== undefined || updatedTask.isPublic !== undefined) {
+      if (updatedTask.assignedToUserId !== undefined || updatedTask.isPublic !== undefined ||
+          updatedTask.budget !== undefined || updatedTask.acceptingBids !== undefined || 
+          updatedTask.biddingDeadline !== undefined) {
         try {
           // Add missing columns if they don't exist
           const pool = await import("./db").then(m => m.pool);
@@ -472,6 +474,30 @@ export class DatabaseStorage implements IStorage {
               `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false`
             );
           }
+          
+          // Add bidding-related columns if they don't exist and we're trying to update them
+          if (updatedTask.budget !== undefined) {
+            await pool.query(
+              `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS budget DECIMAL(10,2)`
+            );
+          }
+          
+          if (updatedTask.acceptingBids !== undefined) {
+            await pool.query(
+              `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS accepting_bids BOOLEAN DEFAULT false`
+            );
+          }
+          
+          if (updatedTask.biddingDeadline !== undefined) {
+            await pool.query(
+              `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS bidding_deadline TIMESTAMP`
+            );
+          }
+          
+          // Also add winning_bid_id column
+          await pool.query(
+            `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS winning_bid_id INTEGER`
+          );
           
           console.log("Added missing columns to tasks table if needed for update");
         } catch (alterError) {
@@ -494,6 +520,11 @@ export class DatabaseStorage implements IStorage {
       if (updatedTask.userId !== undefined) safeUpdateTask.userId = updatedTask.userId;
       if (updatedTask.assignedToUserId !== undefined) safeUpdateTask.assignedToUserId = updatedTask.assignedToUserId;
       if (updatedTask.isPublic !== undefined) safeUpdateTask.isPublic = updatedTask.isPublic;
+      
+      // Add bidding-related fields
+      if (updatedTask.budget !== undefined) safeUpdateTask.budget = updatedTask.budget;
+      if (updatedTask.acceptingBids !== undefined) safeUpdateTask.acceptingBids = updatedTask.acceptingBids;
+      if (updatedTask.biddingDeadline !== undefined) safeUpdateTask.biddingDeadline = updatedTask.biddingDeadline;
       
       // Only attempt to update if we have fields to update
       if (Object.keys(safeUpdateTask).length > 0) {
@@ -548,6 +579,18 @@ export class DatabaseStorage implements IStorage {
         if (updatedTask.estimatedTime !== undefined) {
           setClause.push(`estimated_time = $${paramIndex++}`);
           values.push(updatedTask.estimatedTime);
+        }
+        if (updatedTask.budget !== undefined) {
+          setClause.push(`budget = $${paramIndex++}`);
+          values.push(updatedTask.budget);
+        }
+        if (updatedTask.acceptingBids !== undefined) {
+          setClause.push(`accepting_bids = $${paramIndex++}`);
+          values.push(updatedTask.acceptingBids);
+        }
+        if (updatedTask.biddingDeadline !== undefined) {
+          setClause.push(`bidding_deadline = $${paramIndex++}`);
+          values.push(updatedTask.biddingDeadline);
         }
         // Add completion date if task is being marked as completed
         if (updatedTask.completed) {
