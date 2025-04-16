@@ -979,6 +979,210 @@ export class DatabaseStorage implements IStorage {
   }
   
   /**
+   * Get all bids for a specific task
+   */
+  async getTaskBids(taskId: number): Promise<TaskBid[]> {
+    try {
+      await this.ensureTaskBidsColumns();
+      
+      const bids = await db.select().from(taskBids)
+        .where(eq(taskBids.taskId, taskId))
+        .orderBy(desc(taskBids.createdAt));
+      
+      // Add user info to each bid
+      const bidsWithUsers = [];
+      for (const bid of bids) {
+        const user = await this.getUser(bid.bidderId);
+        if (user) {
+          bidsWithUsers.push({
+            ...bid,
+            user: {
+              id: user.id,
+              username: user.username,
+              displayName: user.displayName,
+              avatarUrl: user.avatarUrl
+            }
+          });
+        } else {
+          bidsWithUsers.push(bid);
+        }
+      }
+      
+      return bidsWithUsers;
+    } catch (error) {
+      console.error("Error getting task bids:", error);
+      return [];
+    }
+  }
+  
+  /**
+   * Get a specific bid by its ID
+   */
+  async getTaskBidById(bidId: number): Promise<TaskBid | undefined> {
+    try {
+      await this.ensureTaskBidsColumns();
+      
+      const [bid] = await db.select().from(taskBids)
+        .where(eq(taskBids.id, bidId));
+      
+      if (!bid) return undefined;
+      
+      // Add user info to the bid
+      const user = await this.getUser(bid.bidderId);
+      if (user) {
+        return {
+          ...bid,
+          user: {
+            id: user.id,
+            username: user.username,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl
+          }
+        };
+      }
+      
+      return bid;
+    } catch (error) {
+      console.error("Error getting task bid by ID:", error);
+      return undefined;
+    }
+  }
+  
+  /**
+   * Create a new bid on a task
+   */
+  async createTaskBid(bid: InsertTaskBid): Promise<TaskBid> {
+    try {
+      await this.ensureTaskBidsColumns();
+      
+      const bidData = {
+        ...bid,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      const [newBid] = await db.insert(taskBids).values(bidData).returning();
+      return newBid;
+    } catch (error) {
+      console.error("Error creating task bid:", error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Update an existing bid
+   */
+  async updateTaskBid(bidId: number, bid: Partial<InsertTaskBid>): Promise<TaskBid | undefined> {
+    try {
+      await this.ensureTaskBidsColumns();
+      
+      const updateData = {
+        ...bid,
+        updatedAt: new Date()
+      };
+      
+      const [updatedBid] = await db.update(taskBids)
+        .set(updateData)
+        .where(eq(taskBids.id, bidId))
+        .returning();
+      
+      return updatedBid;
+    } catch (error) {
+      console.error("Error updating task bid:", error);
+      return undefined;
+    }
+  }
+  
+  /**
+   * Delete a bid
+   */
+  async deleteTaskBid(bidId: number): Promise<boolean> {
+    try {
+      await this.ensureTaskBidsColumns();
+      
+      await db.delete(taskBids)
+        .where(eq(taskBids.id, bidId));
+      
+      return true;
+    } catch (error) {
+      console.error("Error deleting task bid:", error);
+      return false;
+    }
+  }
+  
+  /**
+   * Accept a bid for a task
+   */
+  async acceptTaskBid(taskId: number, bidId: number): Promise<Task | undefined> {
+    try {
+      // Get the task
+      const task = await this.getTaskById(taskId);
+      if (!task) {
+        throw new Error(`Task with ID ${taskId} not found`);
+      }
+      
+      // Get the bid
+      const bid = await this.getTaskBidById(bidId);
+      if (!bid) {
+        throw new Error(`Bid with ID ${bidId} not found`);
+      }
+      
+      // Make sure the bid is for this task
+      if (bid.taskId !== taskId) {
+        throw new Error(`Bid ${bidId} does not belong to task ${taskId}`);
+      }
+      
+      // Update the bid status to 'accepted'
+      await this.updateTaskBid(bidId, { status: 'accepted' });
+      
+      // Update other bids for this task to 'rejected'
+      try {
+        await db.update(taskBids)
+          .set({ 
+            status: 'rejected',
+            updatedAt: new Date()
+          })
+          .where(and(
+            eq(taskBids.taskId, taskId),
+            not(eq(taskBids.id, bidId))
+          ));
+      } catch (error) {
+        console.error("Error updating other bids:", error);
+      }
+      
+      // Update the task with the winning bid ID and stop accepting bids
+      const updatedTask = await this.updateTask(taskId, { 
+        winningBidId: bidId,
+        acceptingBids: false
+      });
+      
+      return updatedTask;
+    } catch (error) {
+      console.error("Error accepting task bid:", error);
+      return undefined;
+    }
+  }
+  
+  /**
+   * Ensure task_bids columns exist
+   */
+  private async ensureTaskBidsColumns(): Promise<void> {
+    try {
+      // Add necessary columns to tasks table if they don't exist
+      await pool.query(`
+        ALTER TABLE tasks 
+        ADD COLUMN IF NOT EXISTS budget NUMERIC(10, 2),
+        ADD COLUMN IF NOT EXISTS accepting_bids BOOLEAN DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS bidding_deadline TIMESTAMP WITH TIME ZONE,
+        ADD COLUMN IF NOT EXISTS winning_bid_id INTEGER;
+      `);
+    } catch (error) {
+      console.error("Error ensuring task_bids columns exist:", error);
+      throw error;
+    }
+  }
+  
+  /**
    * Initialize demo data if the database is empty
    * @param forceReset If true, will drop all existing data and recreate demo data
    */

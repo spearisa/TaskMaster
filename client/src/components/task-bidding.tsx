@@ -1,500 +1,739 @@
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { 
+  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle 
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { 
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage
-} from "@/components/ui/form";
-import { Loader2, DollarSign, Clock, Award } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+  DollarSign, CalendarIcon, Clock, ArrowUpCircle, CheckCircle, XCircle, UserIcon 
+} from "lucide-react";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { format } from "date-fns";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { TaskWithStringDates } from "@shared/schema";
 
+// Load Stripe outside of component to avoid recreating on every render
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+
+// Schema for placing a bid
+const bidFormSchema = z.object({
+  amount: z.coerce.number().positive("Amount must be positive").min(1, "Minimum bid is $1"),
+  description: z.string().min(10, "Description must be at least 10 characters")
+});
+
+type BidFormValues = z.infer<typeof bidFormSchema>;
+
+// Schema for enabling bidding on a task
+const bidSettingsSchema = z.object({
+  acceptingBids: z.boolean(),
+  budget: z.coerce.number().positive("Budget must be positive").optional(),
+  biddingDeadline: z.date().optional()
+});
+
+type BidSettingsValues = z.infer<typeof bidSettingsSchema>;
+
+// Props interface
 interface TaskBiddingProps {
   task: TaskWithStringDates;
   onBidPlaced?: () => void;
 }
 
-// Schema for the bid form
-const bidFormSchema = z.object({
-  amount: z.number().positive({ message: "Amount must be positive" }),
-  estimatedTime: z.number().int().positive().optional(),
-  proposal: z.string().min(10, { message: "Proposal must be at least 10 characters" }),
-});
-
-type BidFormValues = z.infer<typeof bidFormSchema>;
-
-interface TaskBid {
+// Bid interface
+interface Bid {
   id: number;
   taskId: number;
-  bidderId: number;
+  userId: number;
   amount: number;
-  estimatedTime: number | null;
-  proposal: string;
-  status: "pending" | "accepted" | "rejected" | "completed";
-  createdAt: string | null;
-  updatedAt: string | null;
-  completedAt: string | null;
-  stripePaymentIntentId: string | null;
-  stripePaymentStatus: string | null;
-  bidder?: {
+  description: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'paid';
+  paymentIntentId?: string;
+  createdAt: string;
+  user?: {
+    id: number;
     username: string;
     displayName: string | null;
     avatarUrl: string | null;
   };
 }
 
+// The CheckoutForm component used for payment
+function CheckoutForm({ onSuccess }: { onSuccess: () => void }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const { toast } = useToast();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setIsProcessing(true);
+
+    const { error } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: window.location.href,
+      },
+      redirect: 'if_required',
+    });
+
+    if (error) {
+      toast({
+        title: "Payment Failed",
+        description: error.message || "An unexpected error occurred.",
+        variant: "destructive",
+      });
+      setIsProcessing(false);
+    } else {
+      toast({
+        title: "Payment Successful",
+        description: "Your payment has been processed successfully!",
+      });
+      onSuccess();
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <PaymentElement className="mb-6" />
+      <Button 
+        type="submit" 
+        disabled={!stripe || isProcessing} 
+        className="w-full"
+      >
+        {isProcessing ? "Processing..." : "Pay Now"}
+      </Button>
+    </form>
+  );
+}
+
+// Payment component that wraps the Stripe Elements
+function PaymentWrapper({ 
+  clientSecret, 
+  onSuccess 
+}: { 
+  clientSecret: string, 
+  onSuccess: () => void 
+}) {
+  return (
+    <Elements stripe={stripePromise} options={{ clientSecret }}>
+      <CheckoutForm onSuccess={onSuccess} />
+    </Elements>
+  );
+}
+
+// Main TaskBidding component
 export function TaskBidding({ task, onBidPlaced }: TaskBiddingProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [_, navigate] = useLocation();
-  const queryClient = useQueryClient();
-  const isTaskOwner = user?.id === task.userId;
-
-  // Query to fetch bids for the task
-  const { data: bids = [], isLoading: bidsLoading } = useQuery<TaskBid[]>({
-    queryKey: ['/api/tasks', task.id, 'bids'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', `/api/tasks/${task.id}/bids`);
-      return await response.json();
-    },
-    enabled: !!task.id
-  });
-
-  // Form handling
-  const form = useForm<BidFormValues>({
+  const [bids, setBids] = useState<Bid[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isPlacingBid, setIsPlacingBid] = useState(false);
+  const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  
+  // Form for placing a bid
+  const bidForm = useForm<BidFormValues>({
     resolver: zodResolver(bidFormSchema),
     defaultValues: {
       amount: 0,
-      estimatedTime: undefined,
-      proposal: "",
+      description: "",
     },
   });
-
-  // Mutation to place a bid
-  const placeBidMutation = useMutation({
-    mutationFn: async (values: BidFormValues) => {
+  
+  // Form for bid settings (for task owner)
+  const settingsForm = useForm<BidSettingsValues>({
+    resolver: zodResolver(bidSettingsSchema),
+    defaultValues: {
+      acceptingBids: task.acceptingBids || false,
+      budget: task.budget || undefined,
+      biddingDeadline: task.biddingDeadline ? new Date(task.biddingDeadline) : undefined,
+    },
+  });
+  
+  // Get all bids for this task
+  const fetchBids = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await apiRequest(
+        "GET", 
+        `/api/tasks/${task.id}/bids`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        setBids(data);
+      } else {
+        console.error("Failed to fetch bids");
+      }
+    } catch (error) {
+      console.error("Error fetching bids:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Place a bid on the task
+  const onPlaceBid = async (values: BidFormValues) => {
+    if (!user) return;
+    
+    setIsPlacingBid(true);
+    try {
       const response = await apiRequest(
         "POST", 
-        `/api/tasks/${task.id}/bids`,
-        {
-          ...values,
-          bidderId: user?.id
-        }
+        `/api/tasks/${task.id}/bid`, 
+        values
       );
-      return await response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Bid placed",
-        description: "Your bid has been successfully placed",
-      });
-      form.reset();
-      queryClient.invalidateQueries({ queryKey: ['/api/tasks', task.id, 'bids'] });
-      if (onBidPlaced) onBidPlaced();
-    },
-    onError: (error: Error) => {
+      
+      if (response.ok) {
+        toast({
+          title: "Bid Placed",
+          description: "Your bid has been successfully placed.",
+        });
+        
+        bidForm.reset();
+        fetchBids();
+        
+        if (onBidPlaced) {
+          onBidPlaced();
+        }
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Failed to Place Bid",
+          description: error.message || "An unexpected error occurred.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "Failed to place bid",
+        description: "An unexpected error occurred.",
         variant: "destructive",
       });
+    } finally {
+      setIsPlacingBid(false);
     }
-  });
-
-  // Mutation to accept a bid
-  const acceptBidMutation = useMutation({
-    mutationFn: async (bidId: number) => {
+  };
+  
+  // Update bid settings
+  const onUpdateSettings = async (values: BidSettingsValues) => {
+    if (!user || task.userId !== user.id) return;
+    
+    setIsUpdatingSettings(true);
+    try {
+      const response = await apiRequest(
+        "PUT", 
+        `/api/tasks/${task.id}`, 
+        values
+      );
+      
+      if (response.ok) {
+        toast({
+          title: "Settings Updated",
+          description: "Bid settings have been updated successfully.",
+        });
+        
+        if (onBidPlaced) {
+          onBidPlaced();
+        }
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Failed to Update Settings",
+          description: error.message || "An unexpected error occurred.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingSettings(false);
+    }
+  };
+  
+  // Accept a bid
+  const onAcceptBid = async (bidId: number) => {
+    if (!user || task.userId !== user.id) return;
+    
+    try {
       const response = await apiRequest(
         "POST", 
         `/api/tasks/${task.id}/bids/${bidId}/accept`
       );
-      return await response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Bid accepted",
-        description: "You'll be redirected to payment processing",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/tasks', task.id, 'bids'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
-    },
-    onError: (error: Error) => {
+      
+      if (response.ok) {
+        toast({
+          title: "Bid Accepted",
+          description: "You've accepted the bid. You can now make payment.",
+        });
+        
+        fetchBids();
+        if (onBidPlaced) {
+          onBidPlaced();
+        }
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Failed to Accept Bid",
+          description: error.message || "An unexpected error occurred.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "Failed to accept bid",
+        description: "An unexpected error occurred.",
         variant: "destructive",
       });
+    }
+  };
+  
+  // Create payment intent
+  const onCreatePayment = async () => {
+    if (!user || task.userId !== user.id || !task.winningBidId) return;
+    
+    try {
+      const response = await apiRequest(
+        "POST", 
+        `/api/tasks/${task.id}/create-payment-intent`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        setClientSecret(data.clientSecret);
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Failed to Create Payment",
+          description: error.message || "An unexpected error occurred.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Effect to load bids on component mount
+  useState(() => {
+    if (user) {
+      fetchBids();
     }
   });
-
-  const onSubmit = async (values: BidFormValues) => {
-    if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please log in to place a bid",
-        variant: "destructive",
-      });
-      navigate("/auth");
-      return;
-    }
-
-    try {
-      await placeBidMutation.mutateAsync(values);
-    } catch (err) {
-      // Error handling in mutation
-    }
-  };
-
-  const handleAcceptBid = async (bidId: number) => {
-    try {
-      await acceptBidMutation.mutateAsync(bidId);
-    } catch (err) {
-      // Error handling in mutation
-    }
-  };
-
-  // Filter bids by status
-  const pendingBids = bids.filter(bid => bid.status === "pending");
-  const acceptedBid = bids.find(bid => bid.status === "accepted");
-  const completedBid = bids.find(bid => bid.status === "completed");
-
-  // Don't show bidding form if:
-  // 1. User is the task owner
-  // 2. User has already placed a bid
-  // 3. A bid has already been accepted
-  // 4. The task is not accepting bids
-  const userHasBid = bids.some(bid => bid.bidderId === user?.id);
-  const showBidForm = !isTaskOwner && !userHasBid && !acceptedBid && task.acceptingBids;
-
+  
+  // Prepare UI based on user role
+  const isTaskOwner = user?.id === task.userId;
+  const userHasBid = bids.some(bid => bid.userId === user?.id);
+  const winningBid = bids.find(bid => bid.id === task.winningBidId);
+  
+  // Check if bidding is still open
+  const biddingOpen = task.acceptingBids && 
+    (!task.biddingDeadline || new Date(task.biddingDeadline) > new Date());
+  
   return (
     <div className="space-y-6">
-      {/* Task Budget Info */}
-      {task.budget && (
-        <Card>
-          <CardHeader className="bg-green-50 border-b border-green-100">
-            <CardTitle className="flex items-center text-lg text-green-800">
-              <DollarSign className="w-5 h-5 mr-2" />
-              Task Budget
-            </CardTitle>
-            <CardDescription className="text-green-700">
-              The creator has set a budget for this task
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-2xl font-bold text-green-700">${task.budget.toFixed(2)}</p>
-                {task.biddingDeadline && (
-                  <p className="text-sm text-gray-500 mt-1">
-                    Bidding closes: {format(new Date(task.biddingDeadline), "MMM d, yyyy")}
-                  </p>
-                )}
+      {/* Bid information section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <DollarSign className="h-5 w-5 mr-2 text-primary" />
+            Task Bidding
+          </CardTitle>
+          <CardDescription>
+            {task.acceptingBids 
+              ? "This task is open for bids. Submit your offer to complete this task." 
+              : "This task is not currently accepting bids."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
+            {task.budget && (
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Budget:</span>
+                <span className="font-bold">${task.budget}</span>
               </div>
-              <Badge 
-                variant={task.acceptingBids ? "default" : "secondary"}
-                className={task.acceptingBids ? "bg-green-100 text-green-800 hover:bg-green-200" : ""}
-              >
-                {task.acceptingBids ? "Accepting Bids" : "Bidding Closed"}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Bid Placement Form */}
-      {showBidForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Award className="w-5 h-5 mr-2 text-primary" />
-              Place a Bid
-            </CardTitle>
-            <CardDescription>
-              Offer your services to complete this task
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="flex gap-4">
-                  <FormField
-                    control={form.control}
-                    name="amount"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormLabel>Your Bid ($)</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
-                            <Input 
-                              type="number" 
-                              step="0.01"
-                              min="0.01"
-                              className="pl-10" 
-                              {...field}
-                              onChange={e => field.onChange(parseFloat(e.target.value))}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="estimatedTime"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormLabel>Est. Time (minutes)</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
-                            <Input 
-                              type="number" 
-                              min="1"
-                              className="pl-10" 
-                              {...field}
-                              onChange={e => field.onChange(parseInt(e.target.value))}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField
-                  control={form.control}
-                  name="proposal"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Your Proposal</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Describe how you'll approach this task..." 
-                          rows={4}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Be specific about your qualifications and approach
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={placeBidMutation.isPending}
-                >
-                  {placeBidMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Submitting Bid...
-                    </>
-                  ) : "Submit Bid"}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Accepted/Current Bid */}
-      {acceptedBid && (
-        <Card className="bg-blue-50 border-blue-100">
-          <CardHeader className="border-b border-blue-100">
-            <div className="flex justify-between items-center">
-              <CardTitle className="flex items-center text-blue-800">
-                <Award className="w-5 h-5 mr-2" />
-                Accepted Bid
-              </CardTitle>
-              <Badge className="bg-blue-200 text-blue-800 hover:bg-blue-300">In Progress</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="flex items-start gap-4">
-              <Avatar className="h-12 w-12 border-2 border-blue-200">
-                <AvatarImage src={acceptedBid.bidder?.avatarUrl || ''} />
-                <AvatarFallback className="bg-blue-100 text-blue-500">
-                  {acceptedBid.bidder?.displayName?.[0] || acceptedBid.bidder?.username?.[0] || '?'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
-                  <p className="font-medium">{acceptedBid.bidder?.displayName || acceptedBid.bidder?.username}</p>
-                  <p className="font-bold text-blue-800">${acceptedBid.amount.toFixed(2)}</p>
-                </div>
-                {acceptedBid.estimatedTime && (
-                  <p className="text-sm text-blue-700 mt-1">
-                    <Clock className="inline-block w-4 h-4 mr-1" />
-                    Est. {acceptedBid.estimatedTime} minutes
-                  </p>
-                )}
-                <Separator className="my-3 bg-blue-200" />
-                <p className="text-sm text-blue-800">{acceptedBid.proposal}</p>
-                <div className="mt-3 text-xs text-blue-600">
-                  {acceptedBid.createdAt && (
-                    <p>Bid placed: {format(new Date(acceptedBid.createdAt), "MMM d, yyyy")}</p>
-                  )}
-                  <p>Payment status: {acceptedBid.stripePaymentStatus || "Pending"}</p>
-                </div>
+            )}
+            
+            {task.biddingDeadline && (
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Deadline for bids:</span>
+                <span className="font-medium">
+                  {format(new Date(task.biddingDeadline), "PPP")}
+                </span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Pending Bids List (only shown to task owner) */}
-      {isTaskOwner && pendingBids.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Award className="w-5 h-5 mr-2 text-primary" />
-              Pending Bids ({pendingBids.length})
-            </CardTitle>
-            <CardDescription>
-              Review and select the best bid for your task
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-4">
-              {pendingBids.map((bid) => (
-                <div key={bid.id} className="p-4 border rounded-lg hover:bg-gray-50">
-                  <div className="flex items-start gap-4">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={bid.bidder?.avatarUrl || ''} />
-                      <AvatarFallback>
-                        {bid.bidder?.displayName?.[0] || bid.bidder?.username?.[0] || '?'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <p className="font-medium">{bid.bidder?.displayName || bid.bidder?.username}</p>
-                        <p className="font-bold text-green-700">${bid.amount.toFixed(2)}</p>
-                      </div>
-                      {bid.estimatedTime && (
-                        <p className="text-sm text-gray-500 mt-1">
-                          <Clock className="inline-block w-4 h-4 mr-1" />
-                          Est. {bid.estimatedTime} minutes
-                        </p>
-                      )}
-                      <p className="text-sm mt-2">{bid.proposal}</p>
-                      {bid.createdAt && (
-                        <p className="text-xs text-gray-500 mt-2">
-                          Bid placed: {format(new Date(bid.createdAt), "MMM d, yyyy")}
-                        </p>
-                      )}
-                      <div className="mt-3">
-                        <Button 
-                          onClick={() => handleAcceptBid(bid.id)}
-                          disabled={acceptBidMutation.isPending}
-                          size="sm"
-                        >
-                          {acceptBidMutation.isPending ? (
-                            <>
-                              <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                              Processing...
-                            </>
-                          ) : "Accept Bid"}
-                        </Button>
-                      </div>
+            )}
+            
+            {task.winningBidId && (
+              <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <h4 className="font-medium text-green-700 dark:text-green-400 flex items-center">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Winning Bid Selected
+                </h4>
+                {winningBid && (
+                  <div className="mt-2 flex justify-between items-center">
+                    <div className="flex items-center">
+                      <Avatar className="h-6 w-6 mr-2">
+                        <AvatarImage src={winningBid.user?.avatarUrl || ""} />
+                        <AvatarFallback>{winningBid.user?.username.charAt(0).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <span>{winningBid.user?.displayName || winningBid.user?.username}</span>
                     </div>
+                    <span className="font-bold">${winningBid.amount}</span>
                   </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* User's Placed Bid */}
-      {!isTaskOwner && userHasBid && !acceptedBid && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Award className="w-5 h-5 mr-2 text-primary" />
-              Your Bid
-            </CardTitle>
-            <CardDescription>
-              Waiting for the task creator to review
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0">
-            {bids.filter(bid => bid.bidderId === user?.id).map((bid) => (
-              <div key={bid.id} className="p-4 border rounded-lg bg-gray-50">
-                <div className="flex justify-between items-start">
-                  <p className="font-medium">Your bid amount</p>
-                  <p className="font-bold text-green-700">${bid.amount.toFixed(2)}</p>
-                </div>
-                {bid.estimatedTime && (
-                  <p className="text-sm text-gray-500 mt-1">
-                    <Clock className="inline-block w-4 h-4 mr-1" />
-                    Est. {bid.estimatedTime} minutes
-                  </p>
-                )}
-                <Separator className="my-3" />
-                <p className="text-sm">{bid.proposal}</p>
-                {bid.createdAt && (
-                  <p className="text-xs text-gray-500 mt-3">
-                    Bid placed: {format(new Date(bid.createdAt), "MMM d, yyyy")}
-                  </p>
                 )}
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* No bids yet message */}
-      {bids.length === 0 && !showBidForm && (
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Different views based on user role */}
+      {isTaskOwner ? (
+        <Tabs defaultValue="bids">
+          <TabsList className="grid grid-cols-2">
+            <TabsTrigger value="bids">View Bids</TabsTrigger>
+            <TabsTrigger value="settings">Bid Settings</TabsTrigger>
+          </TabsList>
+          
+          {/* Task owner: View and manage bids */}
+          <TabsContent value="bids">
+            <Card>
+              <CardHeader>
+                <CardTitle>Bids Received</CardTitle>
+                <CardDescription>
+                  {bids.length === 0 
+                    ? "No bids received yet" 
+                    : `${bids.length} bid${bids.length !== 1 ? 's' : ''} received`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="text-center py-4">Loading bids...</div>
+                ) : bids.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground">
+                    No bids have been placed on this task yet.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {bids.map((bid) => (
+                      <Card key={bid.id} className={cn(
+                        "overflow-hidden",
+                        bid.id === task.winningBidId && "border-green-500"
+                      )}>
+                        {bid.id === task.winningBidId && (
+                          <div className="bg-green-500 text-white text-xs py-1 text-center font-medium">
+                            WINNING BID
+                          </div>
+                        )}
+                        <CardContent className="pt-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center">
+                              <Avatar className="h-8 w-8 mr-2">
+                                <AvatarImage src={bid.user?.avatarUrl || ""} />
+                                <AvatarFallback>{bid.user?.username.charAt(0).toUpperCase()}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium">{bid.user?.displayName || bid.user?.username}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {format(new Date(bid.createdAt), "PPp")}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-lg font-bold">${bid.amount}</div>
+                              <Badge variant={
+                                bid.status === 'accepted' ? "success" : 
+                                bid.status === 'rejected' ? "destructive" : 
+                                "outline"
+                              }>
+                                {bid.status.charAt(0).toUpperCase() + bid.status.slice(1)}
+                              </Badge>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-3 text-sm">
+                            {bid.description}
+                          </div>
+                          
+                          {bid.status === 'pending' && (
+                            <div className="mt-4 flex justify-end gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => onAcceptBid(bid.id)}
+                              >
+                                Accept Bid
+                              </Button>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+              {task.winningBidId && (
+                <CardFooter className="flex-col">
+                  <Separator className="mb-4" />
+                  <div className="w-full">
+                    {clientSecret ? (
+                      <PaymentWrapper 
+                        clientSecret={clientSecret} 
+                        onSuccess={() => {
+                          setClientSecret(null);
+                          if (onBidPlaced) onBidPlaced();
+                        }} 
+                      />
+                    ) : (
+                      <Button 
+                        className="w-full" 
+                        onClick={onCreatePayment}
+                      >
+                        <DollarSign className="mr-2 h-4 w-4" />
+                        Pay for Task
+                      </Button>
+                    )}
+                  </div>
+                </CardFooter>
+              )}
+            </Card>
+          </TabsContent>
+          
+          {/* Task owner: Manage bid settings */}
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle>Bid Settings</CardTitle>
+                <CardDescription>
+                  Configure bidding options for this task
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...settingsForm}>
+                  <form onSubmit={settingsForm.handleSubmit(onUpdateSettings)} className="space-y-6">
+                    <FormField
+                      control={settingsForm.control}
+                      name="acceptingBids"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">
+                              Accept Bids
+                            </FormLabel>
+                            <FormDescription>
+                              Allow users to place bids on this task
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={settingsForm.control}
+                      name="budget"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Budget (optional)</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+                              <Input
+                                placeholder="0.00"
+                                type="number"
+                                step="0.01"
+                                className="pl-10"
+                                {...field}
+                                value={field.value || ''}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            Set a budget to help bidders understand your price range
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={settingsForm.control}
+                      name="biddingDeadline"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Bidding Deadline (optional)</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant={"outline"}
+                                  className={cn(
+                                    "w-full pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value ? (
+                                    format(field.value, "PPP")
+                                  ) : (
+                                    <span>Pick a date</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) =>
+                                  date < new Date()
+                                }
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormDescription>
+                            Set a deadline for receiving bids on this task
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <Button 
+                      type="submit" 
+                      className="w-full"
+                      disabled={isUpdatingSettings}
+                    >
+                      {isUpdatingSettings ? "Updating..." : "Update Bid Settings"}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      ) : (
+        /* Non-owner view: Place bid */
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <Award className="w-5 h-5 mr-2 text-primary" />
-              No Bids Yet
-            </CardTitle>
+            <CardTitle>Place a Bid</CardTitle>
             <CardDescription>
-              {isTaskOwner 
-                ? "No one has placed a bid on your task yet"
+              {biddingOpen 
+                ? "Offer your services to complete this task" 
                 : "This task is not currently accepting bids"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isTaskOwner ? (
-              <p className="text-sm text-gray-500">
-                Check back later or adjust your task description to attract more bidders.
-              </p>
+            {userHasBid ? (
+              <div className="text-center">
+                <p className="mb-4">You have already placed a bid on this task.</p>
+                <Button 
+                  variant="outline" 
+                  onClick={fetchBids}
+                >
+                  Refresh Bids
+                </Button>
+              </div>
+            ) : !biddingOpen ? (
+              <div className="text-center py-4 text-muted-foreground">
+                {task.winningBidId 
+                  ? "A winning bid has already been selected for this task." 
+                  : "This task is not currently accepting bids."}
+              </div>
             ) : (
-              <p className="text-sm text-gray-500">
-                The task owner has either closed bidding or selected someone else's bid.
-              </p>
+              <Form {...bidForm}>
+                <form onSubmit={bidForm.handleSubmit(onPlaceBid)} className="space-y-6">
+                  <FormField
+                    control={bidForm.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Bid Amount ($)</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              placeholder="0.00"
+                              type="number"
+                              step="0.01"
+                              className="pl-10"
+                              {...field}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormDescription>
+                          Enter the amount you want to bid for this task
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={bidForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Explain why you're the right person for this task and any details about your bid"
+                            className="resize-none"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={isPlacingBid}
+                  >
+                    {isPlacingBid ? "Placing Bid..." : "Place Bid"}
+                  </Button>
+                </form>
+              </Form>
             )}
           </CardContent>
         </Card>
