@@ -93,19 +93,33 @@ export default function MessengerPage() {
       
       <div className="flex flex-col space-y-2">
         {/* Message type tabs */}
-        <div className="flex gap-2 justify-between items-center border-b border-gray-100 pb-2 mb-2">
+        <div className="flex mb-2 bg-gray-100 rounded-lg overflow-hidden">
           <div className="flex-1">
-            <Button variant="ghost" className="text-primary text-sm font-medium px-2 py-1">
+            <Button 
+              variant="ghost" 
+              className={`w-full rounded-none py-2 ${activeTab === 'direct' ? 'bg-white text-primary' : 'text-gray-500'}`}
+              onClick={() => setActiveTab('direct')}
+            >
               <MessageSquare className="h-4 w-4 mr-2" />
               Direct Messages
             </Button>
           </div>
-          <div className="flex gap-2">
-            <Button variant="ghost" className="text-gray-500 text-sm font-medium px-2 py-1">
+          <div className="flex-1">
+            <Button 
+              variant="ghost" 
+              className={`w-full rounded-none py-2 ${activeTab === 'group' ? 'bg-white text-primary' : 'text-gray-500'}`}
+              onClick={() => setActiveTab('group')}
+            >
               <Users className="h-4 w-4 mr-2" />
               Group Chat
             </Button>
-            <Button variant="ghost" className="text-gray-500 text-sm font-medium px-2 py-1">
+          </div>
+          <div className="flex-1">
+            <Button 
+              variant="ghost" 
+              className={`w-full rounded-none py-2 ${activeTab === 'search' ? 'bg-white text-primary' : 'text-gray-500'}`}
+              onClick={() => setActiveTab('search')}
+            >
               <Search className="h-4 w-4 mr-2" />
               Find Users
             </Button>
@@ -128,29 +142,30 @@ export default function MessengerPage() {
           ) : (
             <div className="space-y-2">
               {conversations?.map(({ conversation, user: otherUser }) => (
-                <Card 
+                <div 
                   key={conversation.id}
-                  className="p-3 flex items-center hover:bg-gray-50 cursor-pointer"
+                  className="flex items-center hover:bg-gray-50 cursor-pointer p-3 rounded-lg border border-gray-100"
                   onClick={() => openConversation(otherUser.id)}
                 >
-                  <Avatar className="h-10 w-10 mr-3">
-                    <AvatarImage src={otherUser.avatarUrl || undefined} />
-                    <AvatarFallback>{otherUser.username.substring(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
+                  <div className="flex h-10 w-10 mr-3 items-center justify-center rounded-full bg-gray-100">
+                    <span className="text-gray-600 font-medium">
+                      {(otherUser.displayName || otherUser.username).substring(0, 2).toUpperCase()}
+                    </span>
+                  </div>
                   <div className="flex-1">
                     <div className="font-medium">
                       {otherUser.displayName || otherUser.username}
                     </div>
                     <div className="text-sm text-gray-500">
-                      {new Date(conversation.lastMessageAt).toLocaleDateString()}
+                      {new Date(conversation.lastMessageAt).toLocaleDateString("en-US", {month: "numeric", day: "numeric", year: "numeric"})}
                     </div>
                   </div>
                   {conversation.unreadCount > 0 && (
-                    <div className="rounded-full bg-primary text-white h-5 min-w-5 flex items-center justify-center px-1.5 text-xs">
+                    <div className="rounded-full bg-primary text-white h-6 w-6 flex items-center justify-center text-xs">
                       {conversation.unreadCount}
                     </div>
                   )}
-                </Card>
+                </div>
               ))}
             </div>
           )}
