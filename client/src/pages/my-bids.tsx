@@ -25,6 +25,8 @@ export default function MyBidsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("received");
+  const [receivedBidsState, setReceivedBidsState] = useState<Array<any>>([]); 
+  const [placedBidsState, setPlacedBidsState] = useState<Array<any>>([]);
 
   // Query for bids received on my tasks
   const {
@@ -64,7 +66,14 @@ export default function MyBidsPage() {
       const res = await apiRequest('POST', `/api/bids/${bidId}/accept`);
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Update UI immediately for better user experience
+      setReceivedBids((prevBids) => 
+        prevBids?.map(bid => 
+          bid.id === data.id ? { ...bid, status: 'accepted' } : bid
+        )
+      );
+      
       toast({
         title: "✅ Bid Accepted",
         description: "The bid has been accepted successfully. The bidder has been notified.",
@@ -88,7 +97,14 @@ export default function MyBidsPage() {
       const res = await apiRequest('POST', `/api/bids/${bidId}/reject`);
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Update UI immediately for better user experience
+      setReceivedBids((prevBids) => 
+        prevBids?.map(bid => 
+          bid.id === data.id ? { ...bid, status: 'rejected' } : bid
+        )
+      );
+      
       toast({
         title: "❌ Bid Rejected",
         description: "The bid has been rejected. The bidder has been notified.",
@@ -148,9 +164,9 @@ export default function MyBidsPage() {
         );
       default:
         return (
-          <span className="text-gray-600 bg-gray-100 px-3 py-1 rounded-full text-xs font-medium flex items-center">
-            <span className="w-2 h-2 bg-gray-400 rounded-full mr-1.5"></span>
-            Unknown
+          <span className="text-yellow-800 bg-yellow-100 px-3 py-1 rounded-full text-xs font-medium flex items-center">
+            <span className="w-2 h-2 bg-yellow-500 rounded-full mr-1.5"></span>
+            Pending
           </span>
         );
     }
