@@ -97,8 +97,8 @@ export default function PublicTasksPage() {
 
   return (
     <MobileLayout pageTitle="Public Task Board">
-      <div className="space-y-2">
-        <p className="text-xs text-muted-foreground -mt-1">
+      <div className="space-y-1 min-h-screen -mt-2">
+        <p className="text-xs text-muted-foreground">
           Browse and explore tasks shared by the community
         </p>
 
@@ -144,32 +144,32 @@ export default function PublicTasksPage() {
         )}
 
         {/* Tasks grid */}
-        <div className="space-y-2">
+        <div className="space-y-1 mt-0 flex-grow">
           {isLoading ? (
             // Loading skeleton
             Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i} className="w-full cursor-pointer hover:shadow-md transition-shadow">
-                <CardHeader className="pb-1 pt-2 px-3">
-                  <Skeleton className="h-4 w-2/3 mb-1" />
-                  <Skeleton className="h-3 w-1/2" />
+              <Card key={i} className="w-full cursor-pointer hover:shadow-md transition-shadow mb-1">
+                <CardHeader className="pb-0.5 pt-1 px-2">
+                  <Skeleton className="h-3.5 w-2/3 mb-0.5" />
+                  <Skeleton className="h-2.5 w-1/2" />
                 </CardHeader>
-                <CardContent className="py-1 px-3">
-                  <Skeleton className="h-3 w-full mb-1" />
-                  <Skeleton className="h-3 w-3/4" />
+                <CardContent className="py-0.5 px-2">
+                  <Skeleton className="h-2.5 w-full mb-0.5" />
+                  <Skeleton className="h-2.5 w-3/4" />
                 </CardContent>
-                <CardFooter className="py-1 px-3">
-                  <Skeleton className="h-6 w-6 rounded-full" />
-                  <Skeleton className="h-3 w-1/3 ml-2" />
+                <CardFooter className="py-0.5 px-2">
+                  <Skeleton className="h-5 w-5 rounded-full" />
+                  <Skeleton className="h-2.5 w-1/3 ml-1" />
                 </CardFooter>
               </Card>
             ))
           ) : filteredTasks.length === 0 ? (
-            <div className="text-center py-6">
+            <div className="text-center py-4">
               <p className="text-gray-500 text-sm">No public tasks found</p>
               {selectedCategory && (
                 <Button 
                   variant="ghost" 
-                  className="mt-1 h-7 text-xs"
+                  className="mt-0.5 h-6 text-xs"
                   onClick={() => setSelectedCategory(null)}
                 >
                   Clear filter
@@ -180,59 +180,59 @@ export default function PublicTasksPage() {
             filteredTasks.map(task => (
               <Card 
                 key={task.id}
-                className="w-full cursor-pointer hover:shadow-md transition-shadow"
+                className="w-full cursor-pointer hover:shadow-md transition-shadow mb-1 overflow-hidden"
                 onClick={() => handleTaskClick(task.id)}
               >
-                <CardHeader className="pb-1 pt-2 px-3">
+                <CardHeader className="pb-0.5 pt-1.5 px-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">{task.title}</CardTitle>
-                    <Badge className={`${getPriorityColor(task.priority)} text-xs py-0 px-1.5`}>
+                    <CardTitle className="text-sm font-medium leading-tight">{task.title}</CardTitle>
+                    <Badge className={`${getPriorityColor(task.priority)} text-[10px] py-0 px-1.5 h-4`}>
                       {task.priority}
                     </Badge>
                   </div>
-                  <CardDescription className="flex items-center text-xs">
-                    <Tag size={12} className="mr-1" />
+                  <CardDescription className="flex items-center text-[10px]">
+                    <Tag size={10} className="mr-0.5" />
                     {task.category}
                   </CardDescription>
                 </CardHeader>
                 
-                <CardContent className="py-1 px-3">
+                <CardContent className="py-0.5 px-2">
                   {task.description && (
-                    <p className="text-xs text-gray-600 line-clamp-2 mb-1">
+                    <p className="text-[10px] text-gray-600 line-clamp-1 mb-0.5">
                       {task.description}
                     </p>
                   )}
-                  <div className="flex flex-wrap gap-2 text-[10px] text-gray-500">
+                  <div className="flex flex-wrap gap-1 text-[9px] text-gray-500">
                     {task.dueDate && (
                       <div className="flex items-center">
-                        <Calendar size={12} className="mr-1" />
+                        <Calendar size={10} className="mr-0.5" />
                         {formatDate(task.dueDate)}
                       </div>
                     )}
                     {task.estimatedTime && (
                       <div className="flex items-center ml-1">
-                        <Clock size={12} className="mr-1" />
+                        <Clock size={10} className="mr-0.5" />
                         {task.estimatedTime} min
                       </div>
                     )}
                   </div>
                 </CardContent>
                 
-                <CardFooter className="py-1 px-3 flex items-center justify-between border-t">
+                <CardFooter className="py-0.5 px-2 flex items-center justify-between border-t">
                   <div className="flex items-center">
-                    <Avatar className="h-5 w-5">
-                      <AvatarFallback className="bg-primary text-primary-foreground text-[10px]">
+                    <Avatar className="h-4 w-4">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-[8px]">
                         {task.user?.username ? getInitials(task.user.username) : '?'}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-[10px] ml-1 text-gray-600">
+                    <span className="text-[9px] ml-0.5 text-gray-600">
                       {task.user?.username || 'Anonymous'}
                     </span>
                   </div>
                   
                   {task.assignedToUserId && (
-                    <Badge variant="outline" className="flex items-center text-[10px] py-0 h-4">
-                      <Users size={10} className="mr-1" />
+                    <Badge variant="outline" className="flex items-center text-[9px] py-0 h-3.5">
+                      <Users size={8} className="mr-0.5" />
                       Assigned
                     </Badge>
                   )}
@@ -240,6 +240,9 @@ export default function PublicTasksPage() {
               </Card>
             ))
           )}
+          
+          {/* Spacer div to ensure content fills available space */}
+          <div className="h-4"></div>
         </div>
       </div>
     </MobileLayout>
