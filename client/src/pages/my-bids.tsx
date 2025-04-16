@@ -55,8 +55,8 @@ export default function MyBidsPage() {
     },
     onSuccess: () => {
       toast({
-        title: "Bid accepted",
-        description: "The bid has been accepted successfully.",
+        title: "✅ Bid Accepted",
+        description: "The bid has been accepted successfully. The bidder has been notified.",
         variant: "default",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/bids/received'] });
@@ -79,8 +79,8 @@ export default function MyBidsPage() {
     },
     onSuccess: () => {
       toast({
-        title: "Bid rejected",
-        description: "The bid has been rejected.",
+        title: "❌ Bid Rejected",
+        description: "The bid has been rejected. The bidder has been notified.",
         variant: "default",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/bids/received'] });
