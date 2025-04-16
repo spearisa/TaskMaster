@@ -3,7 +3,8 @@ import {
   users, type User, type InsertUser, type UpdateProfile, type UserProfile,
   directMessages, type DirectMessage, type InsertDirectMessage,
   conversations, type Conversation,
-  taskTemplates, type TaskTemplate, type InsertTaskTemplate
+  taskTemplates, type TaskTemplate, type InsertTaskTemplate,
+  taskBids, type TaskBid, type InsertTaskBid
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, ilike, asc, sql, not } from "drizzle-orm";
