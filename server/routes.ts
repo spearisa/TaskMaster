@@ -694,7 +694,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delegate a task to AI
-  app.post("/api/ai/delegate-task/:id", async (req, res) => {
+  app.post("/api/tasks/:id/delegate", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.isAuthenticated()) {
