@@ -97,13 +97,13 @@ export default function PublicTasksPage() {
 
   return (
     <MobileLayout pageTitle="Public Task Board">
-      <div className="flex flex-col flex-grow">
-        <p className="text-xs text-muted-foreground">
+      <div className="flex flex-col h-full">
+        <p className="text-xs text-muted-foreground mb-2">
           Browse and explore tasks shared by the community
         </p>
 
         {/* Category filters */}
-        <div className="my-1">
+        <div className="mb-2">
           <h2 className="text-xs font-medium text-gray-500 mb-1">Categories</h2>
           <div className="flex flex-wrap gap-1">
             <Button
@@ -131,7 +131,7 @@ export default function PublicTasksPage() {
 
         {/* Login prompt for non-authenticated users */}
         {!user && !isLoading && (
-          <div className="p-2 bg-indigo-50 border border-indigo-100 rounded-md text-indigo-700">
+          <div className="p-2 bg-indigo-50 border border-indigo-100 rounded-md text-indigo-700 mb-2">
             <p className="font-medium text-sm">Browsing as a guest</p>
             <p className="text-xs mb-1">Sign in to create tasks, use templates, and access AI.</p>
             <Button 
@@ -143,8 +143,8 @@ export default function PublicTasksPage() {
           </div>
         )}
 
-        {/* Tasks grid */}
-        <div className="space-y-1 mt-0 flex-grow">
+        {/* Tasks grid - make it fill remaining space */}
+        <div className="space-y-1 flex-1 overflow-y-auto">
           {isLoading ? (
             // Loading skeleton
             Array.from({ length: 3 }).map((_, i) => (

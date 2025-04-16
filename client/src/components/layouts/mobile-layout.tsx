@@ -208,7 +208,7 @@ export function MobileLayout({
       
       {/* Main content area - flex-grow to fill all available space */}
       <main className="flex-grow md:ml-56 px-3 pt-0">
-        <div className="flex flex-col min-h-[calc(100vh-72px)]">
+        <div className="flex flex-col h-full">
           {children}
         </div>
       </main>
