@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle, XCircle, DollarSign, CalendarClock } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { apiRequest } from "@/lib/queryClient";
 
 // Helper function to get card class based on bid status
 const getBidCardClass = (status: string | undefined) => {
@@ -37,15 +38,21 @@ export default function MyBidsPage() {
       const endpoint = `/api/bids/${activeTab}`;
       console.log(`Fetching bids from ${endpoint}...`);
       
-      const response = await fetch(endpoint, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include' // Explicitly include credentials
+      // Use the apiRequest function from queryClient which properly handles credentials
+      const response = await apiRequest('GET', endpoint, undefined, {
+        credentials: 'include', // Explicitly include credentials
+        redirectToAuthOnUnauthorized: false // Don't redirect on 401, we'll handle it
       });
       
       console.log(`Bid fetch response status:`, response.status, response.statusText);
+      
+      if (response.status === 401) {
+        // Handle authentication error specifically
+        console.log('Not authenticated, prompting user to log in');
+        setError(new Error('You need to be logged in to view bids. Please log in and try again.'));
+        setIsLoading(false);
+        return;
+      }
       
       if (!response.ok) {
         throw new Error(`Failed to load ${activeTab} bids: ${response.status} ${response.statusText}`);
@@ -103,13 +110,10 @@ export default function MyBidsPage() {
     try {
       console.log(`Accepting bid ${bidId}...`);
       
-      // Make the API call
-      const response = await fetch(`/api/bids/${bidId}/accept`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include' // Explicitly include credentials
+      // Make the API call using apiRequest helper
+      const response = await apiRequest('POST', `/api/bids/${bidId}/accept`, undefined, {
+        credentials: 'include', // Explicitly include credentials
+        redirectToAuthOnUnauthorized: false // Don't redirect on 401, we'll handle it
       });
       
       console.log(`Bid accept response status:`, response.status, response.statusText);
@@ -160,13 +164,10 @@ export default function MyBidsPage() {
     try {
       console.log(`Rejecting bid ${bidId}...`);
       
-      // Make the API call
-      const response = await fetch(`/api/bids/${bidId}/reject`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include' // Explicitly include credentials
+      // Make the API call using apiRequest helper
+      const response = await apiRequest('POST', `/api/bids/${bidId}/reject`, undefined, {
+        credentials: 'include', // Explicitly include credentials
+        redirectToAuthOnUnauthorized: false // Don't redirect on 401, we'll handle it
       });
       
       console.log(`Bid reject response status:`, response.status, response.statusText);
