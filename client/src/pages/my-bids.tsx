@@ -1,14 +1,10 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { TaskBidWithStringDates, TaskWithStringDates } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, XCircle, DollarSign, CalendarClock, Clock } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { Loader2, CheckCircle, XCircle, DollarSign, CalendarClock } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 // Helper function to get card class based on bid status
 const getBidCardClass = (status: string | undefined) => {
@@ -25,156 +21,144 @@ export default function MyBidsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("received");
-  const [receivedBidsState, setReceivedBidsState] = useState<Array<any>>([]); 
-  const [placedBidsState, setPlacedBidsState] = useState<Array<any>>([]);
+  const [receivedBids, setReceivedBids] = useState<Array<any>>([]); 
+  const [placedBids, setPlacedBids] = useState<Array<any>>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [loadingAccept, setLoadingAccept] = useState<number | null>(null);
+  const [loadingReject, setLoadingReject] = useState<number | null>(null);
   
-  // Effect to handle tab switching and ensure we fetch data for the active tab
+  // Function to load bids based on the active tab
+  const loadBids = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const endpoint = `/api/bids/${activeTab}`;
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load ${activeTab} bids: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (activeTab === 'received') {
+        setReceivedBids(data);
+      } else {
+        setPlacedBids(data);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('An unknown error occurred'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Load bids when component mounts or activeTab changes
   useEffect(() => {
     if (user) {
-      if (activeTab === "received") {
-        refetchReceivedBids();
-      } else if (activeTab === "placed") {
-        refetchPlacedBids();
-      }
+      loadBids();
     }
-  }, [activeTab, user, refetchReceivedBids, refetchPlacedBids]);
-
-  // Query for bids received on my tasks - initial fetch only
-  const {
-    data: receivedBids,
-    isLoading: isLoadingReceived,
-    error: receivedError,
-    refetch: refetchReceivedBids
-  } = useQuery<Array<TaskBidWithStringDates & {task: any, user: {username: string, displayName: string}}>>({
-    queryKey: ['/api/bids/received'],
-    queryFn: async () => {
-      const res = await apiRequest('GET', '/api/bids/received');
-      const data = await res.json();
-      console.log("Received bids API response:", data);
-      // Update the local state when we get new data
-      setReceivedBidsState(data);
-      return data;
-    },
-    enabled: !!user && activeTab === "received",
-    // Disable automatic refetching to prevent overriding our optimistic updates
-    refetchOnWindowFocus: false,
-    staleTime: Infinity
-  });
-
-  // Query for bids I've placed on others' tasks - initial fetch only
-  const {
-    data: placedBids,
-    isLoading: isLoadingPlaced,
-    error: placedError,
-    refetch: refetchPlacedBids
-  } = useQuery<Array<TaskBidWithStringDates & {task: any & {user: {username: string, displayName: string}}}>>({
-    queryKey: ['/api/bids/placed'],
-    queryFn: async () => {
-      const res = await apiRequest('GET', '/api/bids/placed');
-      const data = await res.json();
-      console.log("Placed bids API response:", data);
-      // Update the local state when we get new data
-      setPlacedBidsState(data);
-      return data;
-    },
-    enabled: !!user && activeTab === "placed",
-    // Disable automatic refetching to prevent overriding our optimistic updates
-    refetchOnWindowFocus: false,
-    staleTime: Infinity
-  });
-
-  // Mutation to accept a bid
-  const acceptBidMutation = useMutation({
-    mutationFn: async (bidId: number) => {
-      const res = await apiRequest('POST', `/api/bids/${bidId}/accept`);
-      return await res.json();
-    },
-    onSuccess: (data) => {
+  }, [activeTab, user]);
+  
+  // Function to accept a bid with immediate UI feedback
+  const handleAcceptBid = async (bidId: number) => {
+    // Set loading state
+    setLoadingAccept(bidId);
+    
+    // Optimistically update the UI
+    setReceivedBids(prevBids => 
+      prevBids.map(bid => 
+        bid.id === bidId ? { ...bid, status: 'accepted' } : bid
+      )
+    );
+    
+    try {
+      // Make the API call
+      const response = await fetch(`/api/bids/${bidId}/accept`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to accept bid');
+      }
+      
+      // Show success toast
       toast({
         title: "✅ Bid Accepted",
         description: "The bid has been accepted successfully. The bidder has been notified.",
         variant: "default",
       });
       
-      // We'll handle the state update manually to avoid interference from the
-      // invalidateQueries. Do not invalidate the queries here to prevent
-      // overriding our optimistic updates.
-    },
-    onError: (error: any) => {
+    } catch (err) {
+      // On error, revert the optimistic update
       toast({
         title: "Failed to accept bid",
-        description: error.message || "An error occurred while accepting the bid.",
+        description: err instanceof Error ? err.message : "An error occurred while accepting the bid.",
         variant: "destructive",
       });
+      
+      // Reload the bids to get the correct state
+      loadBids();
+    } finally {
+      setLoadingAccept(null);
     }
-  });
-
-  // Mutation to reject a bid
-  const rejectBidMutation = useMutation({
-    mutationFn: async (bidId: number) => {
-      const res = await apiRequest('POST', `/api/bids/${bidId}/reject`);
-      return await res.json();
-    },
-    onSuccess: (data) => {
+  };
+  
+  // Function to reject a bid with immediate UI feedback
+  const handleRejectBid = async (bidId: number) => {
+    // Set loading state
+    setLoadingReject(bidId);
+    
+    // Optimistically update the UI
+    setReceivedBids(prevBids => 
+      prevBids.map(bid => 
+        bid.id === bidId ? { ...bid, status: 'rejected' } : bid
+      )
+    );
+    
+    try {
+      // Make the API call
+      const response = await fetch(`/api/bids/${bidId}/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to reject bid');
+      }
+      
+      // Show success toast
       toast({
         title: "❌ Bid Rejected",
         description: "The bid has been rejected. The bidder has been notified.",
         variant: "default",
       });
       
-      // We'll handle the state update manually to avoid interference from the
-      // invalidateQueries. Do not invalidate the queries here to prevent
-      // overriding our optimistic updates.
-    },
-    onError: (error: any) => {
+    } catch (err) {
+      // On error, revert the optimistic update
       toast({
         title: "Failed to reject bid",
-        description: error.message || "An error occurred while rejecting the bid.",
+        description: err instanceof Error ? err.message : "An error occurred while rejecting the bid.",
         variant: "destructive",
       });
+      
+      // Reload the bids to get the correct state
+      loadBids();
+    } finally {
+      setLoadingReject(null);
     }
-  });
-
-  // Handle accept bid with immediate UI update
-  const handleAcceptBid = (bidId: number) => {
-    // Cache the current state for potential rollback
-    const originalState = [...receivedBidsState];
-    
-    // Immediately update the UI before the API call
-    setReceivedBidsState((prevBids) => 
-      prevBids?.map(bid => 
-        bid.id === bidId ? { ...bid, status: 'accepted' } : bid
-      )
-    );
-    
-    // Then make the API call with error handling
-    acceptBidMutation.mutate(bidId, {
-      onError: () => {
-        // If the API call fails, revert to the original state
-        setReceivedBidsState(originalState);
-      }
-    });
-  };
-
-  // Handle reject bid with immediate UI update
-  const handleRejectBid = (bidId: number) => {
-    // Cache the current state for potential rollback
-    const originalState = [...receivedBidsState];
-    
-    // Immediately update the UI before the API call
-    setReceivedBidsState((prevBids) => 
-      prevBids?.map(bid => 
-        bid.id === bidId ? { ...bid, status: 'rejected' } : bid
-      )
-    );
-    
-    // Then make the API call with error handling
-    rejectBidMutation.mutate(bidId, {
-      onError: () => {
-        // If the API call fails, revert to the original state
-        setReceivedBidsState(originalState);
-      }
-    });
   };
 
   // Render bid status badge with improved visual indicators
@@ -219,7 +203,7 @@ export default function MyBidsPage() {
   };
 
   // Render loading state
-  if ((isLoadingReceived && activeTab === "received") || (isLoadingPlaced && activeTab === "placed")) {
+  if (isLoading) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
@@ -229,14 +213,14 @@ export default function MyBidsPage() {
   }
 
   // Render error state
-  if ((receivedError && activeTab === "received") || (placedError && activeTab === "placed")) {
+  if (error) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[60vh]">
         <div className="bg-red-50 p-4 rounded-lg mb-4 text-red-600 text-center">
           <p className="font-medium">Error loading bids</p>
-          <p className="text-sm">{(receivedError as Error)?.message || (placedError as Error)?.message || "An unexpected error occurred."}</p>
+          <p className="text-sm">{error.message || "An unexpected error occurred."}</p>
         </div>
-        <Button onClick={() => queryClient.invalidateQueries({ queryKey: [`/api/bids/${activeTab}`] })}>
+        <Button onClick={loadBids}>
           Try Again
         </Button>
       </div>
@@ -245,21 +229,21 @@ export default function MyBidsPage() {
 
   // Calculate bid statistics
   const getBidStats = () => {
-    if (activeTab === 'received' && receivedBidsState) {
-      const accepted = receivedBidsState.filter(bid => bid.status === 'accepted').length;
-      const rejected = receivedBidsState.filter(bid => bid.status === 'rejected').length;
-      const pending = receivedBidsState.filter(bid => !bid.status || bid.status === 'pending').length;
-      return { accepted, rejected, pending, total: receivedBidsState.length };
-    } else if (activeTab === 'placed' && placedBidsState) {
-      const accepted = placedBidsState.filter(bid => bid.status === 'accepted').length;
-      const rejected = placedBidsState.filter(bid => bid.status === 'rejected').length;
-      const pending = placedBidsState.filter(bid => !bid.status || bid.status === 'pending').length;
-      return { accepted, rejected, pending, total: placedBidsState.length };
+    if (activeTab === 'received') {
+      const accepted = receivedBids.filter(bid => bid.status === 'accepted').length;
+      const rejected = receivedBids.filter(bid => bid.status === 'rejected').length;
+      const pending = receivedBids.filter(bid => !bid.status || bid.status === 'pending').length;
+      return { accepted, rejected, pending, total: receivedBids.length };
+    } else {
+      const accepted = placedBids.filter(bid => bid.status === 'accepted').length;
+      const rejected = placedBids.filter(bid => bid.status === 'rejected').length;
+      const pending = placedBids.filter(bid => !bid.status || bid.status === 'pending').length;
+      return { accepted, rejected, pending, total: placedBids.length };
     }
-    return { accepted: 0, rejected: 0, pending: 0, total: 0 };
   };
 
   const stats = getBidStats();
+  const currentBids = activeTab === 'received' ? receivedBids : placedBids;
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -310,194 +294,134 @@ export default function MyBidsPage() {
           </button>
         </div>
         
-        {activeTab === "received" && (
-          !receivedBidsState || receivedBidsState.length === 0 ? (
-            <div className="p-8 text-center bg-gray-50 rounded-lg">
-              <p className="text-gray-600 mb-2">You haven't received any bids yet.</p>
-              <p className="text-sm text-gray-500">When you create tasks that accept bids, they'll appear here.</p>
-            </div>
-          ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {receivedBidsState.map((bid) => {
-                // Use helper function to get card class
-                const cardClass = getBidCardClass(bid.status);
-                
-                return (
-                <Card key={bid.id} className={cardClass}>
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-lg">{bid.task.title}</CardTitle>
-                        <CardDescription className="line-clamp-2 mt-1">{bid.task.description}</CardDescription>
-                      </div>
-                      {renderBidStatus(bid.status || 'pending')}
+        {currentBids.length === 0 ? (
+          <div className="p-8 text-center bg-gray-50 rounded-lg">
+            <p className="text-gray-600 mb-2">
+              {activeTab === 'received' 
+                ? "You haven't received any bids yet."
+                : "You haven't placed any bids yet."}
+            </p>
+            <p className="text-sm text-gray-500">
+              {activeTab === 'received'
+                ? "When you create tasks that accept bids, they'll appear here."
+                : "Browse public tasks to find opportunities to bid on."}
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {currentBids.map((bid) => {
+              // Use helper function to get card class
+              const cardClass = getBidCardClass(bid.status);
+              
+              return (
+              <Card key={bid.id} className={cardClass}>
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">{bid.task.title}</CardTitle>
+                      <CardDescription className="line-clamp-2 mt-1">{bid.task.description}</CardDescription>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600 text-sm">From:</span>
-                        <span className="font-medium">{bid.user.displayName || bid.user.username}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600 text-sm">Bid Amount:</span>
-                        <span className="font-bold text-primary flex items-center">
-                          <DollarSign className="h-4 w-4 mr-1" />
-                          {formatCurrency(bid.amount)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600 text-sm">Estimated Time:</span>
-                        <span className="flex items-center">
-                          <CalendarClock className="h-4 w-4 mr-1 text-gray-500" />
-                          {bid.estimatedTime ? `${bid.estimatedTime} hours` : 'Not specified'}
-                        </span>
-                      </div>
-                      
-                      {bid.status && (
-                        <div className={`
-                          p-2 rounded-md text-center font-medium text-sm
-                          ${bid.status === 'accepted' ? 'bg-green-50 text-green-700 border border-green-200' : 
-                            bid.status === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' : 
-                            'bg-gray-50 text-gray-700 border border-gray-200'}
-                        `}>
-                          {bid.status === 'accepted' && 'This bid has been accepted!'}
-                          {bid.status === 'rejected' && 'This bid has been rejected.'}
-                          {bid.status !== 'accepted' && bid.status !== 'rejected' && `Bid status: ${bid.status}`}
-                        </div>
-                      )}
-                      
-                      <div className="pt-3 border-t border-gray-100">
-                        <h4 className="text-sm font-medium mb-2">Proposal:</h4>
-                        <p className="text-sm text-gray-700">{bid.proposal}</p>
-                      </div>
+                    {renderBidStatus(bid.status || 'pending')}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600 text-sm">
+                        {activeTab === 'received' ? 'From:' : 'To:'}
+                      </span>
+                      <span className="font-medium">
+                        {activeTab === 'received'
+                          ? (bid.user.displayName || bid.user.username)
+                          : (bid.task.user.displayName || bid.task.user.username)}
+                      </span>
                     </div>
-                  </CardContent>
-                  
-                  <CardFooter className="flex justify-between space-x-3 pt-0">
-                    {(!bid.status || bid.status === 'pending') ? (
-                      <>
-                        <Button 
-                          variant="outline" 
-                          className="flex-1 border-red-200 hover:bg-red-50 hover:text-red-600" 
-                          onClick={() => handleRejectBid(bid.id)}
-                          disabled={rejectBidMutation.isPending}
-                        >
-                          {rejectBidMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <XCircle className="h-4 w-4 mr-2" />
-                          )}
-                          Reject
-                        </Button>
-                        <Button
-                          className="flex-1"
-                          onClick={() => handleAcceptBid(bid.id)}
-                          disabled={acceptBidMutation.isPending}
-                        >
-                          {acceptBidMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                          )}
-                          Accept
-                        </Button>
-                      </>
-                    ) : (
-                      <div className="w-full flex items-center justify-center">
-                        {bid.status === 'accepted' ? (
-                          <span className="text-green-600 flex items-center py-2 font-medium">
-                            <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
-                            Accepted
-                          </span>
-                        ) : (
-                          <span className="text-red-600 flex items-center py-2 font-medium">
-                            <XCircle className="h-5 w-5 mr-2 text-red-600" />
-                            Rejected
-                          </span>
-                        )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600 text-sm">Bid Amount:</span>
+                      <span className="font-bold text-primary flex items-center">
+                        <DollarSign className="h-4 w-4 mr-1" />
+                        {formatCurrency(bid.amount)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600 text-sm">Estimated Time:</span>
+                      <span className="flex items-center">
+                        <CalendarClock className="h-4 w-4 mr-1 text-gray-500" />
+                        {bid.estimatedTime ? `${bid.estimatedTime} hours` : 'Not specified'}
+                      </span>
+                    </div>
+                    
+                    {bid.status && (
+                      <div className={`
+                        p-2 rounded-md text-center font-medium text-sm
+                        ${bid.status === 'accepted' ? 'bg-green-50 text-green-700 border border-green-200' : 
+                          bid.status === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' : 
+                          'bg-gray-50 text-gray-700 border border-gray-200'}
+                      `}>
+                        {bid.status === 'accepted' && 'This bid has been accepted!'}
+                        {bid.status === 'rejected' && 'This bid has been rejected.'}
+                        {bid.status !== 'accepted' && bid.status !== 'rejected' && `Bid status: ${bid.status}`}
                       </div>
                     )}
-                  </CardFooter>
-                </Card>
-                );
-              })}
-            </div>
-          )
-        )}
-        
-        {activeTab === "placed" && (
-          !placedBidsState || placedBidsState.length === 0 ? (
-            <div className="p-8 text-center bg-gray-50 rounded-lg">
-              <p className="text-gray-600 mb-2">You haven't placed any bids yet.</p>
-              <p className="text-sm text-gray-500">Browse public tasks to find opportunities to bid on.</p>
-            </div>
-          ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {placedBidsState.map((bid) => {
-                // Use helper function to get card class
-                const cardClass = getBidCardClass(bid.status);
+                    
+                    <div className="pt-3 border-t border-gray-100">
+                      <h4 className="text-sm font-medium mb-2">Proposal:</h4>
+                      <p className="text-sm text-gray-700">{bid.proposal}</p>
+                    </div>
+                  </div>
+                </CardContent>
                 
-                return (
-                <Card key={bid.id} className={cardClass}>
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-lg">{bid.task.title}</CardTitle>
-                        <CardDescription className="line-clamp-2 mt-1">{bid.task.description}</CardDescription>
-                      </div>
-                      {renderBidStatus(bid.status || 'pending')}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600 text-sm">Task Owner:</span>
-                        <span className="font-medium">{bid.task.user?.displayName || bid.task.user?.username}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600 text-sm">Your Bid:</span>
-                        <span className="font-bold text-primary flex items-center">
-                          <DollarSign className="h-4 w-4 mr-1" />
-                          {formatCurrency(bid.amount)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600 text-sm">Your Estimate:</span>
-                        <span className="flex items-center">
-                          <CalendarClock className="h-4 w-4 mr-1 text-gray-500" />
-                          {bid.estimatedTime ? `${bid.estimatedTime} hours` : 'Not specified'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600 text-sm">Submitted:</span>
-                        <span className="text-sm text-gray-600">{formatDate(bid.createdAt)}</span>
-                      </div>
-                      
-                      {bid.status && (
-                        <div className={`
-                          p-2 rounded-md text-center font-medium text-sm
-                          ${bid.status === 'accepted' ? 'bg-green-50 text-green-700 border border-green-200' : 
-                            bid.status === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' : 
-                            'bg-gray-50 text-gray-700 border border-gray-200'}
-                        `}>
-                          {bid.status === 'accepted' && 'Your bid has been accepted!'}
-                          {bid.status === 'rejected' && 'Your bid has been rejected.'}
-                          {bid.status !== 'accepted' && bid.status !== 'rejected' && `Bid status: ${bid.status}`}
-                        </div>
+                {activeTab === 'received' && (!bid.status || bid.status === 'pending') && (
+                  <CardFooter className="flex justify-between space-x-3 pt-0">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1 border-red-200 hover:bg-red-50 hover:text-red-600" 
+                      onClick={() => handleRejectBid(bid.id)}
+                      disabled={loadingReject === bid.id || loadingAccept === bid.id}
+                    >
+                      {loadingReject === bid.id ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <XCircle className="h-4 w-4 mr-2" />
                       )}
-                      
-                      <div className="pt-3 border-t border-gray-100">
-                        <h4 className="text-sm font-medium mb-2">Your Proposal:</h4>
-                        <p className="text-sm text-gray-700">{bid.proposal}</p>
-                      </div>
+                      Reject
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      onClick={() => handleAcceptBid(bid.id)}
+                      disabled={loadingAccept === bid.id || loadingReject === bid.id}
+                    >
+                      {loadingAccept === bid.id ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                      )}
+                      Accept
+                    </Button>
+                  </CardFooter>
+                )}
+                
+                {(bid.status === 'accepted' || bid.status === 'rejected') && (
+                  <CardFooter className="pt-0">
+                    <div className="w-full flex items-center justify-center">
+                      {bid.status === 'accepted' ? (
+                        <span className="text-green-600 flex items-center py-2 font-medium">
+                          <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
+                          Accepted
+                        </span>
+                      ) : (
+                        <span className="text-red-600 flex items-center py-2 font-medium">
+                          <XCircle className="h-5 w-5 mr-2 text-red-600" />
+                          Rejected
+                        </span>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-                );
-              })}
-            </div>
-          )
+                  </CardFooter>
+                )}
+              </Card>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
