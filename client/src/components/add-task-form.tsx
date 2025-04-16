@@ -219,14 +219,14 @@ export function AddTaskForm() {
               name="priority"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-neutral-500">Priority</FormLabel>
+                  <FormLabel className="text-sm font-medium text-gray-700">Priority</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                     value={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger className="w-full p-3 h-auto border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary">
+                      <SelectTrigger className="w-full p-3 h-auto border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/50">
                         <SelectValue placeholder="Select priority" />
                       </SelectTrigger>
                     </FormControl>
@@ -246,14 +246,14 @@ export function AddTaskForm() {
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-neutral-500">Category</FormLabel>
+                  <FormLabel className="text-sm font-medium text-gray-700">Category</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                     value={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger className="w-full p-3 h-auto border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary">
+                      <SelectTrigger className="w-full p-3 h-auto border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/50">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                     </FormControl>
@@ -274,12 +274,12 @@ export function AddTaskForm() {
               name="estimatedTime"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-neutral-500">Estimated Time (minutes)</FormLabel>
+                  <FormLabel className="text-sm font-medium text-gray-700">Estimated Time (minutes)</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       placeholder="e.g., 30"
-                      className="p-3 border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary"
+                      className="p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/50"
                       onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                       value={field.value || ''}
                     />
