@@ -3,7 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
   insertTaskSchema, taskSchema, insertDirectMessageSchema, 
-  updateProfileSchema, insertTaskTemplateSchema, taskTemplateSchema
+  updateProfileSchema, insertTaskTemplateSchema, taskTemplateSchema,
+  insertTaskBidSchema
 } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { 
@@ -12,6 +13,9 @@ import {
 } from "./openai-service";
 import { setupAuth } from "./auth";
 import { WebSocketServer, WebSocket } from "ws";
+import { 
+  createPaymentIntent, getPaymentIntent, confirmPaymentComplete
+} from "./stripe-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
