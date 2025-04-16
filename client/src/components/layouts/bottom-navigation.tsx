@@ -46,8 +46,8 @@ export function BottomNavigation() {
   ];
 
   return (
-    <div className="fixed bottom-4 left-0 right-0 w-full z-50 md:hidden px-4">
-      <div className="bg-white backdrop-blur-md border border-gray-100 rounded-full shadow-xl flex justify-around items-center max-w-md mx-auto h-16">
+    <div className="fixed bottom-5 left-0 right-0 w-full z-50 md:hidden px-4">
+      <div className="bg-white/95 backdrop-blur-md border border-gray-100/90 rounded-full shadow-xl flex justify-around items-center max-w-md mx-auto h-16">
         {navItems.map((item) => (
           <Link
             key={item.path}
@@ -59,12 +59,12 @@ export function BottomNavigation() {
               isActive(item.path) ? "scale-110" : "scale-100" 
             )}>
               <div className={cn(
-                "rounded-full p-1.5 mb-0.5 transition-colors",
+                "rounded-full p-2 mb-0.5 transition-colors",
                 isActive(item.path) 
-                  ? "bg-primary/10 text-primary" 
+                  ? "bg-primary/10 text-primary shadow-sm border border-primary/10" 
                   : "text-gray-500 hover:text-gray-700"
               )}>
-                <item.icon size={18} strokeWidth={2.5} />
+                <item.icon size={19} strokeWidth={2} />
               </div>
               <span className={cn(
                 "text-[10px] font-medium tracking-tight",
