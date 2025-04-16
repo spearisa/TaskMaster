@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -27,12 +27,24 @@ export default function MyBidsPage() {
   const [activeTab, setActiveTab] = useState<string>("received");
   const [receivedBidsState, setReceivedBidsState] = useState<Array<any>>([]); 
   const [placedBidsState, setPlacedBidsState] = useState<Array<any>>([]);
+  
+  // Effect to handle tab switching and ensure we fetch data for the active tab
+  useEffect(() => {
+    if (user) {
+      if (activeTab === "received") {
+        refetchReceivedBids();
+      } else if (activeTab === "placed") {
+        refetchPlacedBids();
+      }
+    }
+  }, [activeTab, user, refetchReceivedBids, refetchPlacedBids]);
 
-  // Query for bids received on my tasks
+  // Query for bids received on my tasks - initial fetch only
   const {
     data: receivedBids,
     isLoading: isLoadingReceived,
-    error: receivedError
+    error: receivedError,
+    refetch: refetchReceivedBids
   } = useQuery<Array<TaskBidWithStringDates & {task: any, user: {username: string, displayName: string}}>>({
     queryKey: ['/api/bids/received'],
     queryFn: async () => {
@@ -43,14 +55,18 @@ export default function MyBidsPage() {
       setReceivedBidsState(data);
       return data;
     },
-    enabled: !!user && activeTab === "received"
+    enabled: !!user && activeTab === "received",
+    // Disable automatic refetching to prevent overriding our optimistic updates
+    refetchOnWindowFocus: false,
+    staleTime: Infinity
   });
 
-  // Query for bids I've placed on others' tasks
+  // Query for bids I've placed on others' tasks - initial fetch only
   const {
     data: placedBids,
     isLoading: isLoadingPlaced,
-    error: placedError
+    error: placedError,
+    refetch: refetchPlacedBids
   } = useQuery<Array<TaskBidWithStringDates & {task: any & {user: {username: string, displayName: string}}}>>({
     queryKey: ['/api/bids/placed'],
     queryFn: async () => {
@@ -61,7 +77,10 @@ export default function MyBidsPage() {
       setPlacedBidsState(data);
       return data;
     },
-    enabled: !!user && activeTab === "placed"
+    enabled: !!user && activeTab === "placed",
+    // Disable automatic refetching to prevent overriding our optimistic updates
+    refetchOnWindowFocus: false,
+    staleTime: Infinity
   });
 
   // Mutation to accept a bid
@@ -71,20 +90,15 @@ export default function MyBidsPage() {
       return await res.json();
     },
     onSuccess: (data) => {
-      // Update UI immediately for better user experience
-      setReceivedBidsState((prevBids) => 
-        prevBids?.map(bid => 
-          bid.id === data.id ? { ...bid, status: 'accepted' } : bid
-        )
-      );
-      
       toast({
         title: "✅ Bid Accepted",
         description: "The bid has been accepted successfully. The bidder has been notified.",
         variant: "default",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/bids/received'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      
+      // We'll handle the state update manually to avoid interference from the
+      // invalidateQueries. Do not invalidate the queries here to prevent
+      // overriding our optimistic updates.
     },
     onError: (error: any) => {
       toast({
@@ -102,19 +116,15 @@ export default function MyBidsPage() {
       return await res.json();
     },
     onSuccess: (data) => {
-      // Update UI immediately for better user experience
-      setReceivedBidsState((prevBids) => 
-        prevBids?.map(bid => 
-          bid.id === data.id ? { ...bid, status: 'rejected' } : bid
-        )
-      );
-      
       toast({
         title: "❌ Bid Rejected",
         description: "The bid has been rejected. The bidder has been notified.",
         variant: "default",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/bids/received'] });
+      
+      // We'll handle the state update manually to avoid interference from the
+      // invalidateQueries. Do not invalidate the queries here to prevent
+      // overriding our optimistic updates.
     },
     onError: (error: any) => {
       toast({
