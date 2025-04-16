@@ -21,6 +21,7 @@ import SharedTaskPage from "@/pages/shared-task";
 import AuthPage from "@/pages/auth-page";
 import ProfilePage from "@/pages/profile";
 import MessengerPage from "@/pages/messenger";
+import MyBidsPage from "@/pages/my-bids";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -40,6 +41,7 @@ function Router() {
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/messenger" component={MessengerPage} />
       <ProtectedRoute path="/messenger/:userId" component={MessengerPage} />
+      <ProtectedRoute path="/my-bids" component={MyBidsPage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/shared-task/:id" component={SharedTaskPage} />
       <Route component={NotFound} />

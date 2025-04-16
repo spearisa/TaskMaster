@@ -1172,6 +1172,181 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get all bids received on the user's tasks
+  app.get("/api/bids/received", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const userId = req.user.id;
+      
+      // Get all tasks owned by this user
+      const userTasks = await storage.getTasksByUserId(userId);
+      
+      // Get all bids for these tasks with user and task info
+      const allBids = [];
+      
+      for (const task of userTasks) {
+        const bids = await storage.getTaskBids(task.id);
+        
+        // If there are no bids for this task, skip it
+        if (bids.length === 0) continue;
+        
+        // Enrich bids with user info and task info
+        const enrichedBids = await Promise.all(
+          bids.map(async (bid) => {
+            const bidder = await storage.getUserProfile(bid.bidderId);
+            
+            // Determine bid status based on task's winning bid
+            let status = undefined;
+            if (task.winningBidId === bid.id) {
+              status = 'accepted';
+            } else if (task.winningBidId && task.winningBidId !== bid.id) {
+              status = 'rejected';
+            }
+            
+            return {
+              ...bid,
+              status,
+              user: bidder,
+              task: {
+                id: task.id,
+                title: task.title,
+                description: task.description,
+                dueDate: task.dueDate ? task.dueDate.toISOString() : null,
+                isPublic: task.isPublic,
+                userId: task.userId
+              }
+            };
+          })
+        );
+        
+        allBids.push(...enrichedBids);
+      }
+      
+      // Sort by most recent first
+      allBids.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      res.json(allBids);
+    } catch (error) {
+      console.error("Error getting received bids:", error);
+      res.status(500).json({ message: "Failed to retrieve received bids" });
+    }
+  });
+  
+  // Get all bids placed by the user
+  app.get("/api/bids/placed", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const userId = req.user.id;
+      
+      // Get all bids placed by this user
+      // We need to search across all tasks for bids by this user
+      const allTasks = await storage.getTasks();
+      const allBids = [];
+      
+      for (const task of allTasks) {
+        const bids = await storage.getTaskBids(task.id);
+        
+        // Filter bids by current user
+        const userBids = bids.filter(bid => bid.bidderId === userId);
+        
+        // If user has no bids on this task, skip
+        if (userBids.length === 0) continue;
+        
+        // Get task owner info
+        const taskOwner = await storage.getUserProfile(task.userId);
+        
+        // Enrich bids with task info
+        const enrichedBids = userBids.map(bid => {
+          // Determine bid status based on task's winning bid
+          let status = undefined;
+          if (task.winningBidId === bid.id) {
+            status = 'accepted';
+          } else if (task.winningBidId && task.winningBidId !== bid.id) {
+            status = 'rejected';
+          }
+          
+          return {
+            ...bid,
+            status,
+            task: {
+              id: task.id,
+              title: task.title,
+              description: task.description,
+              dueDate: task.dueDate ? task.dueDate.toISOString() : null,
+              isPublic: task.isPublic,
+              userId: task.userId,
+              user: taskOwner
+            }
+          };
+        });
+        
+        allBids.push(...enrichedBids);
+      }
+      
+      // Sort by most recent first
+      allBids.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      res.json(allBids);
+    } catch (error) {
+      console.error("Error getting placed bids:", error);
+      res.status(500).json({ message: "Failed to retrieve placed bids" });
+    }
+  });
+  
+  // Reject a bid
+  app.post("/api/bids/:bidId/reject", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const bidId = parseInt(req.params.bidId);
+      if (isNaN(bidId)) {
+        return res.status(400).json({ message: "Invalid bid ID" });
+      }
+      
+      // Get the bid
+      const bid = await storage.getTaskBidById(bidId);
+      if (!bid) {
+        return res.status(404).json({ message: "Bid not found" });
+      }
+      
+      // Get the task
+      const task = await storage.getTaskById(bid.taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Verify user is the task owner
+      if (task.userId !== req.user.id) {
+        return res.status(403).json({ message: "Only the task owner can reject bids" });
+      }
+      
+      // Update the bid status to rejected
+      const updatedBid = await storage.updateTaskBid(bidId, { status: 'rejected' });
+      
+      // Send a message notification to the bidder
+      await sendBidNotification(
+        task.userId,           // task owner (sender)
+        bid.bidderId,          // bidder (receiver)
+        task.id,               // task ID
+        bid.amount,            // bid amount
+        `Your bid on "${task.title}" was declined.`
+      );
+      
+      res.json({ message: "Bid rejected", bid: updatedBid });
+    } catch (error) {
+      console.error("Error rejecting bid:", error);
+      res.status(500).json({ message: "Failed to reject bid" });
+    }
+  });
+  
   // Helper function to send system messages about bids
   async function sendBidNotification(senderId: number, receiverId: number, taskId: number, bidAmount: number, taskTitle: string) {
     try {
