@@ -1200,17 +1200,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           bids.map(async (bid) => {
             const bidder = await storage.getUserProfile(bid.bidderId);
             
-            // Determine bid status based on task's winning bid
-            let status = undefined;
-            if (task.winningBidId === bid.id) {
-              status = 'accepted';
-            } else if (task.winningBidId && task.winningBidId !== bid.id) {
-              status = 'rejected';
-            }
+            // Use the bid's status from the database directly
+            // This ensures we're using the persisted status
+            console.log(`Bid ${bid.id} status from database: ${bid.status}`);
             
             return {
               ...bid,
-              status,
+              // Include bid status explicitly to ensure it's present
+              status: bid.status || 'pending',
               user: bidder,
               task: {
                 id: task.id,
@@ -1218,7 +1215,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 description: task.description,
                 dueDate: task.dueDate ? task.dueDate.toISOString() : null,
                 isPublic: task.isPublic,
-                userId: task.userId
+                userId: task.userId,
+                winningBidId: task.winningBidId
               }
             };
           })
@@ -1230,6 +1228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Sort by most recent first
       allBids.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
+      console.log(`Returning ${allBids.length} received bids with statuses`);
       res.json(allBids);
     } catch (error) {
       console.error("Error getting received bids:", error);
@@ -1265,17 +1264,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Enrich bids with task info
         const enrichedBids = userBids.map(bid => {
-          // Determine bid status based on task's winning bid
-          let status = undefined;
-          if (task.winningBidId === bid.id) {
-            status = 'accepted';
-          } else if (task.winningBidId && task.winningBidId !== bid.id) {
-            status = 'rejected';
-          }
+          // Use the bid's status from the database directly
+          // This ensures we're using the persisted status
+          console.log(`Placed bid ${bid.id} status from database: ${bid.status}`);
           
           return {
             ...bid,
-            status,
+            // Include bid status explicitly to ensure it's present
+            status: bid.status || 'pending',
             task: {
               id: task.id,
               title: task.title,
@@ -1283,6 +1279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               dueDate: task.dueDate ? task.dueDate.toISOString() : null,
               isPublic: task.isPublic,
               userId: task.userId,
+              winningBidId: task.winningBidId,
               user: taskOwner
             }
           };
@@ -1294,6 +1291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Sort by most recent first
       allBids.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
+      console.log(`Returning ${allBids.length} placed bids with statuses`);
       res.json(allBids);
     } catch (error) {
       console.error("Error getting placed bids:", error);
