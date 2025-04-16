@@ -8,7 +8,7 @@ import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import HomePage from "@/pages/home";
 import NewTaskPage from "@/pages/new-task";
-import CalendarSimplePage from "@/pages/calendar-simple";
+import CalendarPage from "@/pages/calendar";
 import AIAssistantPage from "@/pages/ai-assistant";
 import AiToolsPage from "@/pages/ai-tools";
 import CompletedPage from "@/pages/completed";
@@ -29,7 +29,7 @@ function Router() {
     <Switch>
       <ProtectedRoute path="/" component={HomePage} />
       <ProtectedRoute path="/new-task" component={NewTaskPage} />
-      <ProtectedRoute path="/calendar" component={CalendarSimplePage} />
+      <ProtectedRoute path="/calendar" component={CalendarPage} />
       <ProtectedRoute path="/ai-assistant" component={AIAssistantPage} />
       <ProtectedRoute path="/ai-tools" component={AiToolsPage} />
       <ProtectedRoute path="/completed" component={CompletedPage} />
