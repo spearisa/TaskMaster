@@ -125,13 +125,29 @@ export default function MyBidsPage() {
     }
   });
 
-  // Handle accept bid
+  // Handle accept bid with immediate UI update
   const handleAcceptBid = (bidId: number) => {
+    // Immediately update the UI before the API call
+    setReceivedBidsState((prevBids) => 
+      prevBids?.map(bid => 
+        bid.id === bidId ? { ...bid, status: 'accepted' } : bid
+      )
+    );
+    
+    // Then make the API call
     acceptBidMutation.mutate(bidId);
   };
 
-  // Handle reject bid
+  // Handle reject bid with immediate UI update
   const handleRejectBid = (bidId: number) => {
+    // Immediately update the UI before the API call
+    setReceivedBidsState((prevBids) => 
+      prevBids?.map(bid => 
+        bid.id === bidId ? { ...bid, status: 'rejected' } : bid
+      )
+    );
+    
+    // Then make the API call
     rejectBidMutation.mutate(bidId);
   };
 
