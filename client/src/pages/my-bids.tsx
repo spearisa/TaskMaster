@@ -20,7 +20,7 @@ export default function MyBidsPage() {
     data: receivedBids,
     isLoading: isLoadingReceived,
     error: receivedError
-  } = useQuery<{bids: Array<TaskBidWithStringDates & {task: TaskWithStringDates, bidder: {username: string, displayName: string}}>}>({
+  } = useQuery<Array<TaskBidWithStringDates & {task: any, user: {username: string, displayName: string}}>>({
     queryKey: ['/api/bids/received'],
     queryFn: async () => {
       const res = await apiRequest('GET', '/api/bids/received');
@@ -36,7 +36,7 @@ export default function MyBidsPage() {
     data: placedBids,
     isLoading: isLoadingPlaced,
     error: placedError
-  } = useQuery<{bids: Array<TaskBidWithStringDates & {task: TaskWithStringDates, owner: {username: string, displayName: string}}>}>({
+  } = useQuery<Array<TaskBidWithStringDates & {task: any & {user: {username: string, displayName: string}}}>>({
     queryKey: ['/api/bids/placed'],
     queryFn: async () => {
       const res = await apiRequest('GET', '/api/bids/placed');
@@ -156,14 +156,14 @@ export default function MyBidsPage() {
         </TabsList>
         
         <TabsContent value="received">
-          {receivedBids?.bids?.length === 0 ? (
+          {!receivedBids || receivedBids.length === 0 ? (
             <div className="p-8 text-center bg-gray-50 rounded-lg">
               <p className="text-gray-600 mb-2">You haven't received any bids yet.</p>
               <p className="text-sm text-gray-500">When you create tasks that accept bids, they'll appear here.</p>
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {receivedBids?.bids?.map((bid) => (
+              {receivedBids.map((bid) => (
                 <Card key={bid.id} className="overflow-hidden">
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
@@ -171,14 +171,14 @@ export default function MyBidsPage() {
                         <CardTitle className="text-lg">{bid.task.title}</CardTitle>
                         <CardDescription className="line-clamp-2 mt-1">{bid.task.description}</CardDescription>
                       </div>
-                      {renderBidStatus(bid.status)}
+                      {renderBidStatus(bid.status || 'pending')}
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <span className="text-gray-600 text-sm">From:</span>
-                        <span className="font-medium">{bid.bidder.displayName || bid.bidder.username}</span>
+                        <span className="font-medium">{bid.user.displayName || bid.user.username}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-gray-600 text-sm">Bid Amount:</span>
@@ -202,7 +202,7 @@ export default function MyBidsPage() {
                     </div>
                   </CardContent>
                   
-                  {bid.status === 'pending' && (
+                  {(!bid.status || bid.status === 'pending') && (
                     <CardFooter className="flex justify-between space-x-3 pt-0">
                       <Button 
                         variant="outline" 
@@ -238,14 +238,14 @@ export default function MyBidsPage() {
         </TabsContent>
         
         <TabsContent value="placed">
-          {placedBids?.bids?.length === 0 ? (
+          {!placedBids || placedBids.length === 0 ? (
             <div className="p-8 text-center bg-gray-50 rounded-lg">
               <p className="text-gray-600 mb-2">You haven't placed any bids yet.</p>
               <p className="text-sm text-gray-500">Browse public tasks to find opportunities to bid on.</p>
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {placedBids?.bids?.map((bid) => (
+              {placedBids.map((bid) => (
                 <Card key={bid.id} className="overflow-hidden">
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
@@ -253,14 +253,14 @@ export default function MyBidsPage() {
                         <CardTitle className="text-lg">{bid.task.title}</CardTitle>
                         <CardDescription className="line-clamp-2 mt-1">{bid.task.description}</CardDescription>
                       </div>
-                      {renderBidStatus(bid.status)}
+                      {renderBidStatus(bid.status || 'pending')}
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <span className="text-gray-600 text-sm">Task Owner:</span>
-                        <span className="font-medium">{bid.owner.displayName || bid.owner.username}</span>
+                        <span className="font-medium">{bid.task.user?.displayName || bid.task.user?.username}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-gray-600 text-sm">Your Bid:</span>
