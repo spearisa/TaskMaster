@@ -162,6 +162,19 @@ export function SideNavigation() {
                   </div>
                 </Link>
                 
+                <Link href="/my-bids">
+                  <div 
+                    className={cn(
+                      "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                      isActive('/my-bids') 
+                        ? "border-l-primary text-primary" 
+                        : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+                    )}
+                  >
+                    <span className="text-sm">My Bids</span>
+                  </div>
+                </Link>
+                
                 <Link href="/messenger">
                   <div 
                     className={cn(
@@ -340,6 +353,19 @@ export function SideNavigation() {
               )}
             >
               <span className="text-sm">Public Tasks</span>
+            </div>
+          </Link>
+          
+          <Link href="/my-bids">
+            <div 
+              className={cn(
+                "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                isActive('/my-bids') 
+                  ? "border-l-primary text-primary" 
+                  : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+              )}
+            >
+              <span className="text-sm">My Bids</span>
             </div>
           </Link>
           
