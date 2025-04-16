@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -346,11 +346,11 @@ export function TaskBidding({ task, onBidPlaced }: TaskBiddingProps) {
   };
   
   // Effect to load bids on component mount
-  useState(() => {
+  useEffect(() => {
     if (user) {
       fetchBids();
     }
-  });
+  }, [user, task.id]);
   
   // Prepare UI based on user role
   const isTaskOwner = user?.id === task.userId;
@@ -472,8 +472,12 @@ export function TaskBidding({ task, onBidPlaced }: TaskBiddingProps) {
                             </div>
                             <div className="text-right">
                               <div className="text-lg font-bold">${bid.amount}</div>
-                              <Badge variant={
-                                bid.status === 'accepted' ? "success" : 
+                              <Badge className={
+                                bid.status === 'accepted' ? "bg-green-500 hover:bg-green-600" : 
+                                bid.status === 'rejected' ? "bg-red-500 hover:bg-red-600" : 
+                                ""
+                              } variant={
+                                bid.status === 'accepted' ? "default" : 
                                 bid.status === 'rejected' ? "destructive" : 
                                 "outline"
                               }>
