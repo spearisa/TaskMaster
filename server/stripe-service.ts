@@ -1,10 +1,12 @@
 import Stripe from 'stripe';
 
+// Make sure we have the Stripe secret key in environment variables
 if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+  console.error('Missing required environment variable: STRIPE_SECRET_KEY');
+  throw new Error('Missing required environment variable: STRIPE_SECRET_KEY');
 }
 
-// Initialize Stripe with secret key
+// Initialize Stripe with the secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
 });
@@ -14,16 +16,19 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
  */
 export async function createPaymentIntent(amount: number, metadata: Record<string, string>) {
   try {
+    // Convert amount to cents (Stripe uses smallest currency unit)
+    const amountInCents = Math.round(amount * 100);
+    
+    // Create the payment intent
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Convert to cents
+      amount: amountInCents,
       currency: 'usd',
       metadata,
+      payment_method_types: ['card'],
+      description: `Payment for Task: ${metadata.taskTitle || 'Task Completion'}`,
     });
     
-    return { 
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id 
-    };
+    return paymentIntent;
   } catch (error) {
     console.error('Error creating payment intent:', error);
     throw error;
@@ -48,10 +53,11 @@ export async function getPaymentIntent(paymentIntentId: string) {
 export async function confirmPaymentComplete(paymentIntentId: string) {
   try {
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    
     return paymentIntent.status === 'succeeded';
   } catch (error) {
-    console.error('Error confirming payment status:', error);
-    throw error;
+    console.error('Error confirming payment completion:', error);
+    return false;
   }
 }
 
@@ -65,7 +71,7 @@ export async function createCustomer(email: string, name?: string) {
       name,
     });
   } catch (error) {
-    console.error('Error creating customer:', error);
+    console.error('Error creating Stripe customer:', error);
     throw error;
   }
 }
@@ -75,17 +81,16 @@ export async function createCustomer(email: string, name?: string) {
  */
 export async function createConnectAccount(email: string) {
   try {
-    const account = await stripe.accounts.create({
+    return await stripe.accounts.create({
       type: 'express',
       email,
       capabilities: {
-        card_payments: {requested: true},
-        transfers: {requested: true},
+        card_payments: { requested: true },
+        transfers: { requested: true },
       },
     });
-    return account;
   } catch (error) {
-    console.error('Error creating Connect account:', error);
+    console.error('Error creating Stripe Connect account:', error);
     throw error;
   }
 }
@@ -95,13 +100,16 @@ export async function createConnectAccount(email: string) {
  */
 export async function transferFundsToTaskWinner(amount: number, destinationAccountId: string, metadata: Record<string, string>) {
   try {
-    const transfer = await stripe.transfers.create({
-      amount: Math.round(amount * 100), // Convert to cents
+    // Convert amount to cents
+    const amountInCents = Math.round(amount * 100);
+    
+    // Create the transfer
+    return await stripe.transfers.create({
+      amount: amountInCents,
       currency: 'usd',
       destination: destinationAccountId,
       metadata,
     });
-    return transfer;
   } catch (error) {
     console.error('Error transferring funds:', error);
     throw error;

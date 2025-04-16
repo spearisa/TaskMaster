@@ -1137,6 +1137,210 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // TASK BIDDING ENDPOINTS
+  
+  // Get all bids for a task
+  app.get("/api/tasks/:taskId/bids", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const taskId = parseInt(req.params.taskId);
+      if (isNaN(taskId)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
+      
+      // Get the task to check permissions
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Allow access if user owns the task or if the task is public
+      if (task.userId !== req.user.id && !task.isPublic) {
+        return res.status(403).json({ message: "You don't have permission to view bids for this task" });
+      }
+      
+      // Get all bids for the task
+      const bids = await storage.getTaskBids(taskId);
+      
+      res.json(bids);
+    } catch (error) {
+      console.error("Error getting task bids:", error);
+      res.status(500).json({ message: "Failed to retrieve task bids" });
+    }
+  });
+  
+  // Create a new bid on a task
+  app.post("/api/tasks/:taskId/bid", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const taskId = parseInt(req.params.taskId);
+      if (isNaN(taskId)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
+      
+      // Get the task
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Check if task is accepting bids
+      if (!task.acceptingBids) {
+        return res.status(400).json({ message: "This task is not accepting bids" });
+      }
+      
+      // Check if bidding deadline has passed
+      if (task.biddingDeadline && new Date(task.biddingDeadline) < new Date()) {
+        return res.status(400).json({ message: "Bidding deadline has passed" });
+      }
+      
+      // Don't allow task owner to bid on their own task
+      if (task.userId === req.user.id) {
+        return res.status(400).json({ message: "You cannot bid on your own task" });
+      }
+      
+      // Create the bid data
+      const bidData = {
+        taskId,
+        bidderId: req.user.id,
+        amount: req.body.amount,
+        proposal: req.body.description,
+        estimatedTime: req.body.estimatedTime || null,
+      };
+      
+      // Create the bid
+      const newBid = await storage.createTaskBid(bidData);
+      
+      // Notify task owner of new bid via WebSocket if implemented
+      notifyWebSocketClients({
+        type: 'NEW_BID',
+        taskId,
+        bid: newBid,
+        userId: task.userId
+      });
+      
+      res.status(201).json(newBid);
+    } catch (error) {
+      console.error("Error creating task bid:", error);
+      res.status(500).json({ message: "Failed to create task bid" });
+    }
+  });
+  
+  // Accept a bid
+  app.post("/api/tasks/:taskId/bids/:bidId/accept", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const taskId = parseInt(req.params.taskId);
+      const bidId = parseInt(req.params.bidId);
+      
+      if (isNaN(taskId) || isNaN(bidId)) {
+        return res.status(400).json({ message: "Invalid task or bid ID" });
+      }
+      
+      // Get the task
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Verify user is the task owner
+      if (task.userId !== req.user.id) {
+        return res.status(403).json({ message: "Only the task owner can accept bids" });
+      }
+      
+      // Accept the bid
+      const updatedTask = await storage.acceptTaskBid(taskId, bidId);
+      if (!updatedTask) {
+        return res.status(500).json({ message: "Failed to accept bid" });
+      }
+      
+      // Get the bid to notify the bidder
+      const bid = await storage.getTaskBidById(bidId);
+      if (bid) {
+        notifyWebSocketClients({
+          type: 'BID_ACCEPTED',
+          taskId,
+          bidId,
+          userId: bid.bidderId
+        });
+      }
+      
+      res.json({ message: "Bid accepted successfully", task: updatedTask });
+    } catch (error) {
+      console.error("Error accepting task bid:", error);
+      res.status(500).json({ message: "Failed to accept bid" });
+    }
+  });
+  
+  // Create payment intent for a task with accepted bid
+  app.post("/api/tasks/:taskId/create-payment-intent", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const taskId = parseInt(req.params.taskId);
+      if (isNaN(taskId)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
+      
+      // Get the task
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Verify user is the task owner
+      if (task.userId !== req.user.id) {
+        return res.status(403).json({ message: "Only the task owner can make payments" });
+      }
+      
+      // Check if there's a winning bid
+      if (!task.winningBidId) {
+        return res.status(400).json({ message: "No winning bid selected for this task" });
+      }
+      
+      // Get the winning bid
+      const winningBid = await storage.getTaskBidById(task.winningBidId);
+      if (!winningBid) {
+        return res.status(404).json({ message: "Winning bid not found" });
+      }
+      
+      // Create a payment intent with Stripe
+      const stripeService = await import("./stripe-service");
+      const paymentIntent = await stripeService.createPaymentIntent(
+        winningBid.amount, 
+        { 
+          taskId: taskId.toString(),
+          bidId: task.winningBidId.toString(),
+          taskTitle: task.title
+        }
+      );
+      
+      // Update the bid with the payment intent ID
+      await storage.updateTaskBid(task.winningBidId, {
+        stripePaymentIntentId: paymentIntent.id,
+        stripePaymentStatus: 'pending'
+      });
+      
+      res.json({
+        clientSecret: paymentIntent.client_secret,
+      });
+    } catch (error) {
+      console.error("Error creating payment intent:", error);
+      res.status(500).json({ message: "Failed to create payment intent" });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
   
