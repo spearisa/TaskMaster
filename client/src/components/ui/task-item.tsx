@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Calendar, Clock, Sparkles } from 'lucide-react';
+import { Calendar, Clock, Sparkles, DollarSign } from 'lucide-react';
 import { TaskWithStringDates } from '@shared/schema';
 import { TaskCheckbox } from './task-checkbox';
 import { PriorityBadge } from './priority-badge';
@@ -133,6 +133,18 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
                   </span>
                 </>
               )}
+              
+              {/* Accepting bids indicator */}
+              {task.acceptingBids && (
+                <>
+                  <span className="mx-2">•</span>
+                  <span className="px-2 py-0.5 bg-yellow-50 text-yellow-600 rounded-lg text-xs flex items-center">
+                    <DollarSign className="h-3 w-3 mr-1" />
+                    Accepting Bids
+                    {task.budget && ` up to $${task.budget}`}
+                  </span>
+                </>
+              )}
             </div>
             
             {/* Action buttons row */}
@@ -156,6 +168,22 @@ export function TaskItem({ task, onTaskComplete, onTaskUpdate }: TaskItemProps) 
                   <div onClick={(e) => e.stopPropagation()}>
                     <PublicTaskShare task={task} />
                   </div>
+                )}
+                
+                {/* Bid button for tasks accepting bids */}
+                {task.acceptingBids && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-yellow-600 border border-yellow-200 bg-yellow-50 hover:bg-yellow-100 px-2 py-1 h-auto"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.location.href = `/task/${task.id}?tab=bidding`;
+                    }}
+                  >
+                    <DollarSign className="h-3 w-3 mr-1" />
+                    Bid Now
+                  </Button>
                 )}
               </div>
             )}
