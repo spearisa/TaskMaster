@@ -334,6 +334,19 @@ export function SideNavigation() {
             </div>
           </Link>
           
+          <Link href="/calendar">
+            <div 
+              className={cn(
+                "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                isActive('/calendar') 
+                  ? "border-l-primary text-primary" 
+                  : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+              )}
+            >
+              <span className="text-sm">Calendar</span>
+            </div>
+          </Link>
+          
           {/* Templates Section */}
           <div className="flex gap-2 mt-4 mb-1 px-4 pt-2">
             <LayoutTemplate size={18} className="text-gray-500" />
