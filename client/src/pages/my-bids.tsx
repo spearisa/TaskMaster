@@ -120,36 +120,36 @@ export default function MyBidsPage() {
     switch (status) {
       case 'pending':
         return (
-          <span className="text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full text-xs font-medium flex items-center">
-            <span className="w-2 h-2 bg-yellow-400 rounded-full mr-1.5 animate-pulse"></span>
+          <span className="text-yellow-600 bg-yellow-100 px-3 py-1.5 rounded-full text-xs font-medium flex items-center shadow-sm border border-yellow-200">
+            <span className="w-2.5 h-2.5 bg-yellow-400 rounded-full mr-1.5 animate-pulse"></span>
             Pending
           </span>
         );
       case 'accepted':
         return (
-          <span className="text-green-600 bg-green-100 px-2 py-1 rounded-full text-xs font-medium flex items-center">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Accepted
+          <span className="text-green-600 bg-green-100 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center shadow-sm border border-green-200">
+            <CheckCircle className="w-4 h-4 mr-1.5" strokeWidth={2.5} />
+            ACCEPTED
           </span>
         );
       case 'rejected':
         return (
-          <span className="text-red-600 bg-red-100 px-2 py-1 rounded-full text-xs font-medium flex items-center">
-            <XCircle className="w-3 h-3 mr-1" />
-            Rejected
+          <span className="text-red-600 bg-red-100 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center shadow-sm border border-red-200">
+            <XCircle className="w-4 h-4 mr-1.5" strokeWidth={2.5} />
+            REJECTED
           </span>
         );
       case 'completed':
         return (
-          <span className="text-blue-600 bg-blue-100 px-2 py-1 rounded-full text-xs font-medium flex items-center">
-            <span className="w-3 h-3 mr-1">✓</span>
-            Completed
+          <span className="text-blue-600 bg-blue-100 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center shadow-sm border border-blue-200">
+            <span className="w-4 h-4 mr-1.5 flex items-center justify-center">✓</span>
+            COMPLETED
           </span>
         );
       default:
         return (
-          <span className="text-gray-600 bg-gray-100 px-2 py-1 rounded-full text-xs font-medium flex items-center">
-            <span className="w-2 h-2 bg-gray-400 rounded-full mr-1.5"></span>
+          <span className="text-gray-600 bg-gray-100 px-3 py-1.5 rounded-full text-xs font-medium flex items-center shadow-sm border border-gray-200">
+            <span className="w-2.5 h-2.5 bg-gray-400 rounded-full mr-1.5"></span>
             Unknown
           </span>
         );
@@ -181,9 +181,56 @@ export default function MyBidsPage() {
     );
   }
 
+  // Calculate bid statistics
+  const getBidStats = () => {
+    if (activeTab === 'received' && receivedBids) {
+      const accepted = receivedBids.filter(bid => bid.status === 'accepted').length;
+      const rejected = receivedBids.filter(bid => bid.status === 'rejected').length;
+      const pending = receivedBids.filter(bid => !bid.status || bid.status === 'pending').length;
+      return { accepted, rejected, pending, total: receivedBids.length };
+    } else if (activeTab === 'placed' && placedBids) {
+      const accepted = placedBids.filter(bid => bid.status === 'accepted').length;
+      const rejected = placedBids.filter(bid => bid.status === 'rejected').length;
+      const pending = placedBids.filter(bid => !bid.status || bid.status === 'pending').length;
+      return { accepted, rejected, pending, total: placedBids.length };
+    }
+    return { accepted: 0, rejected: 0, pending: 0, total: 0 };
+  };
+
+  const stats = getBidStats();
+
   return (
     <div className="container mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold mb-6">My Bids</h1>
+      <h1 className="text-2xl font-bold mb-2">My Bids</h1>
+      
+      {/* Bid statistics summary */}
+      {stats.total > 0 && (
+        <div className="mb-6 p-4 rounded-lg bg-white border border-gray-100 shadow-sm">
+          <div className="flex flex-wrap gap-4 justify-between items-center">
+            <h3 className="text-lg font-medium text-gray-700">
+              {activeTab === 'received' ? 'Bid Summary (Received)' : 'Bid Summary (Placed)'}
+            </h3>
+            <div className="flex flex-wrap gap-4">
+              <div className="px-4 py-2 bg-green-50 rounded-lg border border-green-100">
+                <div className="text-sm text-gray-600">Accepted</div>
+                <div className="font-bold text-green-600 text-xl">{stats.accepted}</div>
+              </div>
+              <div className="px-4 py-2 bg-yellow-50 rounded-lg border border-yellow-100">
+                <div className="text-sm text-gray-600">Pending</div>
+                <div className="font-bold text-yellow-600 text-xl">{stats.pending}</div>
+              </div>
+              <div className="px-4 py-2 bg-red-50 rounded-lg border border-red-100">
+                <div className="text-sm text-gray-600">Rejected</div>
+                <div className="font-bold text-red-600 text-xl">{stats.rejected}</div>
+              </div>
+              <div className="px-4 py-2 bg-gray-50 rounded-lg border border-gray-100">
+                <div className="text-sm text-gray-600">Total</div>
+                <div className="font-bold text-gray-700 text-xl">{stats.total}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       <Tabs defaultValue="received" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-6 grid grid-cols-2 w-full max-w-md mx-auto">
@@ -234,6 +281,19 @@ export default function MyBidsPage() {
                           {bid.estimatedTime ? `${bid.estimatedTime} hours` : 'Not specified'}
                         </span>
                       </div>
+                      
+                      {bid.status && (
+                        <div className={`
+                          p-2 rounded-md text-center font-medium text-sm
+                          ${bid.status === 'accepted' ? 'bg-green-50 text-green-700 border border-green-200' : 
+                            bid.status === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' : 
+                            'bg-gray-50 text-gray-700 border border-gray-200'}
+                        `}>
+                          {bid.status === 'accepted' && 'This bid has been accepted!'}
+                          {bid.status === 'rejected' && 'This bid has been rejected.'}
+                          {bid.status !== 'accepted' && bid.status !== 'rejected' && `Bid status: ${bid.status}`}
+                        </div>
+                      )}
                       
                       <div className="pt-3 border-t border-gray-100">
                         <h4 className="text-sm font-medium mb-2">Proposal:</h4>
@@ -325,6 +385,19 @@ export default function MyBidsPage() {
                         <span className="text-gray-600 text-sm">Submitted:</span>
                         <span className="text-sm text-gray-600">{formatDate(bid.createdAt)}</span>
                       </div>
+                      
+                      {bid.status && (
+                        <div className={`
+                          p-2 rounded-md text-center font-medium text-sm
+                          ${bid.status === 'accepted' ? 'bg-green-50 text-green-700 border border-green-200' : 
+                            bid.status === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' : 
+                            'bg-gray-50 text-gray-700 border border-gray-200'}
+                        `}>
+                          {bid.status === 'accepted' && 'Your bid has been accepted!'}
+                          {bid.status === 'rejected' && 'Your bid has been rejected.'}
+                          {bid.status !== 'accepted' && bid.status !== 'rejected' && `Bid status: ${bid.status}`}
+                        </div>
+                      )}
                       
                       <div className="pt-3 border-t border-gray-100">
                         <h4 className="text-sm font-medium mb-2">Your Proposal:</h4>
