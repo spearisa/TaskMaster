@@ -24,12 +24,14 @@ export function getInitials(name: string): string {
 
 /**
  * Format a date for display
- * @param date Date to format
+ * @param date Date object or ISO date string to format
  * @returns Formatted date string
  */
-export function formatDate(date: Date): string {
+export function formatDate(date: Date | string | null | undefined): string {
+  if (!date) return 'N/A';
+  
   try {
-    return format(date, 'MMM d, yyyy');
+    return format(new Date(date), 'MMM d, yyyy');
   } catch (e) {
     return 'Invalid date';
   }
@@ -37,14 +39,20 @@ export function formatDate(date: Date): string {
 
 /**
  * Format a currency amount for display
- * @param amount Amount to format
+ * @param amount Amount to format (number or string)
  * @returns Formatted currency string
  */
-export function formatCurrency(amount: number): string {
+export function formatCurrency(amount: number | string): string {
+  const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  
+  if (isNaN(numericAmount)) {
+    return '$0.00';
+  }
+  
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
-  }).format(amount);
+  }).format(numericAmount);
 }

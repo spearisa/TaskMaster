@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { 
   insertTaskSchema, taskSchema, insertDirectMessageSchema, 
   updateProfileSchema, insertTaskTemplateSchema, taskTemplateSchema,
-  insertTaskBidSchema
+  insertTaskBidSchema, taskBids
 } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { 
@@ -16,6 +16,8 @@ import { WebSocketServer, WebSocket } from "ws";
 import { 
   createPaymentIntent, getPaymentIntent, confirmPaymentComplete
 } from "./stripe-service";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
