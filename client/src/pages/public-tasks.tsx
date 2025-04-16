@@ -86,7 +86,7 @@ export default function PublicTasksPage() {
 
   if (error) {
     return (
-      <MobileLayout>
+      <MobileLayout pageTitle="Public Task Board">
         <div className="flex flex-col items-center justify-center h-64">
           <h2 className="text-lg font-semibold text-red-600">Error loading public tasks</h2>
           <p className="text-gray-500">Please try again later</p>
@@ -96,14 +96,11 @@ export default function PublicTasksPage() {
   }
 
   return (
-    <MobileLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col">
-          <h1 className="text-2xl font-bold">Public Task Board</h1>
-          <p className="text-muted-foreground">
-            Browse and explore tasks shared by the community
-          </p>
-        </div>
+    <MobileLayout pageTitle="Public Task Board">
+      <div className="space-y-4">
+        <p className="text-muted-foreground">
+          Browse and explore tasks shared by the community
+        </p>
 
         {/* Category filters */}
         <div className="space-y-2">
