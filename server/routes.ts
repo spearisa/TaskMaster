@@ -1301,56 +1301,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Reject a bid
-  app.post("/api/bids/:bidId/reject", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-      
-      const bidId = parseInt(req.params.bidId);
-      if (isNaN(bidId)) {
-        return res.status(400).json({ message: "Invalid bid ID" });
-      }
-      
-      // Get the bid
-      const bid = await storage.getTaskBidById(bidId);
-      if (!bid) {
-        return res.status(404).json({ message: "Bid not found" });
-      }
-      
-      // Get the task
-      const task = await storage.getTaskById(bid.taskId);
-      if (!task) {
-        return res.status(404).json({ message: "Task not found" });
-      }
-      
-      // Verify user is the task owner
-      if (task.userId !== req.user.id) {
-        return res.status(403).json({ message: "Only the task owner can reject bids" });
-      }
-      
-      console.log(`Updating bid ${bidId} status to rejected`);
-      // Update the bid status to rejected
-      const updatedBid = await storage.updateTaskBid(bidId, { 
-        status: 'rejected',
-        updatedAt: new Date()
-      });
-      // Send a message notification to the bidder
-      await sendBidNotification(
-        task.userId,           // task owner (sender)
-        bid.bidderId,          // bidder (receiver)
-        task.id,               // task ID
-        bid.amount,            // bid amount
-        `Your bid on "${task.title}" was declined.`
-      );
-      
-      res.json({ message: "Bid rejected", bid: updatedBid });
-    } catch (error) {
-      console.error("Error rejecting bid:", error);
-      res.status(500).json({ message: "Failed to reject bid" });
-    }
-  });
+  // Reject a bid route was moved to line ~1791 to avoid duplicate routes
+  
   
   // Helper function to send system messages about bids
   async function sendBidNotification(senderId: number, receiverId: number, taskId: number, bidAmount: number, taskTitle: string) {
