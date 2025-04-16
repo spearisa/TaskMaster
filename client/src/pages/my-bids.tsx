@@ -7,17 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { TaskBidWithStringDates, TaskWithStringDates } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, XCircle, DollarSign, CalendarClock } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, DollarSign, CalendarClock, Clock } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 // Helper function to get card class based on bid status
 const getBidCardClass = (status: string | undefined) => {
   if (status === 'accepted') {
-    return 'overflow-hidden border-green-200 bg-green-50/30 shadow-[0_0_15px_rgba(0,150,0,0.15)]';
+    return 'overflow-hidden border-green-500 border-l-4 shadow-md';
   } else if (status === 'rejected') {
-    return 'overflow-hidden border-red-200 bg-red-50/30 shadow-[0_0_15px_rgba(150,0,0,0.15)]';
+    return 'overflow-hidden border-red-500 border-l-4 shadow-md';
   } else {
-    return 'overflow-hidden';
+    return 'overflow-hidden border-gray-200 shadow-md';
   }
 };
 
@@ -120,36 +120,36 @@ export default function MyBidsPage() {
     switch (status) {
       case 'pending':
         return (
-          <span className="text-yellow-600 bg-yellow-100 px-3 py-1.5 rounded-full text-xs font-medium flex items-center shadow-sm border border-yellow-200">
-            <span className="w-2.5 h-2.5 bg-yellow-400 rounded-full mr-1.5 animate-pulse"></span>
+          <span className="text-yellow-800 bg-yellow-100 px-3 py-1 rounded-full text-xs font-medium flex items-center">
+            <span className="w-2 h-2 bg-yellow-500 rounded-full mr-1.5 animate-pulse"></span>
             Pending
           </span>
         );
       case 'accepted':
         return (
-          <span className="text-green-600 bg-green-100 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center shadow-sm border border-green-200">
-            <CheckCircle className="w-4 h-4 mr-1.5" strokeWidth={2.5} />
-            ACCEPTED
+          <span className="text-green-800 bg-green-100 px-3 py-1 rounded-full text-xs font-medium flex items-center">
+            <CheckCircle className="w-3.5 h-3.5 mr-1 text-green-700" />
+            Accepted
           </span>
         );
       case 'rejected':
         return (
-          <span className="text-red-600 bg-red-100 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center shadow-sm border border-red-200">
-            <XCircle className="w-4 h-4 mr-1.5" strokeWidth={2.5} />
-            REJECTED
+          <span className="text-red-800 bg-red-100 px-3 py-1 rounded-full text-xs font-medium flex items-center">
+            <XCircle className="w-3.5 h-3.5 mr-1 text-red-700" />
+            Rejected
           </span>
         );
       case 'completed':
         return (
-          <span className="text-blue-600 bg-blue-100 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center shadow-sm border border-blue-200">
-            <span className="w-4 h-4 mr-1.5 flex items-center justify-center">✓</span>
-            COMPLETED
+          <span className="text-blue-800 bg-blue-100 px-3 py-1 rounded-full text-xs font-medium flex items-center">
+            <CheckCircle className="w-3.5 h-3.5 mr-1 text-blue-700" />
+            Completed
           </span>
         );
       default:
         return (
-          <span className="text-gray-600 bg-gray-100 px-3 py-1.5 rounded-full text-xs font-medium flex items-center shadow-sm border border-gray-200">
-            <span className="w-2.5 h-2.5 bg-gray-400 rounded-full mr-1.5"></span>
+          <span className="text-gray-600 bg-gray-100 px-3 py-1 rounded-full text-xs font-medium flex items-center">
+            <span className="w-2 h-2 bg-gray-400 rounded-full mr-1.5"></span>
             Unknown
           </span>
         );
@@ -205,41 +205,51 @@ export default function MyBidsPage() {
       
       {/* Bid statistics summary */}
       {stats.total > 0 && (
-        <div className="mb-6 p-4 rounded-lg bg-white border border-gray-100 shadow-sm">
-          <div className="flex flex-wrap gap-4 justify-between items-center">
-            <h3 className="text-lg font-medium text-gray-700">
-              {activeTab === 'received' ? 'Bid Summary (Received)' : 'Bid Summary (Placed)'}
-            </h3>
-            <div className="flex flex-wrap gap-4">
-              <div className="px-4 py-2 bg-green-50 rounded-lg border border-green-100">
-                <div className="text-sm text-gray-600">Accepted</div>
-                <div className="font-bold text-green-600 text-xl">{stats.accepted}</div>
+        <div className="mb-6">
+          <div className="mb-2 text-gray-700">
+            {activeTab === 'received' ? 'Bid Summary (Received)' : 'Bid Summary (Placed)'}
+          </div>
+          <div className="flex items-center">
+            <div className="flex-1 flex">
+              <div className="rounded-l-md bg-green-50 px-4 py-3 text-center border border-r-0 flex-1">
+                <div className="text-gray-800">Accepted</div>
+                <div className="font-bold text-green-600 text-2xl">{stats.accepted}</div>
               </div>
-              <div className="px-4 py-2 bg-yellow-50 rounded-lg border border-yellow-100">
-                <div className="text-sm text-gray-600">Pending</div>
-                <div className="font-bold text-yellow-600 text-xl">{stats.pending}</div>
+              <div className="bg-yellow-50 px-4 py-3 text-center border border-r-0 flex-1">
+                <div className="text-gray-800">Pending</div>
+                <div className="font-bold text-yellow-600 text-2xl">{stats.pending}</div>
               </div>
-              <div className="px-4 py-2 bg-red-50 rounded-lg border border-red-100">
-                <div className="text-sm text-gray-600">Rejected</div>
-                <div className="font-bold text-red-600 text-xl">{stats.rejected}</div>
+              <div className="bg-red-50 px-4 py-3 text-center border border-r-0 flex-1">
+                <div className="text-gray-800">Rejected</div>
+                <div className="font-bold text-red-600 text-2xl">{stats.rejected}</div>
               </div>
-              <div className="px-4 py-2 bg-gray-50 rounded-lg border border-gray-100">
-                <div className="text-sm text-gray-600">Total</div>
-                <div className="font-bold text-gray-700 text-xl">{stats.total}</div>
+              <div className="rounded-r-md bg-gray-50 px-4 py-3 text-center border flex-1">
+                <div className="text-gray-800">Total</div>
+                <div className="font-bold text-gray-800 text-2xl">{stats.total}</div>
               </div>
             </div>
           </div>
         </div>
       )}
       
-      <Tabs defaultValue="received" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-6 grid grid-cols-2 w-full max-w-md mx-auto">
-          <TabsTrigger value="received">Bids I've Received</TabsTrigger>
-          <TabsTrigger value="placed">Bids I've Placed</TabsTrigger>
-        </TabsList>
+      <div className="w-full">
+        <div className="mb-6 border-b flex gap-4">
+          <button 
+            onClick={() => setActiveTab("received")}
+            className={`py-2 px-4 font-medium ${activeTab === "received" ? "border-b-2 border-primary text-primary" : "text-gray-500"}`}
+          >
+            Bids I've Received
+          </button>
+          <button 
+            onClick={() => setActiveTab("placed")}
+            className={`py-2 px-4 font-medium ${activeTab === "placed" ? "border-b-2 border-primary text-primary" : "text-gray-500"}`}
+          >
+            Bids I've Placed
+          </button>
+        </div>
         
-        <TabsContent value="received">
-          {!receivedBids || receivedBids.length === 0 ? (
+        {activeTab === "received" && (
+          !receivedBids || receivedBids.length === 0 ? (
             <div className="p-8 text-center bg-gray-50 rounded-lg">
               <p className="text-gray-600 mb-2">You haven't received any bids yet.</p>
               <p className="text-sm text-gray-500">When you create tasks that accept bids, they'll appear here.</p>
@@ -335,11 +345,11 @@ export default function MyBidsPage() {
                 );
               })}
             </div>
-          )}
-        </TabsContent>
+          )
+        )}
         
-        <TabsContent value="placed">
-          {!placedBids || placedBids.length === 0 ? (
+        {activeTab === "placed" && (
+          !placedBids || placedBids.length === 0 ? (
             <div className="p-8 text-center bg-gray-50 rounded-lg">
               <p className="text-gray-600 mb-2">You haven't placed any bids yet.</p>
               <p className="text-sm text-gray-500">Browse public tasks to find opportunities to bid on.</p>
@@ -409,9 +419,9 @@ export default function MyBidsPage() {
                 );
               })}
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
+          )
+        )}
+      </div>
     </div>
   );
 }
