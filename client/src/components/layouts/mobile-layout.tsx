@@ -94,14 +94,14 @@ export function MobileLayout({
   return (
     <div className="bg-white min-h-screen">
       {/* Header with title and menu button */}
-      <header className="sticky top-0 z-40 bg-white border-b border-gray-100 px-4 py-3 flex justify-between items-center">
+      <header className="sticky top-0 z-40 bg-white border-b border-gray-100 px-4 py-2 flex justify-between items-center">
         <div className="flex items-center">
           {showBackButton ? (
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={() => navigate(backButtonPath)}
-              className="mr-2"
+              className="mr-2 h-8 w-8"
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
@@ -109,10 +109,10 @@ export function MobileLayout({
             <Button 
                 variant="ghost" 
                 size="icon" 
-                className="mr-2 md:hidden"
+                className="mr-2 md:hidden h-8 w-8"
                 onClick={() => setMenuOpen(true)}
               >
-                <Menu size={22} />
+                <Menu size={20} />
               </Button>
           )}
           <h1 className="text-lg font-semibold">{currentPageTitle}</h1>
@@ -123,16 +123,16 @@ export function MobileLayout({
             variant="ghost" 
             size="icon" 
             onClick={() => navigate('/profile')}
-            className="rounded-full" 
+            className="rounded-full h-8 w-8" 
           >
-            <User className="h-5 w-5" />
+            <User className="h-4 w-4" />
           </Button>
         ) : (
           <Button 
             variant="ghost" 
             size="sm"
             onClick={() => navigate('/auth')}
-            className="rounded-full" 
+            className="rounded-full h-8" 
           >
             Login
           </Button>
@@ -207,7 +207,7 @@ export function MobileLayout({
       </div>
       
       {/* Main content area - always add pb-24 to ensure content doesn't get hidden behind bottom nav */}
-      <main className="pb-24 md:ml-56 p-4">
+      <main className="pb-24 md:ml-56 px-4 py-2">
         {children}
       </main>
       

@@ -97,14 +97,14 @@ export default function PublicTasksPage() {
 
   return (
     <MobileLayout pageTitle="Public Task Board">
-      <div className="space-y-4">
-        <p className="text-muted-foreground">
+      <div className="space-y-3">
+        <p className="text-muted-foreground -mt-1">
           Browse and explore tasks shared by the community
         </p>
 
         {/* Category filters */}
-        <div className="space-y-2">
-          <h2 className="text-sm font-medium text-gray-500">Categories</h2>
+        <div>
+          <h2 className="text-sm font-medium text-gray-500 mb-2">Categories</h2>
           <div className="flex flex-wrap gap-2">
             <Button
               variant={selectedCategory === null ? "secondary" : "outline"}
@@ -129,9 +129,9 @@ export default function PublicTasksPage() {
 
         {/* Login prompt for non-authenticated users */}
         {!user && !isLoading && (
-          <div className="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-md text-indigo-700">
+          <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-md text-indigo-700">
             <p className="font-medium">Browsing as a guest</p>
-            <p className="text-sm mb-3">Sign in to create your own tasks, use templates, and access AI assistance.</p>
+            <p className="text-sm mb-2">Sign in to create your own tasks, use templates, and access AI assistance.</p>
             <Button 
               onClick={() => navigate('/auth')}
               className="bg-indigo-600 hover:bg-indigo-700"
@@ -142,7 +142,7 @@ export default function PublicTasksPage() {
         )}
 
         {/* Tasks grid */}
-        <div className="space-y-4">
+        <div className="space-y-3 mt-1">
           {isLoading ? (
             // Loading skeleton
             Array.from({ length: 3 }).map((_, i) => (
@@ -181,7 +181,7 @@ export default function PublicTasksPage() {
                 className="w-full cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => handleTaskClick(task.id)}
               >
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-2 pt-3 px-4">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{task.title}</CardTitle>
                     <Badge className={getPriorityColor(task.priority)}>
@@ -194,7 +194,7 @@ export default function PublicTasksPage() {
                   </CardDescription>
                 </CardHeader>
                 
-                <CardContent className="pb-2">
+                <CardContent className="py-1 px-4">
                   {task.description && (
                     <p className="text-sm text-gray-600 line-clamp-2 mb-2">
                       {task.description}
@@ -216,10 +216,10 @@ export default function PublicTasksPage() {
                   </div>
                 </CardContent>
                 
-                <CardFooter className="pt-2 pb-3 flex items-center justify-between border-t">
+                <CardFooter className="py-2 px-4 flex items-center justify-between border-t">
                   <div className="flex items-center">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary text-primary-foreground">
+                    <Avatar className="h-7 w-7">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                         {task.user?.username ? getInitials(task.user.username) : '?'}
                       </AvatarFallback>
                     </Avatar>
