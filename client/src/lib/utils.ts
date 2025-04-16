@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { format } from "date-fns"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -19,4 +20,31 @@ export function getInitials(name: string): string {
   }
   
   return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+}
+
+/**
+ * Format a date for display
+ * @param date Date to format
+ * @returns Formatted date string
+ */
+export function formatDate(date: Date): string {
+  try {
+    return format(date, 'MMM d, yyyy');
+  } catch (e) {
+    return 'Invalid date';
+  }
+}
+
+/**
+ * Format a currency amount for display
+ * @param amount Amount to format
+ * @returns Formatted currency string
+ */
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount);
 }

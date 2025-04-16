@@ -1575,6 +1575,215 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get bids received by the user (bids on my tasks)
+  app.get("/api/bids/received", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get all tasks created by the user
+      const userTasks = await storage.getTasksByUserId(req.user.id);
+      
+      if (userTasks.length === 0) {
+        return res.json({ bids: [] });
+      }
+      
+      // Get all task IDs
+      const taskIds = userTasks.map(task => task.id);
+      
+      // Get all bids for these tasks with additional user and task data
+      const bids = [];
+      
+      for (const taskId of taskIds) {
+        const taskBids = await storage.getTaskBids(taskId);
+        
+        if (taskBids.length > 0) {
+          const task = userTasks.find(t => t.id === taskId);
+          
+          for (const bid of taskBids) {
+            const bidder = await storage.getUserProfile(bid.bidderId);
+            
+            if (bidder) {
+              bids.push({
+                ...bid,
+                task,
+                bidder: {
+                  username: bidder.username,
+                  displayName: bidder.displayName
+                }
+              });
+            }
+          }
+        }
+      }
+      
+      res.json({ bids });
+    } catch (error) {
+      console.error("Error getting received bids:", error);
+      res.status(500).json({ message: "Failed to get received bids" });
+    }
+  });
+  
+  // Get bids placed by the user (my bids on others' tasks)
+  app.get("/api/bids/placed", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get all bids by the user
+      const placedBids = [];
+      
+      // Find all task bids where the user is the bidder
+      const allBids = await db.select().from(taskBids).where(eq(taskBids.bidderId, req.user.id));
+      
+      for (const bid of allBids) {
+        const task = await storage.getTaskById(bid.taskId);
+        
+        if (task) {
+          const owner = await storage.getUserProfile(task.userId);
+          
+          if (owner) {
+            placedBids.push({
+              ...bid,
+              task,
+              owner: {
+                username: owner.username,
+                displayName: owner.displayName
+              }
+            });
+          }
+        }
+      }
+      
+      res.json({ bids: placedBids });
+    } catch (error) {
+      console.error("Error getting placed bids:", error);
+      res.status(500).json({ message: "Failed to get placed bids" });
+    }
+  });
+  
+  // Accept a bid (alternative endpoint)
+  app.post("/api/bids/:bidId/accept", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const bidId = parseInt(req.params.bidId);
+      
+      if (isNaN(bidId)) {
+        return res.status(400).json({ message: "Invalid bid ID" });
+      }
+      
+      // Get the bid
+      const bid = await storage.getTaskBidById(bidId);
+      if (!bid) {
+        return res.status(404).json({ message: "Bid not found" });
+      }
+      
+      // Get the task
+      const task = await storage.getTaskById(bid.taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Verify user is the task owner
+      if (task.userId !== req.user.id) {
+        return res.status(403).json({ message: "Only the task owner can accept bids" });
+      }
+      
+      // Accept the bid
+      const updatedTask = await storage.acceptTaskBid(task.id, bidId);
+      if (!updatedTask) {
+        return res.status(500).json({ message: "Failed to accept bid" });
+      }
+      
+      // Notify bidder via WebSocket
+      notifyWebSocketClients({
+        type: 'BID_ACCEPTED',
+        taskId: task.id,
+        bidId,
+        userId: bid.bidderId
+      });
+      
+      // Send a message notification to the bidder
+      await sendBidNotification(
+        task.userId,             // task owner (sender)
+        bid.bidderId,            // bidder (receiver)
+        task.id,                 // task ID
+        bid.amount,              // bid amount
+        `🎉 Your bid on "${task.title}" was accepted!`
+      );
+      
+      res.json({ message: "Bid accepted successfully", task: updatedTask });
+    } catch (error) {
+      console.error("Error accepting bid:", error);
+      res.status(500).json({ message: "Failed to accept bid" });
+    }
+  });
+  
+  // Reject a bid
+  app.post("/api/bids/:bidId/reject", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const bidId = parseInt(req.params.bidId);
+      
+      if (isNaN(bidId)) {
+        return res.status(400).json({ message: "Invalid bid ID" });
+      }
+      
+      // Get the bid
+      const bid = await storage.getTaskBidById(bidId);
+      if (!bid) {
+        return res.status(404).json({ message: "Bid not found" });
+      }
+      
+      // Get the task
+      const task = await storage.getTaskById(bid.taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Verify user is the task owner
+      if (task.userId !== req.user.id) {
+        return res.status(403).json({ message: "Only the task owner can reject bids" });
+      }
+      
+      // Update the bid status to rejected
+      const updatedBid = await storage.updateTaskBid(bidId, { status: 'rejected' });
+      if (!updatedBid) {
+        return res.status(500).json({ message: "Failed to reject bid" });
+      }
+      
+      // Notify bidder via WebSocket
+      notifyWebSocketClients({
+        type: 'BID_REJECTED',
+        taskId: task.id,
+        bidId,
+        userId: bid.bidderId
+      });
+      
+      // Send a message notification to the bidder
+      await sendBidNotification(
+        task.userId,             // task owner (sender)
+        bid.bidderId,            // bidder (receiver)
+        task.id,                 // task ID
+        bid.amount,              // bid amount
+        `Your bid on "${task.title}" was not selected.`
+      );
+      
+      res.json({ message: "Bid rejected successfully", bid: updatedBid });
+    } catch (error) {
+      console.error("Error rejecting bid:", error);
+      res.status(500).json({ message: "Failed to reject bid" });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
   
