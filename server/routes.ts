@@ -1330,9 +1330,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Only the task owner can reject bids" });
       }
       
+      console.log(`Updating bid ${bidId} status to rejected`);
       // Update the bid status to rejected
-      const updatedBid = await storage.updateTaskBid(bidId, { status: 'rejected' });
-      
+      const updatedBid = await storage.updateTaskBid(bidId, { 
+        status: 'rejected',
+        updatedAt: new Date()
+      });
       // Send a message notification to the bidder
       await sendBidNotification(
         task.userId,           // task owner (sender)
