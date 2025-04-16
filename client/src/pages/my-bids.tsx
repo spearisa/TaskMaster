@@ -48,10 +48,14 @@ export default function MyBidsPage() {
       
       const data = await response.json();
       
+      // Make sure we're extracting the bids array from the response
+      const bidsArray = data.bids || [];
+      console.log(`Loaded ${bidsArray.length} ${activeTab} bids:`, bidsArray);
+      
       if (activeTab === 'received') {
-        setReceivedBids(data);
+        setReceivedBids(bidsArray);
       } else {
-        setPlacedBids(data);
+        setPlacedBids(bidsArray);
       }
     } catch (err) {
       setError(err instanceof Error ? err : new Error('An unknown error occurred'));
@@ -99,6 +103,9 @@ export default function MyBidsPage() {
         variant: "default",
       });
       
+      // Reload bids to ensure we have the latest data
+      setTimeout(() => loadBids(), 500);
+      
     } catch (err) {
       // On error, revert the optimistic update
       toast({
@@ -145,6 +152,9 @@ export default function MyBidsPage() {
         description: "The bid has been rejected. The bidder has been notified.",
         variant: "default",
       });
+      
+      // Reload bids to ensure we have the latest data
+      setTimeout(() => loadBids(), 500);
       
     } catch (err) {
       // On error, revert the optimistic update
