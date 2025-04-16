@@ -91,28 +91,28 @@ export default function MessengerPage() {
       pageTitle="Messages"
     >
       
-      <Tabs 
-        defaultValue="direct" 
-        className="w-full"
-        value={activeTab}
-        onValueChange={(val) => setActiveTab(val as any)}
-      >
-        <TabsList className="grid grid-cols-3 mb-4">
-          <TabsTrigger value="direct" className="flex items-center">
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Direct Messages
-          </TabsTrigger>
-          <TabsTrigger value="group" className="flex items-center">
-            <Users className="h-4 w-4 mr-2" />
-            Group Chat
-          </TabsTrigger>
-          <TabsTrigger value="search" className="flex items-center">
-            <Search className="h-4 w-4 mr-2" />
-            Find Users
-          </TabsTrigger>
-        </TabsList>
+      <div className="flex flex-col space-y-2">
+        {/* Message type tabs */}
+        <div className="flex gap-2 justify-between items-center border-b border-gray-100 pb-2 mb-2">
+          <div className="flex-1">
+            <Button variant="ghost" className="text-primary text-sm font-medium px-2 py-1">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Direct Messages
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" className="text-gray-500 text-sm font-medium px-2 py-1">
+              <Users className="h-4 w-4 mr-2" />
+              Group Chat
+            </Button>
+            <Button variant="ghost" className="text-gray-500 text-sm font-medium px-2 py-1">
+              <Search className="h-4 w-4 mr-2" />
+              Find Users
+            </Button>
+          </div>
+        </div>
         
-        <TabsContent value="direct" className="space-y-4">
+        <div className="space-y-4">
           {conversations?.length === 0 ? (
             <div className="text-center py-6 text-gray-500">
               <p>No conversations yet</p>
@@ -154,16 +154,22 @@ export default function MessengerPage() {
               ))}
             </div>
           )}
-        </TabsContent>
+        </div>
         
-        <TabsContent value="group">
-          <Messenger />
-        </TabsContent>
+        {/* Group tab content */}
+        {activeTab === 'group' && (
+          <div className="mt-4">
+            <Messenger />
+          </div>
+        )}
         
-        <TabsContent value="search">
-          <UserSearch onSelectUser={openConversation} />
-        </TabsContent>
-      </Tabs>
+        {/* Search tab content */}
+        {activeTab === 'search' && (
+          <div className="mt-4">
+            <UserSearch onSelectUser={openConversation} />
+          </div>
+        )}
+      </div>
     </MobileLayout>
   );
 }
