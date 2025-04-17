@@ -719,9 +719,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Task not found" });
       }
       
-      // Check if this task belongs to the current user
+      // Check if this task belongs to the current user or is public
       const userId = req.user!.id;
-      if (task.userId !== userId && task.assignedToUserId !== userId) {
+      if (task.userId !== userId && task.assignedToUserId !== userId && !task.isPublic) {
         return res.status(403).json({ message: "You do not have permission to delegate this task" });
       }
       
