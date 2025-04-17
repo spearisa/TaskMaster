@@ -873,6 +873,11 @@ export class DatabaseStorage implements IStorage {
         receiverId: message.receiverId,
         message: message.content, // Map the content field to message field
         read: message.read || false,
+        delivered: message.delivered || false,
+        edited: message.edited || false,
+        deleted: message.deleted || false,
+        reactions: message.reactions ? JSON.stringify(message.reactions) : '{}',
+        replyToId: message.replyToId || null,
         createdAt: message.createdAt || new Date()
       })
       .returning();
@@ -881,7 +886,11 @@ export class DatabaseStorage implements IStorage {
     return {
       ...newMessage,
       // @ts-ignore - This adds a virtual 'content' field for frontend compatibility
-      content: newMessage.message
+      content: newMessage.message,
+      // Parse reactions JSON if it's a string
+      reactions: typeof newMessage.reactions === 'string' 
+        ? JSON.parse(newMessage.reactions as string) 
+        : newMessage.reactions
     };
   }
   
@@ -915,6 +924,159 @@ export class DatabaseStorage implements IStorage {
           )
         )
       );
+  }
+  
+  /**
+   * Mark a message as delivered
+   */
+  async markMessageAsDelivered(messageId: number): Promise<DirectMessage | undefined> {
+    const [message] = await db.update(directMessages)
+      .set({ delivered: true })
+      .where(eq(directMessages.id, messageId))
+      .returning();
+    
+    if (!message) return undefined;
+    
+    return {
+      ...message,
+      // @ts-ignore - This adds a virtual 'content' field for frontend compatibility
+      content: message.message,
+      // Parse reactions JSON if it's a string
+      reactions: typeof message.reactions === 'string' 
+        ? JSON.parse(message.reactions as string) 
+        : message.reactions
+    };
+  }
+  
+  /**
+   * Add a reaction to a message
+   */
+  async addMessageReaction(messageId: number, userId: number, emoji: string): Promise<DirectMessage | undefined> {
+    // First get the current message to access its reactions
+    const [message] = await db.select().from(directMessages).where(eq(directMessages.id, messageId));
+    
+    if (!message) return undefined;
+    
+    // Parse current reactions
+    const reactions = typeof message.reactions === 'string' 
+      ? JSON.parse(message.reactions as string) 
+      : message.reactions || {};
+    
+    // Add or increment the reaction
+    if (!reactions[emoji]) {
+      reactions[emoji] = 1;
+    } else {
+      reactions[emoji]++;
+    }
+    
+    // Update the message with the new reactions
+    const [updatedMessage] = await db.update(directMessages)
+      .set({ reactions: JSON.stringify(reactions) })
+      .where(eq(directMessages.id, messageId))
+      .returning();
+    
+    if (!updatedMessage) return undefined;
+    
+    return {
+      ...updatedMessage,
+      // @ts-ignore - This adds a virtual 'content' field for frontend compatibility
+      content: updatedMessage.message,
+      // Parse reactions JSON
+      reactions: typeof updatedMessage.reactions === 'string' 
+        ? JSON.parse(updatedMessage.reactions as string) 
+        : updatedMessage.reactions
+    };
+  }
+  
+  /**
+   * Remove a reaction from a message
+   */
+  async removeMessageReaction(messageId: number, emoji: string): Promise<DirectMessage | undefined> {
+    // First get the current message to access its reactions
+    const [message] = await db.select().from(directMessages).where(eq(directMessages.id, messageId));
+    
+    if (!message) return undefined;
+    
+    // Parse current reactions
+    const reactions = typeof message.reactions === 'string' 
+      ? JSON.parse(message.reactions as string) 
+      : message.reactions || {};
+    
+    // Decrement or remove the reaction
+    if (reactions[emoji] && reactions[emoji] > 1) {
+      reactions[emoji]--;
+    } else {
+      delete reactions[emoji];
+    }
+    
+    // Update the message with the new reactions
+    const [updatedMessage] = await db.update(directMessages)
+      .set({ reactions: JSON.stringify(reactions) })
+      .where(eq(directMessages.id, messageId))
+      .returning();
+    
+    if (!updatedMessage) return undefined;
+    
+    return {
+      ...updatedMessage,
+      // @ts-ignore - This adds a virtual 'content' field for frontend compatibility
+      content: updatedMessage.message,
+      // Parse reactions JSON
+      reactions: typeof updatedMessage.reactions === 'string' 
+        ? JSON.parse(updatedMessage.reactions as string) 
+        : updatedMessage.reactions
+    };
+  }
+  
+  /**
+   * Edit a message
+   */
+  async editMessage(messageId: number, newContent: string): Promise<DirectMessage | undefined> {
+    const [message] = await db.update(directMessages)
+      .set({ 
+        message: newContent,
+        edited: true,
+        editedAt: new Date()
+      })
+      .where(eq(directMessages.id, messageId))
+      .returning();
+    
+    if (!message) return undefined;
+    
+    return {
+      ...message,
+      // @ts-ignore - This adds a virtual 'content' field for frontend compatibility
+      content: message.message,
+      // Parse reactions JSON
+      reactions: typeof message.reactions === 'string' 
+        ? JSON.parse(message.reactions as string) 
+        : message.reactions
+    };
+  }
+  
+  /**
+   * Delete a message (soft delete)
+   */
+  async deleteMessage(messageId: number): Promise<DirectMessage | undefined> {
+    const [message] = await db.update(directMessages)
+      .set({ 
+        deleted: true,
+        message: "This message has been deleted"
+      })
+      .where(eq(directMessages.id, messageId))
+      .returning();
+    
+    if (!message) return undefined;
+    
+    return {
+      ...message,
+      // @ts-ignore - This adds a virtual 'content' field for frontend compatibility
+      content: message.message,
+      // Parse reactions JSON
+      reactions: typeof message.reactions === 'string' 
+        ? JSON.parse(message.reactions as string) 
+        : message.reactions
+    };
   }
   
   // Task Template methods

@@ -955,6 +955,173 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add a reaction to a message
+  app.post("/api/messages/:messageId/reactions", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const messageId = parseInt(req.params.messageId);
+      const { emoji } = req.body;
+      
+      if (!emoji) {
+        return res.status(400).json({ message: "Emoji is required" });
+      }
+      
+      const message = await storage.addMessageReaction(messageId, req.user!.id, emoji);
+      
+      if (!message) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+      
+      // Notify connected WebSocket clients
+      notifyWebSocketClients({
+        type: 'message_reaction',
+        messageId,
+        reactions: message.reactions,
+        userId: req.user!.id,
+        emoji
+      });
+      
+      return res.status(200).json(message);
+    } catch (error) {
+      console.error("Error adding message reaction:", error);
+      return res.status(500).json({ message: "Failed to add reaction", error: error.message });
+    }
+  });
+
+  // Remove a reaction from a message
+  app.delete("/api/messages/:messageId/reactions/:emoji", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const messageId = parseInt(req.params.messageId);
+      const emoji = decodeURIComponent(req.params.emoji);
+      
+      const message = await storage.removeMessageReaction(messageId, emoji);
+      
+      if (!message) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+      
+      // Notify connected WebSocket clients
+      notifyWebSocketClients({
+        type: 'message_reaction_remove',
+        messageId,
+        reactions: message.reactions,
+        userId: req.user!.id,
+        emoji
+      });
+      
+      return res.status(200).json(message);
+    } catch (error) {
+      console.error("Error removing message reaction:", error);
+      return res.status(500).json({ message: "Failed to remove reaction", error: error.message });
+    }
+  });
+
+  // Edit a message
+  app.put("/api/messages/:messageId", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const messageId = parseInt(req.params.messageId);
+      const { content } = req.body;
+      
+      if (!content) {
+        return res.status(400).json({ message: "Content is required" });
+      }
+      
+      const message = await storage.editMessage(messageId, content);
+      
+      if (!message) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+      
+      // Notify connected WebSocket clients
+      notifyWebSocketClients({
+        type: 'message_edit',
+        messageId,
+        content,
+        edited: message.edited,
+        editedAt: message.editedAt
+      });
+      
+      return res.status(200).json(message);
+    } catch (error) {
+      console.error("Error editing message:", error);
+      return res.status(500).json({ message: "Failed to edit message", error: error.message });
+    }
+  });
+
+  // Delete a message (soft delete)
+  app.delete("/api/messages/:messageId", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const messageId = parseInt(req.params.messageId);
+      
+      const message = await storage.deleteMessage(messageId);
+      
+      if (!message) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+      
+      // Notify connected WebSocket clients
+      notifyWebSocketClients({
+        type: 'message_delete',
+        messageId,
+        deleted: message.deleted
+      });
+      
+      return res.status(200).json(message);
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      return res.status(500).json({ message: "Failed to delete message", error: error.message });
+    }
+  });
+
+  // Mark a message as delivered
+  app.post("/api/messages/:messageId/delivered", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const messageId = parseInt(req.params.messageId);
+      
+      const message = await storage.markMessageAsDelivered(messageId);
+      
+      if (!message) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+      
+      // Notify connected WebSocket clients
+      notifyWebSocketClients({
+        type: 'message_delivered',
+        messageId,
+        delivered: message.delivered
+      });
+      
+      return res.status(200).json(message);
+    } catch (error) {
+      console.error("Error marking message as delivered:", error);
+      return res.status(500).json({ message: "Failed to mark message as delivered", error: error.message });
+    }
+  });
+
   // Task template routes
   
   // Get templates for the currently authenticated user
