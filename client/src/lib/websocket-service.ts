@@ -90,10 +90,10 @@ class WebSocketService {
     this.reconnectAttempts = 0;
     this.updateStatus('connected');
 
-    // Register with user ID
+    // Authenticate with user ID
     if (this.socket && this.userId) {
       this.socket.send(JSON.stringify({
-        type: 'register',
+        type: 'auth',
         userId: this.userId
       }));
     }
@@ -207,6 +207,70 @@ class WebSocketService {
       }
     }
     return false;
+  }
+  
+  /**
+   * Send a chat message via WebSocket
+   */
+  public sendChatMessage(receiverId: number, content: string): boolean {
+    return this.send({
+      type: 'message',
+      receiverId,
+      content
+    });
+  }
+  
+  /**
+   * Add a reaction to a message
+   */
+  public addMessageReaction(messageId: number, emoji: string): boolean {
+    return this.send({
+      type: 'message_reaction',
+      messageId,
+      emoji
+    });
+  }
+  
+  /**
+   * Remove a reaction from a message
+   */
+  public removeMessageReaction(messageId: number, emoji: string): boolean {
+    return this.send({
+      type: 'message_reaction_remove',
+      messageId,
+      emoji
+    });
+  }
+  
+  /**
+   * Edit a message
+   */
+  public editMessage(messageId: number, content: string): boolean {
+    return this.send({
+      type: 'message_edit',
+      messageId,
+      content
+    });
+  }
+  
+  /**
+   * Mark a message as delivered
+   */
+  public markMessageDelivered(messageId: number): boolean {
+    return this.send({
+      type: 'message_delivered',
+      messageId
+    });
+  }
+  
+  /**
+   * Delete a message
+   */
+  public deleteMessage(messageId: number): boolean {
+    return this.send({
+      type: 'message_delete',
+      messageId
+    });
   }
 
   /**

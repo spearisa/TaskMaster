@@ -2091,15 +2091,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Enhanced WebSocket notification function
   function notifyWebSocketClients(data: any) {
-    if (data.receiverId && connectedClients.has(data.receiverId)) {
-      const receiverSockets = connectedClients.get(data.receiverId)!;
-      
-      for (const socket of receiverSockets) {
-        if (socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify(data));
+    // Different notification types need different handling
+    switch(data.type) {
+      case 'new_message':
+        // Send new message notification to the receiver
+        if (data.receiverId && connectedClients.has(data.receiverId)) {
+          const receiverSockets = connectedClients.get(data.receiverId)!;
+          
+          for (const socket of receiverSockets) {
+            if (socket.readyState === WebSocket.OPEN) {
+              socket.send(JSON.stringify(data));
+            }
+          }
         }
-      }
+        break;
+        
+      case 'message_reaction':
+      case 'message_reaction_remove':
+      case 'message_edit':
+      case 'message_delete':
+      case 'message_delivered':
+        // For these events, we need to notify both the sender and receiver
+        // We'll extract both IDs from the message data
+        const message = data.message;
+        if (message) {
+          // Determine who should receive this notification
+          const userIds = [message.senderId, message.receiverId].filter(Boolean);
+          
+          // Send to all relevant users
+          for (const userId of userIds) {
+            if (connectedClients.has(userId)) {
+              const userSockets = connectedClients.get(userId)!;
+              
+              for (const socket of userSockets) {
+                if (socket.readyState === WebSocket.OPEN) {
+                  socket.send(JSON.stringify(data));
+                }
+              }
+            }
+          }
+        } else if (data.messageId) {
+          // If we don't have the full message but we have participants
+          // like in reactions where we might only pass IDs
+          const userIds = [];
+          
+          // Always include the user who triggered the action
+          if (data.userId) {
+            userIds.push(data.userId);
+          }
+          
+          // For reactions we need to find out who else should be notified
+          // This could be enhanced with a database lookup to find message participants
+          
+          // Send to all available users (could be improved with more specific targeting)
+          for (const [userId, userSockets] of connectedClients.entries()) {
+            for (const socket of userSockets) {
+              if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify(data));
+              }
+            }
+          }
+        }
+        break;
+        
+      default:
+        // For any other notification type, use the original behavior
+        if (data.receiverId && connectedClients.has(data.receiverId)) {
+          const receiverSockets = connectedClients.get(data.receiverId)!;
+          
+          for (const socket of receiverSockets) {
+            if (socket.readyState === WebSocket.OPEN) {
+              socket.send(JSON.stringify(data));
+            }
+          }
+        }
+        break;
     }
   }
 
