@@ -113,25 +113,44 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Start server on fixed port for Replit compatibility
-  // Replit expects the server to run on port 5000
-  const PORT = process.env.PORT || 5000;
-  
-  server.listen(PORT, "0.0.0.0", () => {
-    log(`Server successfully started on port ${PORT}`);
-  });
-  
-  server.on('error', (err: any) => {
-    if (err.code === 'EADDRINUSE') {
-      log(`Port ${PORT} is already in use. This may affect Replit workflow detection.`);
-      // Use a fallback port - note this may cause workflow detection issues in Replit
-      const fallbackPort = 5001;
-      server.listen(fallbackPort, "0.0.0.0", () => {
-        log(`Server successfully started on fallback port ${fallbackPort}`);
-      });
-    } else {
-      log(`Server error: ${err.message}`);
-      process.exit(1);
+  // Start server with port fallback for Replit compatibility
+  const startServer = async () => {
+    const availablePorts = [5000, 5001, 5002, 5003, 5004];
+    
+    for (const port of availablePorts) {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          server.once('error', (err: any) => {
+            if (err.code === 'EADDRINUSE') {
+              log(`Port ${port} is already in use, trying next port...`);
+              server.removeAllListeners('listening');
+              server.removeAllListeners('error');
+              resolve(); // Continue to next port
+            } else {
+              reject(err);
+            }
+          });
+          
+          server.once('listening', () => {
+            log(`Server successfully started on port ${port}`);
+            resolve();
+          });
+          
+          server.listen(port, "0.0.0.0");
+        });
+        
+        // If we reach here without moving to the next port, server started successfully
+        break;
+      } catch (err: any) {
+        log(`Error starting server: ${err.message}`);
+        if (port === availablePorts[availablePorts.length - 1]) {
+          // If we've tried all ports and still failed, exit
+          process.exit(1);
+        }
+      }
     }
-  });
+  };
+  
+  // Start the server with fallback
+  startServer();
 })();
