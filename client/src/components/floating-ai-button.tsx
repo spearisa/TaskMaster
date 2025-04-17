@@ -71,7 +71,7 @@ export function FloatingAIButton() {
       {/* Main floating button */}
       <div 
         className={cn(
-          "fixed bottom-24 right-4 z-50 transition-all duration-300",
+          "fixed bottom-20 right-4 z-30 transition-all duration-300 md:bottom-8",
           menuOpen ? "scale-0 opacity-0" : "scale-100 opacity-100"
         )}
       >
@@ -87,7 +87,7 @@ export function FloatingAIButton() {
       {/* Menu that appears when the button is clicked */}
       <div 
         className={cn(
-          "fixed bottom-24 right-4 z-50 transition-all duration-300",
+          "fixed bottom-20 right-4 z-30 transition-all duration-300 md:bottom-8",
           !menuOpen ? "scale-0 opacity-0" : "scale-100 opacity-100"
         )}
       >
@@ -128,7 +128,7 @@ export function FloatingAIButton() {
       {/* Backdrop overlay when menu is open */}
       {menuOpen && (
         <div 
-          className="fixed inset-0 bg-black/10 z-40"
+          className="fixed inset-0 bg-black/10 z-20"
           onClick={() => setMenuOpen(false)}
         />
       )}

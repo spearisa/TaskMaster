@@ -118,6 +118,31 @@ app.use((req, res, next) => {
     // Expanded range of ports to try
     const availablePorts = [5000, 5001, 5002, 5003, 5004, 5005, 5006, 5007, 5008, 5009, 5010, 3000, 3001, 3002, 8000, 8001, 8080, 8081];
     
+    // Try to get a previous port from storage to avoid the same port
+    let lastPortUsed = Number(process.env.LAST_PORT_USED || '0');
+    
+    // Also check for a saved port file from previous runs
+    try {
+      const fs = require('fs');
+      if (fs.existsSync('.port.txt')) {
+        const savedPort = Number(fs.readFileSync('.port.txt', 'utf8').trim());
+        if (savedPort > 0) {
+          lastPortUsed = savedPort;
+          log(`Found previously used port ${lastPortUsed} in .port.txt`);
+        }
+      }
+    } catch (e) {
+      // Non-critical if this fails
+    }
+    if (lastPortUsed > 0) {
+      // Move the last used port to the end of the array to try other ports first
+      const index = availablePorts.indexOf(lastPortUsed);
+      if (index !== -1) {
+        availablePorts.splice(index, 1);
+        availablePorts.push(lastPortUsed);
+      }
+    }
+    
     for (const port of availablePorts) {
       try {
         await new Promise<void>((resolve, reject) => {
@@ -143,12 +168,22 @@ app.use((req, res, next) => {
           
           server.once('listening', () => {
             clearTimeout(timeout);
+            // Save the current port to process.env so we can avoid it next time
+            process.env.LAST_PORT_USED = String(port);
             log(`Server successfully started on port ${port}`);
             
             // Let the user know which port we're using
             console.log(`\n\n--------------------------------------------`);
             console.log(`🚀 Appmo server running on port: ${port}`);
             console.log(`--------------------------------------------\n\n`);
+            
+            // Save to a file for persistence across restarts
+            try {
+              const fs = require('fs');
+              fs.writeFileSync('.port.txt', String(port));
+            } catch (e) {
+              // Non-critical if this fails
+            }
             
             resolve();
           });

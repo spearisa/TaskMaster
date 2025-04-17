@@ -98,7 +98,7 @@ export function MobileLayout({
   return (
     <div className="bg-white min-h-screen flex flex-col">
       {/* Header with title and menu button - minimized height */}
-      <header className="sticky top-0 z-40 bg-white border-b border-gray-100 px-4 h-10 flex justify-between items-center">
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-100 px-4 h-10 flex justify-between items-center shadow-sm">
         <div className="flex items-center">
           {showBackButton ? (
             <Button 
