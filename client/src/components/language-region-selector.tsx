@@ -93,18 +93,45 @@ export function LanguageRegionSelector() {
             <span className="text-sm">{t('common.loading')}</span>
           </div>
         ) : (
-          languages.map((language) => (
-            <DropdownMenuItem
-              key={language.code}
-              className="cursor-pointer flex justify-between"
-              onClick={() => changeLanguage(language.code)}
-            >
-              {language.name}
-              {currentLanguage === language.code && (
-                <Check className="h-4 w-4 text-primary" />
-              )}
-            </DropdownMenuItem>
-          ))
+          <div className="max-h-48 overflow-y-auto">
+            <input 
+              type="text" 
+              placeholder={t('common.search')} 
+              className="w-full px-2 py-1 mb-2 text-sm border rounded"
+              onChange={(e) => {
+                const input = e.target.value.toLowerCase();
+                const container = e.target.parentElement;
+                if (container) {
+                  const items = container.querySelectorAll('div[data-language-item]');
+                  items.forEach(item => {
+                    const text = item.textContent?.toLowerCase() || '';
+                    if (text.includes(input)) {
+                      item.classList.remove('hidden');
+                    } else {
+                      item.classList.add('hidden');
+                    }
+                  });
+                }
+              }}
+            />
+            {languages.map((language) => (
+              <div 
+                key={language.code} 
+                data-language-item="true"
+                className="cursor-pointer"
+              >
+                <DropdownMenuItem
+                  className="flex justify-between"
+                  onClick={() => changeLanguage(language.code)}
+                >
+                  {language.name}
+                  {currentLanguage === language.code && (
+                    <Check className="h-4 w-4 text-primary" />
+                  )}
+                </DropdownMenuItem>
+              </div>
+            ))}
+          </div>
         )}
         
         <DropdownMenuSeparator />
@@ -117,18 +144,43 @@ export function LanguageRegionSelector() {
             <span className="text-sm">{t('common.loading')}</span>
           </div>
         ) : (
-          <div className="max-h-32 overflow-y-auto">
+          <div className="max-h-48 overflow-y-auto">
+            <input 
+              type="text" 
+              placeholder={t('common.search')} 
+              className="w-full px-2 py-1 mb-2 text-sm border rounded"
+              onChange={(e) => {
+                const input = e.target.value.toLowerCase();
+                const container = e.target.parentElement;
+                if (container) {
+                  const items = container.querySelectorAll('div[data-region-item]');
+                  items.forEach(item => {
+                    const text = item.textContent?.toLowerCase() || '';
+                    if (text.includes(input)) {
+                      item.classList.remove('hidden');
+                    } else {
+                      item.classList.add('hidden');
+                    }
+                  });
+                }
+              }}
+            />
             {regions.map((region) => (
-              <DropdownMenuItem
-                key={region.code}
-                className="cursor-pointer flex justify-between"
-                onClick={() => handleRegionChange(region.code)}
+              <div 
+                key={region.code} 
+                data-region-item="true"
+                className="cursor-pointer"
               >
-                {region.name}
-                {currentRegion === region.code && (
-                  <Check className="h-4 w-4 text-primary" />
-                )}
-              </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="flex justify-between"
+                  onClick={() => handleRegionChange(region.code)}
+                >
+                  {region.name}
+                  {currentRegion === region.code && (
+                    <Check className="h-4 w-4 text-primary" />
+                  )}
+                </DropdownMenuItem>
+              </div>
             ))}
           </div>
         )}

@@ -739,67 +739,165 @@ export const getAvailableLanguages = () => [
   { code: 'ja', name: '日本語' },
   { code: 'ko', name: '한국어' },
   { code: 'ar', name: 'العربية' },
+  { code: 'hi', name: 'हिन्दी' },
+  { code: 'id', name: 'Bahasa Indonesia' },
+  { code: 'tr', name: 'Türkçe' },
+  { code: 'nl', name: 'Nederlands' },
+  { code: 'pl', name: 'Polski' },
+  { code: 'sv', name: 'Svenska' },
+  { code: 'vi', name: 'Tiếng Việt' },
+  { code: 'th', name: 'ไทย' },
+  { code: 'he', name: 'עברית' },
 ];
 
 // List of available regions
 export const getAvailableRegions = () => [
+  // North America
   { code: 'US', name: 'United States' },
-  { code: 'GB', name: 'United Kingdom' },
   { code: 'CA', name: 'Canada' },
-  { code: 'AU', name: 'Australia' },
-  { code: 'ES', name: 'Spain' },
+  { code: 'MX', name: 'Mexico' },
+  
+  // South America
+  { code: 'BR', name: 'Brazil' },
+  { code: 'AR', name: 'Argentina' },
+  { code: 'CL', name: 'Chile' },
+  { code: 'CO', name: 'Colombia' },
+  { code: 'PE', name: 'Peru' },
+  { code: 'VE', name: 'Venezuela' },
+  
+  // Europe
+  { code: 'GB', name: 'United Kingdom' },
   { code: 'FR', name: 'France' },
   { code: 'DE', name: 'Germany' },
   { code: 'IT', name: 'Italy' },
-  { code: 'BR', name: 'Brazil' },
-  { code: 'MX', name: 'Mexico' },
-  { code: 'JP', name: 'Japan' },
-  { code: 'CN', name: 'China' },
-  { code: 'IN', name: 'India' },
+  { code: 'ES', name: 'Spain' },
+  { code: 'PT', name: 'Portugal' },
+  { code: 'NL', name: 'Netherlands' },
+  { code: 'BE', name: 'Belgium' },
+  { code: 'CH', name: 'Switzerland' },
+  { code: 'AT', name: 'Austria' },
+  { code: 'PL', name: 'Poland' },
+  { code: 'SE', name: 'Sweden' },
   { code: 'RU', name: 'Russia' },
+  
+  // Asia
+  { code: 'CN', name: 'China' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'KR', name: 'South Korea' },
+  { code: 'IN', name: 'India' },
+  { code: 'ID', name: 'Indonesia' },
+  { code: 'SG', name: 'Singapore' },
+  { code: 'TH', name: 'Thailand' },
+  { code: 'VN', name: 'Vietnam' },
+  { code: 'HK', name: 'Hong Kong' },
+  { code: 'TW', name: 'Taiwan' },
+  
+  // Middle East
   { code: 'SA', name: 'Saudi Arabia' },
+  { code: 'AE', name: 'United Arab Emirates' },
+  { code: 'IL', name: 'Israel' },
+  { code: 'TR', name: 'Turkey' },
+  { code: 'EG', name: 'Egypt' },
+  
+  // Oceania
+  { code: 'AU', name: 'Australia' },
+  { code: 'NZ', name: 'New Zealand' },
 ];
 
 // Map country codes to language codes
 const countryToLanguageMap: Record<string, string> = {
-  US: 'en', // United States - English
-  GB: 'en', // United Kingdom - English
-  CA: 'en', // Canada - English (could be fr based on region)
-  AU: 'en', // Australia - English
-  NZ: 'en', // New Zealand - English
-  IE: 'en', // Ireland - English
+  // English
+  US: 'en', // United States
+  GB: 'en', // United Kingdom
+  CA: 'en', // Canada (could be fr based on region)
+  AU: 'en', // Australia
+  NZ: 'en', // New Zealand
+  IE: 'en', // Ireland
+  ZA: 'en', // South Africa
   
-  ES: 'es', // Spain - Spanish
-  MX: 'es', // Mexico - Spanish
-  AR: 'es', // Argentina - Spanish
-  CL: 'es', // Chile - Spanish
-  CO: 'es', // Colombia - Spanish
+  // Spanish
+  ES: 'es', // Spain
+  MX: 'es', // Mexico
+  AR: 'es', // Argentina
+  CL: 'es', // Chile
+  CO: 'es', // Colombia
+  PE: 'es', // Peru
+  VE: 'es', // Venezuela
   
-  FR: 'fr', // France - French
-  BE: 'fr', // Belgium - French (could be nl based on region)
-  CH: 'fr', // Switzerland - French (could be de, it based on region)
+  // French
+  FR: 'fr', // France
+  BE: 'fr', // Belgium (could be nl based on region)
+  CH: 'fr', // Switzerland (could be de, it based on region)
+  CA_QC: 'fr', // Quebec, Canada
   
-  DE: 'de', // Germany - German
-  AT: 'de', // Austria - German
+  // German
+  DE: 'de', // Germany
+  AT: 'de', // Austria
+  CH_DE: 'de', // German-speaking Switzerland
   
-  IT: 'it', // Italy - Italian
+  // Italian
+  IT: 'it', // Italy
+  CH_IT: 'it', // Italian-speaking Switzerland
+  SM: 'it', // San Marino
   
-  PT: 'pt', // Portugal - Portuguese
-  BR: 'pt', // Brazil - Portuguese
+  // Portuguese
+  PT: 'pt', // Portugal
+  BR: 'pt', // Brazil
+  AO: 'pt', // Angola
+  MZ: 'pt', // Mozambique
   
-  RU: 'ru', // Russia - Russian
+  // Russian
+  RU: 'ru', // Russia
+  BY: 'ru', // Belarus
+  KZ: 'ru', // Kazakhstan
   
-  CN: 'zh', // China - Chinese
-  TW: 'zh', // Taiwan - Chinese
-  HK: 'zh', // Hong Kong - Chinese
+  // Chinese
+  CN: 'zh', // China
+  TW: 'zh', // Taiwan
+  HK: 'zh', // Hong Kong
+  SG: 'zh', // Singapore (Chinese population)
   
-  JP: 'ja', // Japan - Japanese
+  // Japanese
+  JP: 'ja', // Japan
   
-  KR: 'ko', // South Korea - Korean
+  // Korean
+  KR: 'ko', // South Korea
   
-  SA: 'ar', // Saudi Arabia - Arabic
-  AE: 'ar', // UAE - Arabic
-  EG: 'ar', // Egypt - Arabic
+  // Arabic
+  SA: 'ar', // Saudi Arabia
+  AE: 'ar', // UAE
+  EG: 'ar', // Egypt
+  JO: 'ar', // Jordan
+  LB: 'ar', // Lebanon
+  
+  // Hindi
+  IN: 'hi', // India
+  
+  // Indonesian
+  ID: 'id', // Indonesia
+  
+  // Turkish
+  TR: 'tr', // Turkey
+  
+  // Dutch
+  NL: 'nl', // Netherlands
+  BE_NL: 'nl', // Dutch-speaking Belgium (Flanders)
+  
+  // Polish
+  PL: 'pl', // Poland
+  
+  // Swedish
+  SE: 'sv', // Sweden
+  FI_SV: 'sv', // Swedish-speaking Finland
+  
+  // Vietnamese
+  VN: 'vi', // Vietnam
+  
+  // Thai
+  TH: 'th', // Thailand
+  
+  // Hebrew
+  IL: 'he', // Israel
 };
 
 // Function to get current language
