@@ -73,7 +73,8 @@ export function LanguageRegionSelector() {
   const handleRegionChange = (regionCode: string) => {
     setCurrentRegion(regionCode);
     localStorage.setItem('appmoRegion', regionCode);
-    setLanguageByCountry(regionCode);
+    const newLanguage = setLanguageByCountry(regionCode);
+    console.log(`Region changed to ${regionCode}, language set to ${newLanguage}`);
   };
   
   return (
@@ -123,11 +124,16 @@ export function LanguageRegionSelector() {
                 <DropdownMenuItem
                   className="flex justify-between"
                   onClick={() => {
-                    // Change language and force page reload to apply changes everywhere
-                    changeLanguage(language.code);
-                    // Wait a moment for the language to be saved to localStorage
+                    // Use direct approach for language change
+                    console.log(`Language selection clicked: ${language.code}`);
+                    // First set in localStorage directly (this is what i18next reads on page load)
+                    localStorage.setItem('i18nextLng', language.code);
+                    // Then trigger language change in i18next
+                    i18n.changeLanguage(language.code);
+                    // Force reload after a short delay
                     setTimeout(() => {
-                      window.location.reload();
+                      console.log(`Forcing reload to apply language change to ${language.code}`);
+                      window.location.href = window.location.href.split('?')[0]; // Remove any query params
                     }, 100);
                   }}
                 >
@@ -181,10 +187,21 @@ export function LanguageRegionSelector() {
                 <DropdownMenuItem
                   className="flex justify-between"
                   onClick={() => {
-                    handleRegionChange(region.code);
-                    // Wait a moment for the region to be saved to localStorage
+                    // Direct approach for region change as well
+                    console.log(`Region selection clicked: ${region.code}`);
+                    // First set directly in localStorage
+                    localStorage.setItem('appmoRegion', region.code);
+                    // Set language based on region
+                    const languageCode = setLanguageByCountry(region.code);
+                    console.log(`Region ${region.code} maps to language ${languageCode}`);
+                    // First set in localStorage directly (this is what i18next reads on page load)
+                    localStorage.setItem('i18nextLng', languageCode);
+                    // Then trigger language change in i18next
+                    i18n.changeLanguage(languageCode);
+                    // Force reload after a short delay
                     setTimeout(() => {
-                      window.location.reload();
+                      console.log(`Forcing reload to apply region/language change`);
+                      window.location.href = window.location.href.split('?')[0]; // Remove any query params
                     }, 100);
                   }}
                 >

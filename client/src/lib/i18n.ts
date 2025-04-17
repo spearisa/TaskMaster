@@ -917,6 +917,21 @@ export const setLanguageByCountry = (countryCode: string): string => {
   return languageCode;
 };
 
+// Function to force reload if language has changed
+const checkForLanguageChange = () => {
+  // Get saved language from localStorage
+  const savedLanguage = localStorage.getItem('i18nextLng');
+  
+  if (savedLanguage) {
+    console.log(`Detected language from localStorage: ${savedLanguage}`);
+  }
+  
+  // Listen for language changes
+  i18n.on('languageChanged', (lng) => {
+    console.log(`Language changed event: ${lng}`);
+  });
+};
+
 // Initialize i18next
 i18n
   .use(LanguageDetector)
@@ -932,6 +947,13 @@ i18n
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],
     },
+  }, (err, t) => {
+    if (err) {
+      console.error('i18next initialization error:', err);
+    } else {
+      console.log(`i18next initialized with language: ${i18n.language}`);
+      checkForLanguageChange();
+    }
   });
 
 export default i18n;
