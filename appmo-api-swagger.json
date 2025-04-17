@@ -1,8 +1,8 @@
 {
-  "openapi": "3.0.3",
+  "openapi": "3.0.0",
   "info": {
     "title": "Appmo API",
-    "description": "API documentation for Appmo - Intelligent Task Management Platform",
+    "description": "API for Appmo task management platform",
     "version": "1.0.0",
     "contact": {
       "name": "Appmo Support",
@@ -12,274 +12,682 @@
   },
   "servers": [
     {
-      "url": "/api",
-      "description": "Production Server"
+      "url": "https://api.appmo.com",
+      "description": "Production server"
+    },
+    {
+      "url": "https://staging.api.appmo.com",
+      "description": "Staging server"
     }
   ],
   "tags": [
     {
-      "name": "authentication",
-      "description": "Authentication operations"
+      "name": "Authentication",
+      "description": "Authentication endpoints"
     },
     {
-      "name": "tasks",
-      "description": "Task management operations"
+      "name": "Tasks",
+      "description": "Task management endpoints"
     },
     {
-      "name": "templates",
-      "description": "Task template operations"
+      "name": "Templates",
+      "description": "Task template management endpoints"
     },
     {
-      "name": "bids",
-      "description": "Task bidding operations"
+      "name": "Bidding",
+      "description": "Task bidding endpoints"
     },
     {
-      "name": "messages",
-      "description": "Messaging operations"
+      "name": "Messaging",
+      "description": "Direct messaging endpoints"
     },
     {
-      "name": "users",
-      "description": "User profile operations"
+      "name": "Users",
+      "description": "User management endpoints"
     },
     {
-      "name": "ai",
-      "description": "AI features operations"
+      "name": "AI",
+      "description": "AI assistant integration endpoints"
+    },
+    {
+      "name": "API Keys",
+      "description": "API key management endpoints"
     }
   ],
   "paths": {
-    "/login": {
+    "/api/register": {
       "post": {
-        "tags": [
-          "authentication"
-        ],
-        "summary": "User login",
-        "description": "Authenticate a user and start a session",
-        "operationId": "loginUser",
+        "tags": ["Authentication"],
+        "summary": "Register a new user",
+        "description": "Create a new user account with username and password",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful login",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/User"
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "example": "johndoe"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "example": "securepassword123"
+                  },
+                  "displayName": {
+                    "type": "string",
+                    "example": "John Doe"
+                  }
                 }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/register": {
-      "post": {
-        "tags": [
-          "authentication"
-        ],
-        "summary": "User registration",
-        "description": "Register a new user account",
-        "operationId": "registerUser",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterRequest"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Account created successfully",
+            "description": "User registered successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/User"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "username": {
+                      "type": "string",
+                      "example": "johndoe"
+                    },
+                    "displayName": {
+                      "type": "string",
+                      "example": "John Doe"
+                    }
+                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid input or username already exists",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Invalid input or username already exists"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
       }
     },
-    "/auth/google": {
+    "/api/login": {
       "post": {
-        "tags": [
-          "authentication"
-        ],
-        "summary": "Google authentication",
-        "description": "Authenticate a user with Google credentials",
-        "operationId": "googleAuth",
+        "tags": ["Authentication"],
+        "summary": "Log in a user",
+        "description": "Authenticate a user with username and password",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GoogleAuthRequest"
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "example": "johndoe"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "example": "securepassword123"
+                  }
+                }
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Successful authentication",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/User"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid token",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/logout": {
-      "post": {
-        "tags": [
-          "authentication"
-        ],
-        "summary": "User logout",
-        "description": "End the current user session",
-        "operationId": "logoutUser",
-        "responses": {
-          "200": {
-            "description": "Successful logout",
+            "description": "User authenticated successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "username": {
+                      "type": "string",
+                      "example": "johndoe"
+                    },
+                    "displayName": {
+                      "type": "string",
+                      "example": "John Doe"
                     }
                   }
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "/user": {
-      "get": {
-        "tags": [
-          "authentication"
-        ],
-        "summary": "Get current user",
-        "description": "Get the profile of the currently authenticated user",
-        "operationId": "getCurrentUser",
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/User"
-                }
-              }
-            }
           },
           "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
       }
     },
-    "/tasks": {
-      "get": {
-        "tags": [
-          "tasks"
-        ],
-        "summary": "Get all tasks",
-        "description": "Get all tasks for the authenticated user",
-        "operationId": "getAllTasks",
+    "/api/logout": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Log out the current user",
+        "description": "End the user's session",
         "responses": {
           "200": {
-            "description": "Successful operation",
+            "description": "User logged out successfully"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/user": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get current user data",
+        "description": "Retrieve information about the currently authenticated user",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User data retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Task"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "username": {
+                      "type": "string",
+                      "example": "johndoe"
+                    },
+                    "displayName": {
+                      "type": "string",
+                      "example": "John Doe"
+                    },
+                    "bio": {
+                      "type": "string",
+                      "example": "I'm a productivity enthusiast who loves trying new task management methods."
+                    },
+                    "interests": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": ["productivity", "technology", "time management"]
+                    },
+                    "skills": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": ["organization", "planning", "prioritization"]
+                    },
+                    "avatarUrl": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2025-04-07T17:32:33.772Z"
+                    }
                   }
                 }
               }
             }
           },
           "401": {
-            "description": "Not authenticated",
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/users/search": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Search for users",
+        "description": "Search for users by username, display name, interests, or skills",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "description": "Search query string",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users found",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "example": 2
+                      },
+                      "username": {
+                        "type": "string",
+                        "example": "sarahsmith"
+                      },
+                      "displayName": {
+                        "type": "string",
+                        "example": "Sarah Smith"
+                      },
+                      "bio": {
+                        "type": "string",
+                        "example": "Project manager with 5 years of experience in tech."
+                      },
+                      "interests": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "example": ["project management", "agile", "productivity"]
+                      },
+                      "skills": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "example": ["leadership", "communication", "organization"]
+                      },
+                      "avatarUrl": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": null
+                      }
+                    }
+                  }
                 }
               }
             }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
-      },
-      "post": {
-        "tags": [
-          "tasks"
+      }
+    },
+    "/api/users/{id}/profile": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get user profile",
+        "description": "Retrieve a user's public profile information",
+        "security": [
+          {
+            "BearerAuth": []
+          }
         ],
-        "summary": "Create task",
-        "description": "Create a new task",
-        "operationId": "createTask",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User profile retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 2
+                    },
+                    "username": {
+                      "type": "string",
+                      "example": "sarahsmith"
+                    },
+                    "displayName": {
+                      "type": "string",
+                      "example": "Sarah Smith"
+                    },
+                    "bio": {
+                      "type": "string",
+                      "example": "Project manager with 5 years of experience in tech."
+                    },
+                    "interests": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": ["project management", "agile", "productivity"]
+                    },
+                    "skills": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": ["leadership", "communication", "organization"]
+                    },
+                    "avatarUrl": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/profile": {
+      "patch": {
+        "tags": ["Users"],
+        "summary": "Update user profile",
+        "description": "Update the current user's profile information",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTaskRequest"
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "type": "string",
+                    "example": "John Doe"
+                  },
+                  "bio": {
+                    "type": "string",
+                    "example": "Task management enthusiast and productivity expert."
+                  },
+                  "interests": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": ["productivity", "technology", "time management"]
+                  },
+                  "skills": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": ["organization", "planning", "prioritization"]
+                  },
+                  "avatarUrl": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "https://example.com/avatar.jpg"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "username": {
+                      "type": "string",
+                      "example": "johndoe"
+                    },
+                    "displayName": {
+                      "type": "string",
+                      "example": "John Doe"
+                    },
+                    "bio": {
+                      "type": "string",
+                      "example": "Task management enthusiast and productivity expert."
+                    },
+                    "interests": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": ["productivity", "technology", "time management"]
+                    },
+                    "skills": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": ["organization", "planning", "prioritization"]
+                    },
+                    "avatarUrl": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "https://example.com/avatar.jpg"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/tasks": {
+      "get": {
+        "tags": ["Tasks"],
+        "summary": "Get current user's tasks",
+        "description": "Retrieve all tasks created by or assigned to the current user",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tasks retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "title": {
+                        "type": "string",
+                        "example": "Complete project proposal"
+                      },
+                      "description": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": "Write up the complete proposal for the new client project."
+                      },
+                      "dueDate": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "example": "2025-04-30T23:59:59Z"
+                      },
+                      "completed": {
+                        "type": "boolean",
+                        "example": false
+                      },
+                      "completedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "example": null
+                      },
+                      "priority": {
+                        "type": "string",
+                        "enum": ["high", "medium", "low"],
+                        "example": "medium"
+                      },
+                      "category": {
+                        "type": "string",
+                        "example": "Work"
+                      },
+                      "estimatedTime": {
+                        "type": "integer",
+                        "nullable": true,
+                        "example": 3
+                      },
+                      "userId": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "assignedToUserId": {
+                        "type": "integer",
+                        "nullable": true,
+                        "example": null
+                      },
+                      "isPublic": {
+                        "type": "boolean",
+                        "example": false
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Tasks"],
+        "summary": "Create a new task",
+        "description": "Create a new task for the current user",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title"],
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "example": "Research new marketing strategies"
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "Investigate current market trends and compile report."
+                  },
+                  "dueDate": {
+                    "type": "string",
+                    "format": "date-time",
+                    "nullable": true,
+                    "example": "2025-05-15T23:59:59Z"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": ["high", "medium", "low"],
+                    "default": "medium",
+                    "example": "medium"
+                  },
+                  "category": {
+                    "type": "string",
+                    "default": "Work",
+                    "example": "Marketing"
+                  },
+                  "estimatedTime": {
+                    "type": "integer",
+                    "nullable": true,
+                    "example": 5
+                  },
+                  "assignedToUserId": {
+                    "type": "integer",
+                    "nullable": true,
+                    "example": null
+                  },
+                  "isPublic": {
+                    "type": "boolean",
+                    "default": false,
+                    "example": false
+                  }
+                }
               }
             }
           }
@@ -290,42 +698,91 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Task"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 5
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Research new marketing strategies"
+                    },
+                    "description": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "Investigate current market trends and compile report."
+                    },
+                    "dueDate": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "example": "2025-05-15T23:59:59Z"
+                    },
+                    "completed": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "completedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "priority": {
+                      "type": "string",
+                      "enum": ["high", "medium", "low"],
+                      "example": "medium"
+                    },
+                    "category": {
+                      "type": "string",
+                      "example": "Marketing"
+                    },
+                    "estimatedTime": {
+                      "type": "integer",
+                      "nullable": true,
+                      "example": 5
+                    },
+                    "userId": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "assignedToUserId": {
+                      "type": "integer",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "isPublic": {
+                      "type": "boolean",
+                      "example": false
+                    }
+                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Invalid input"
           },
           "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
       }
     },
-    "/tasks/{id}": {
+    "/api/tasks/{id}": {
       "get": {
-        "tags": [
-          "tasks"
+        "tags": ["Tasks"],
+        "summary": "Get a specific task",
+        "description": "Retrieve details of a specific task by its ID",
+        "security": [
+          {
+            "BearerAuth": []
+          }
         ],
-        "summary": "Get task by ID",
-        "description": "Get details of a specific task",
-        "operationId": "getTaskById",
         "parameters": [
           {
             "name": "id",
@@ -333,51 +790,102 @@
             "description": "Task ID",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "integer"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful operation",
+            "description": "Task retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Task"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Task not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Complete project proposal"
+                    },
+                    "description": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "Write up the complete proposal for the new client project."
+                    },
+                    "dueDate": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "example": "2025-04-30T23:59:59Z"
+                    },
+                    "completed": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "completedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "priority": {
+                      "type": "string",
+                      "enum": ["high", "medium", "low"],
+                      "example": "medium"
+                    },
+                    "category": {
+                      "type": "string",
+                      "example": "Work"
+                    },
+                    "estimatedTime": {
+                      "type": "integer",
+                      "nullable": true,
+                      "example": 3
+                    },
+                    "userId": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "assignedToUserId": {
+                      "type": "integer",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "isPublic": {
+                      "type": "boolean",
+                      "example": false
+                    }
+                  }
                 }
               }
             }
           },
           "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Forbidden - You do not have permission to view this task"
+          },
+          "404": {
+            "description": "Task not found"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
       },
-      "patch": {
-        "tags": [
-          "tasks"
+      "put": {
+        "tags": ["Tasks"],
+        "summary": "Update a task",
+        "description": "Update details of a specific task by its ID",
+        "security": [
+          {
+            "BearerAuth": []
+          }
         ],
-        "summary": "Update task",
-        "description": "Update an existing task",
-        "operationId": "updateTask",
         "parameters": [
           {
             "name": "id",
@@ -385,8 +893,7 @@
             "description": "Task ID",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "integer"
             }
           }
         ],
@@ -395,7 +902,46 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateTaskRequest"
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "example": "Complete project proposal (updated)"
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "Write up the complete proposal for the new client project including market analysis."
+                  },
+                  "dueDate": {
+                    "type": "string",
+                    "format": "date-time",
+                    "nullable": true,
+                    "example": "2025-05-05T23:59:59Z"
+                  },
+                  "completed": {
+                    "type": "boolean",
+                    "example": false
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": ["high", "medium", "low"],
+                    "example": "high"
+                  },
+                  "category": {
+                    "type": "string",
+                    "example": "Work"
+                  },
+                  "estimatedTime": {
+                    "type": "integer",
+                    "nullable": true,
+                    "example": 5
+                  },
+                  "isPublic": {
+                    "type": "boolean",
+                    "example": false
+                  }
+                }
               }
             }
           }
@@ -406,110 +952,95 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Task"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Task not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated or not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "tasks"
-        ],
-        "summary": "Delete task",
-        "description": "Delete an existing task",
-        "operationId": "deleteTask",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "Task ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Task deleted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Complete project proposal (updated)"
+                    },
+                    "description": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "Write up the complete proposal for the new client project including market analysis."
+                    },
+                    "dueDate": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "example": "2025-05-05T23:59:59Z"
+                    },
+                    "completed": {
                       "type": "boolean",
-                      "example": true
+                      "example": false
+                    },
+                    "completedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "priority": {
+                      "type": "string",
+                      "enum": ["high", "medium", "low"],
+                      "example": "high"
+                    },
+                    "category": {
+                      "type": "string",
+                      "example": "Work"
+                    },
+                    "estimatedTime": {
+                      "type": "integer",
+                      "nullable": true,
+                      "example": 5
+                    },
+                    "userId": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "assignedToUserId": {
+                      "type": "integer",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "isPublic": {
+                      "type": "boolean",
+                      "example": false
                     }
                   }
                 }
               }
             }
           },
-          "404": {
-            "description": "Task not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+          "400": {
+            "description": "Invalid input"
           },
           "401": {
-            "description": "Not authenticated or not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Forbidden - You do not have permission to update this task"
+          },
+          "404": {
+            "description": "Task not found"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
-      }
-    },
-    "/tasks/{id}/complete": {
-      "post": {
-        "tags": [
-          "tasks"
+      },
+      "delete": {
+        "tags": ["Tasks"],
+        "summary": "Delete a task",
+        "description": "Delete a specific task by its ID",
+        "security": [
+          {
+            "BearerAuth": []
+          }
         ],
-        "summary": "Complete task",
-        "description": "Mark a task as completed",
-        "operationId": "completeTask",
         "parameters": [
           {
             "name": "id",
@@ -517,53 +1048,105 @@
             "description": "Task ID",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Task deleted successfully"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Forbidden - You do not have permission to delete this task"
+          },
+          "404": {
+            "description": "Task not found"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/complete": {
+      "post": {
+        "tags": ["Tasks"],
+        "summary": "Mark a task as complete",
+        "description": "Mark a specific task as completed",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Task ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Task completed successfully",
+            "description": "Task marked as complete",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Task"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Task not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Complete project proposal"
+                    },
+                    "completed": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "completedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2025-04-28T14:30:00Z"
+                    }
+                  }
                 }
               }
             }
           },
           "401": {
-            "description": "Not authenticated or not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Forbidden - You do not have permission to complete this task"
+          },
+          "404": {
+            "description": "Task not found"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
       }
     },
-    "/tasks/{id}/assign": {
+    "/api/tasks/{id}/assign": {
       "post": {
-        "tags": [
-          "tasks"
+        "tags": ["Tasks"],
+        "summary": "Assign a task to a user",
+        "description": "Assign a specific task to another user",
+        "security": [
+          {
+            "BearerAuth": []
+          }
         ],
-        "summary": "Assign task",
-        "description": "Assign a task to another user",
-        "operationId": "assignTask",
         "parameters": [
           {
             "name": "id",
@@ -571,8 +1154,7 @@
             "description": "Task ID",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "integer"
             }
           }
         ],
@@ -582,14 +1164,11 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "assignedToUserId"
-                ],
+                "required": ["assignedToUserId"],
                 "properties": {
                   "assignedToUserId": {
                     "type": "integer",
-                    "format": "int64",
-                    "description": "ID of user to assign the task to"
+                    "example": 2
                   }
                 }
               }
@@ -602,42 +1181,53 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Task"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Complete project proposal"
+                    },
+                    "assignedToUserId": {
+                      "type": "integer",
+                      "example": 2
+                    }
+                  }
                 }
               }
             }
           },
-          "404": {
-            "description": "Task or user not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+          "400": {
+            "description": "Invalid input or assignee not found"
           },
           "401": {
-            "description": "Not authenticated or not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Forbidden - You do not have permission to assign this task"
+          },
+          "404": {
+            "description": "Task not found"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
       }
     },
-    "/tasks/{id}/public": {
-      "patch": {
-        "tags": [
-          "tasks"
+    "/api/tasks/{id}/public": {
+      "post": {
+        "tags": ["Tasks"],
+        "summary": "Set task public visibility",
+        "description": "Make a task public or private",
+        "security": [
+          {
+            "BearerAuth": []
+          }
         ],
-        "summary": "Set task public status",
-        "description": "Change a task's public visibility",
-        "operationId": "setTaskPublic",
         "parameters": [
           {
             "name": "id",
@@ -645,8 +1235,7 @@
             "description": "Task ID",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "integer"
             }
           }
         ],
@@ -656,13 +1245,11 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "isPublic"
-                ],
+                "required": ["isPublic"],
                 "properties": {
                   "isPublic": {
                     "type": "boolean",
-                    "description": "Public visibility flag"
+                    "example": true
                   }
                 }
               }
@@ -671,384 +1258,21 @@
         },
         "responses": {
           "200": {
-            "description": "Task public status updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Task"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Task not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated or not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/assigned-tasks": {
-      "get": {
-        "tags": [
-          "tasks"
-        ],
-        "summary": "Get assigned tasks",
-        "description": "Get all tasks assigned to the authenticated user",
-        "operationId": "getAssignedTasks",
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Task"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/public-tasks": {
-      "get": {
-        "tags": [
-          "tasks"
-        ],
-        "summary": "Get public tasks",
-        "description": "Get all public tasks",
-        "operationId": "getPublicTasks",
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Task"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/shared-task/{id}": {
-      "get": {
-        "tags": [
-          "tasks"
-        ],
-        "summary": "Get shared task",
-        "description": "Get details for a shared task, including the creator's information",
-        "operationId": "getSharedTask",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "Task ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/Task"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "creator": {
-                          "$ref": "#/components/schemas/UserBasic"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Task not found or not public",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/tasks/{taskId}/bids": {
-      "get": {
-        "tags": [
-          "bids"
-        ],
-        "summary": "Get task bids",
-        "description": "Get all bids for a specific task",
-        "operationId": "getTaskBids",
-        "parameters": [
-          {
-            "name": "taskId",
-            "in": "path",
-            "description": "Task ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TaskBidWithBidder"
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Task not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated or not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "bids"
-        ],
-        "summary": "Create bid",
-        "description": "Create a new bid on a task",
-        "operationId": "createBid",
-        "parameters": [
-          {
-            "name": "taskId",
-            "in": "path",
-            "description": "Task ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateBidRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Bid created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TaskBid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input or task not accepting bids",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Task not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/bids/{id}": {
-      "patch": {
-        "tags": [
-          "bids"
-        ],
-        "summary": "Update bid",
-        "description": "Update an existing bid",
-        "operationId": "updateBid",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "Bid ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateBidRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Bid updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TaskBid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Bid not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated or not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "bids"
-        ],
-        "summary": "Delete bid",
-        "description": "Delete an existing bid",
-        "operationId": "deleteBid",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "Bid ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Bid deleted successfully",
+            "description": "Task visibility updated successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Complete project proposal"
+                    },
+                    "isPublic": {
                       "type": "boolean",
                       "example": true
                     }
@@ -1057,263 +1281,219 @@
               }
             }
           },
-          "404": {
-            "description": "Bid not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated or not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/tasks/{taskId}/bids/{bidId}/accept": {
-      "post": {
-        "tags": [
-          "bids"
-        ],
-        "summary": "Accept bid",
-        "description": "Accept a bid for a task",
-        "operationId": "acceptBid",
-        "parameters": [
-          {
-            "name": "taskId",
-            "in": "path",
-            "description": "Task ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "bidId",
-            "in": "path",
-            "description": "Bid ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Bid accepted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Task"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Task or bid not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated or not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "400": {
-            "description": "Bid already accepted or task closed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Forbidden - You do not have permission to change this task's visibility"
+          },
+          "404": {
+            "description": "Task not found"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
       }
     },
-    "/my-bids": {
+    "/api/public-tasks": {
       "get": {
-        "tags": [
-          "bids"
-        ],
-        "summary": "Get my bids",
-        "description": "Get all bids placed by the authenticated user",
-        "operationId": "getMyBids",
+        "tags": ["Tasks"],
+        "summary": "Get all public tasks",
+        "description": "Retrieve all tasks marked as public",
         "responses": {
           "200": {
-            "description": "Successful operation",
+            "description": "Public tasks retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/TaskBidWithTask"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/create-payment-intent": {
-      "post": {
-        "tags": [
-          "bids"
-        ],
-        "summary": "Create payment intent",
-        "description": "Create a Stripe payment intent for a bid payment",
-        "operationId": "createPaymentIntent",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "bidId",
-                  "amount"
-                ],
-                "properties": {
-                  "bidId": {
-                    "type": "integer",
-                    "format": "int64",
-                    "description": "ID of the bid"
-                  },
-                  "amount": {
-                    "type": "number",
-                    "format": "float",
-                    "description": "Payment amount"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Payment intent created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "clientSecret": {
-                      "type": "string",
-                      "description": "Stripe payment intent client secret"
-                    },
-                    "paymentIntentId": {
-                      "type": "string",
-                      "description": "Stripe payment intent ID"
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "example": 10
+                      },
+                      "title": {
+                        "type": "string",
+                        "example": "Finish Closet doors"
+                      },
+                      "description": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": "Finish closet doors in bedroom and bathroom"
+                      },
+                      "dueDate": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "example": "2025-04-29T05:00:00.000Z"
+                      },
+                      "completed": {
+                        "type": "boolean",
+                        "example": false
+                      },
+                      "completedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "example": null
+                      },
+                      "priority": {
+                        "type": "string",
+                        "enum": ["high", "medium", "low"],
+                        "example": "medium"
+                      },
+                      "category": {
+                        "type": "string",
+                        "example": "Work"
+                      },
+                      "estimatedTime": {
+                        "type": "integer",
+                        "nullable": true,
+                        "example": 2
+                      },
+                      "userId": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "isPublic": {
+                        "type": "boolean",
+                        "example": true
+                      }
                     }
                   }
                 }
               }
             }
           },
-          "400": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+          "500": {
+            "description": "Server error"
           }
         }
       }
     },
-    "/task-templates": {
+    "/api/templates": {
       "get": {
-        "tags": [
-          "templates"
+        "tags": ["Templates"],
+        "summary": "Get user's task templates",
+        "description": "Retrieve all task templates created by the current user",
+        "security": [
+          {
+            "BearerAuth": []
+          }
         ],
-        "summary": "Get task templates",
-        "description": "Get all task templates created by the authenticated user",
-        "operationId": "getTaskTemplates",
         "responses": {
           "200": {
-            "description": "Successful operation",
+            "description": "Task templates retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/TaskTemplate"
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "title": {
+                        "type": "string",
+                        "example": "Weekly Report Template"
+                      },
+                      "description": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": "Template for creating weekly status reports."
+                      },
+                      "priority": {
+                        "type": "string",
+                        "enum": ["high", "medium", "low"],
+                        "example": "medium"
+                      },
+                      "category": {
+                        "type": "string",
+                        "example": "Reports"
+                      },
+                      "estimatedTime": {
+                        "type": "integer",
+                        "nullable": true,
+                        "example": 2
+                      },
+                      "userId": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "isPublic": {
+                        "type": "boolean",
+                        "example": false
+                      }
+                    }
                   }
                 }
               }
             }
           },
           "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
       },
       "post": {
-        "tags": [
-          "templates"
+        "tags": ["Templates"],
+        "summary": "Create a new task template",
+        "description": "Create a new task template for the current user",
+        "security": [
+          {
+            "BearerAuth": []
+          }
         ],
-        "summary": "Create task template",
-        "description": "Create a new task template",
-        "operationId": "createTaskTemplate",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTaskTemplateRequest"
+                "type": "object",
+                "required": ["title"],
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "example": "Client Meeting Template"
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "Template for preparing client meeting notes and follow-ups."
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": ["high", "medium", "low"],
+                    "default": "medium",
+                    "example": "high"
+                  },
+                  "category": {
+                    "type": "string",
+                    "default": "Meetings",
+                    "example": "Meetings"
+                  },
+                  "estimatedTime": {
+                    "type": "integer",
+                    "nullable": true,
+                    "example": 3
+                  },
+                  "isPublic": {
+                    "type": "boolean",
+                    "default": false,
+                    "example": true
+                  }
+                }
               }
             }
           }
@@ -1324,115 +1504,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TaskTemplate"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/task-templates/{id}": {
-      "get": {
-        "tags": [
-          "templates"
-        ],
-        "summary": "Get task template by ID",
-        "description": "Get details of a specific task template",
-        "operationId": "getTaskTemplateById",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "Template ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TaskTemplate"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Template not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated or not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "templates"
-        ],
-        "summary": "Delete task template",
-        "description": "Delete an existing task template",
-        "operationId": "deleteTaskTemplate",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "Template ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Template deleted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
+                    "id": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Client Meeting Template"
+                    },
+                    "description": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "Template for preparing client meeting notes and follow-ups."
+                    },
+                    "priority": {
+                      "type": "string",
+                      "enum": ["high", "medium", "low"],
+                      "example": "high"
+                    },
+                    "category": {
+                      "type": "string",
+                      "example": "Meetings"
+                    },
+                    "estimatedTime": {
+                      "type": "integer",
+                      "nullable": true,
+                      "example": 3
+                    },
+                    "userId": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "isPublic": {
                       "type": "boolean",
                       "example": true
                     }
@@ -1441,37 +1546,28 @@
               }
             }
           },
-          "404": {
-            "description": "Template not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+          "400": {
+            "description": "Invalid input"
           },
           "401": {
-            "description": "Not authenticated or not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
       }
     },
-    "/task-templates/{id}/create-task": {
+    "/api/templates/{id}/create-task": {
       "post": {
-        "tags": [
-          "templates"
+        "tags": ["Templates"],
+        "summary": "Create a task from template",
+        "description": "Create a new task using an existing template",
+        "security": [
+          {
+            "BearerAuth": []
+          }
         ],
-        "summary": "Create task from template",
-        "description": "Create a new task based on a template",
-        "operationId": "createTaskFromTemplate",
         "parameters": [
           {
             "name": "id",
@@ -1479,12 +1575,12 @@
             "description": "Template ID",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "integer"
             }
           }
         ],
         "requestBody": {
+          "required": false,
           "content": {
             "application/json": {
               "schema": {
@@ -1493,7 +1589,8 @@
                   "dueDate": {
                     "type": "string",
                     "format": "date-time",
-                    "description": "Optional due date for the new task"
+                    "nullable": true,
+                    "example": "2025-05-10T23:59:59Z"
                   }
                 }
               }
@@ -1502,134 +1599,350 @@
         },
         "responses": {
           "201": {
-            "description": "Task created successfully",
+            "description": "Task created from template successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Task"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Template not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/conversations": {
-      "get": {
-        "tags": [
-          "messages"
-        ],
-        "summary": "Get conversations",
-        "description": "Get all conversations for the authenticated user",
-        "operationId": "getConversations",
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ConversationWithUser"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 15
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Client Meeting Template"
+                    },
+                    "description": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "Template for preparing client meeting notes and follow-ups."
+                    },
+                    "dueDate": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "example": "2025-05-10T23:59:59Z"
+                    },
+                    "completed": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "completedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "priority": {
+                      "type": "string",
+                      "enum": ["high", "medium", "low"],
+                      "example": "high"
+                    },
+                    "category": {
+                      "type": "string",
+                      "example": "Meetings"
+                    },
+                    "estimatedTime": {
+                      "type": "integer",
+                      "nullable": true,
+                      "example": 3
+                    },
+                    "userId": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "assignedToUserId": {
+                      "type": "integer",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "isPublic": {
+                      "type": "boolean",
+                      "example": false
+                    }
                   }
                 }
               }
             }
           },
           "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "Template not found"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
       }
     },
-    "/messages/{userId}": {
+    "/api/public-templates": {
       "get": {
-        "tags": [
-          "messages"
+        "tags": ["Templates"],
+        "summary": "Get public task templates",
+        "description": "Retrieve all task templates marked as public",
+        "responses": {
+          "200": {
+            "description": "Public templates retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "example": 3
+                      },
+                      "title": {
+                        "type": "string",
+                        "example": "Client Meeting Template"
+                      },
+                      "description": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": "Template for preparing client meeting notes and follow-ups."
+                      },
+                      "priority": {
+                        "type": "string",
+                        "enum": ["high", "medium", "low"],
+                        "example": "high"
+                      },
+                      "category": {
+                        "type": "string",
+                        "example": "Meetings"
+                      },
+                      "estimatedTime": {
+                        "type": "integer",
+                        "nullable": true,
+                        "example": 3
+                      },
+                      "userId": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "isPublic": {
+                        "type": "boolean",
+                        "example": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/conversations": {
+      "get": {
+        "tags": ["Messaging"],
+        "summary": "Get user conversations",
+        "description": "Retrieve list of all conversations for the current user",
+        "security": [
+          {
+            "BearerAuth": []
+          }
         ],
-        "summary": "Get messages",
-        "description": "Get all messages between the authenticated user and another user",
-        "operationId": "getMessages",
+        "responses": {
+          "200": {
+            "description": "Conversations retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "conversation": {
+                        "type": "object",
+                        "properties": {
+                          "otherUserId": {
+                            "type": "integer",
+                            "example": 2
+                          },
+                          "lastMessageId": {
+                            "type": "integer",
+                            "example": 25
+                          },
+                          "lastMessageContent": {
+                            "type": "string",
+                            "example": "Looking forward to our meeting tomorrow!"
+                          },
+                          "lastMessageDate": {
+                            "type": "string",
+                            "format": "date-time",
+                            "example": "2025-04-26T15:30:45Z"
+                          },
+                          "unreadCount": {
+                            "type": "integer",
+                            "example": 2
+                          }
+                        }
+                      },
+                      "user": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 2
+                          },
+                          "username": {
+                            "type": "string",
+                            "example": "sarahsmith"
+                          },
+                          "displayName": {
+                            "type": "string",
+                            "example": "Sarah Smith"
+                          },
+                          "avatarUrl": {
+                            "type": "string",
+                            "nullable": true,
+                            "example": null
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/messages/{userId}": {
+      "get": {
+        "tags": ["Messaging"],
+        "summary": "Get messages with a user",
+        "description": "Retrieve all messages between the current user and another user",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "userId",
             "in": "path",
-            "description": "User ID",
+            "description": "User ID of the other user in the conversation",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "integer"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful operation",
+            "description": "Messages retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/DirectMessage"
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "example": 25
+                      },
+                      "senderId": {
+                        "type": "integer",
+                        "example": 2
+                      },
+                      "receiverId": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "content": {
+                        "type": "string",
+                        "example": "Looking forward to our meeting tomorrow!"
+                      },
+                      "read": {
+                        "type": "boolean",
+                        "example": false
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-04-26T15:30:45Z"
+                      },
+                      "delivered": {
+                        "type": "boolean",
+                        "example": true
+                      },
+                      "edited": {
+                        "type": "boolean",
+                        "example": false
+                      },
+                      "reactions": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": "👍,😊"
+                      },
+                      "deleted": {
+                        "type": "boolean",
+                        "example": false
+                      }
+                    }
                   }
                 }
               }
             }
           },
           "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
-      }
-    },
-    "/messages": {
+      },
       "post": {
-        "tags": [
-          "messages"
-        ],
-        "summary": "Send message",
+        "tags": ["Messaging"],
+        "summary": "Send a message to a user",
         "description": "Send a new message to another user",
-        "operationId": "sendMessage",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "User ID of the message recipient",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SendMessageRequest"
+                "type": "object",
+                "required": ["content"],
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "example": "Hi, are you available to discuss the project tomorrow?"
+                  }
+                }
               }
             }
           }
@@ -1640,175 +1953,112 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DirectMessage"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 26
+                    },
+                    "senderId": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "receiverId": {
+                      "type": "integer",
+                      "example": 2
+                    },
+                    "content": {
+                      "type": "string",
+                      "example": "Hi, are you available to discuss the project tomorrow?"
+                    },
+                    "read": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2025-04-27T10:15:30Z"
+                    },
+                    "delivered": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "edited": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "reactions": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "deleted": {
+                      "type": "boolean",
+                      "example": false
+                    }
+                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Invalid input"
           },
           "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "Recipient not found"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
       }
     },
-    "/messages/{userId}/read": {
+    "/api/messages/{userId}/read": {
       "post": {
-        "tags": [
-          "messages"
-        ],
+        "tags": ["Messaging"],
         "summary": "Mark messages as read",
         "description": "Mark all messages from a specific user as read",
-        "operationId": "markMessagesAsRead",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "userId",
             "in": "path",
-            "description": "User ID",
+            "description": "User ID of the sender whose messages to mark as read",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "integer"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Messages marked as read successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    }
-                  }
-                }
-              }
-            }
+            "description": "Messages marked as read successfully"
           },
           "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
       }
     },
-    "/messages/{id}/edit": {
-      "patch": {
-        "tags": [
-          "messages"
-        ],
-        "summary": "Edit message",
-        "description": "Edit an existing message",
-        "operationId": "editMessage",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "Message ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "message"
-                ],
-                "properties": {
-                  "message": {
-                    "type": "string",
-                    "description": "New message content"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Message edited successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DirectMessage"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Message not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated or not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/messages/{id}/reaction": {
+    "/api/ai/task-suggestions": {
       "post": {
-        "tags": [
-          "messages"
-        ],
-        "summary": "Add reaction",
-        "description": "Add an emoji reaction to a message",
-        "operationId": "addReaction",
-        "parameters": [
+        "tags": ["AI"],
+        "summary": "Get AI task suggestions",
+        "description": "Get AI-generated suggestions for optimizing task management",
+        "security": [
           {
-            "name": "id",
-            "in": "path",
-            "description": "Message ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
+            "BearerAuth": []
           }
         ],
         "requestBody": {
@@ -1817,289 +2067,14 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "emoji"
-                ],
-                "properties": {
-                  "emoji": {
-                    "type": "string",
-                    "description": "Emoji character"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Reaction added successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DirectMessage"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Message not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "messages"
-        ],
-        "summary": "Remove reaction",
-        "description": "Remove an emoji reaction from a message",
-        "operationId": "removeReaction",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "Message ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "emoji"
-                ],
-                "properties": {
-                  "emoji": {
-                    "type": "string",
-                    "description": "Emoji character"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Reaction removed successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DirectMessage"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Message not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/profile/{id}": {
-      "get": {
-        "tags": [
-          "users"
-        ],
-        "summary": "Get user profile",
-        "description": "Get the profile for a specific user",
-        "operationId": "getUserProfile",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "User ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserProfile"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "User not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/profile": {
-      "patch": {
-        "tags": [
-          "users"
-        ],
-        "summary": "Update user profile",
-        "description": "Update the authenticated user's profile",
-        "operationId": "updateUserProfile",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateProfileRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Profile updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/User"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/users/search": {
-      "get": {
-        "tags": [
-          "users"
-        ],
-        "summary": "Search users",
-        "description": "Search for users by username, display name, bio, interests, or skills",
-        "operationId": "searchUsers",
-        "parameters": [
-          {
-            "name": "query",
-            "in": "query",
-            "description": "Search query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UserProfile"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/ai/task-suggestions": {
-      "post": {
-        "tags": [
-          "ai"
-        ],
-        "summary": "Generate task suggestions",
-        "description": "Generate AI-powered task suggestions based on existing tasks",
-        "operationId": "generateTaskSuggestions",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "tasks"
-                ],
+                "required": ["tasks"],
                 "properties": {
                   "tasks": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/TaskInput"
-                    }
+                      "type": "object"
+                    },
+                    "description": "Array of user tasks"
                   }
                 }
               }
@@ -2108,7 +2083,7 @@
         },
         "responses": {
           "200": {
-            "description": "Suggestions generated successfully",
+            "description": "Task suggestions generated successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -2117,18 +2092,13 @@
                     "suggestions": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "title": {
-                            "type": "string",
-                            "description": "Suggested task title"
-                          },
-                          "reasoning": {
-                            "type": "string",
-                            "description": "Reasoning behind the suggestion"
-                          }
-                        }
-                      }
+                        "type": "string"
+                      },
+                      "example": [
+                        "Consider grouping similar tasks from your 'Research' category to improve focus and efficiency.",
+                        "You have 5 high priority tasks due this week. Consider rescheduling some lower-priority tasks to next week.",
+                        "Your most productive time based on task completion patterns appears to be mornings. Schedule complex tasks during this time."
+                      ]
                     }
                   }
                 }
@@ -2136,48 +2106,38 @@
             }
           },
           "400": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Invalid input"
           },
           "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error or AI service unavailable"
           }
         }
       }
     },
-    "/ai/task-reminder": {
+    "/api/ai/task-reminder": {
       "post": {
-        "tags": [
-          "ai"
-        ],
+        "tags": ["AI"],
         "summary": "Generate task reminder",
         "description": "Generate an AI-powered reminder for a specific task",
-        "operationId": "generateTaskReminder",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "task"
-                ],
+                "required": ["task"],
                 "properties": {
                   "task": {
-                    "$ref": "#/components/schemas/TaskInput"
+                    "type": "object",
+                    "description": "Task object to generate reminder for"
                   }
                 }
               }
@@ -2194,7 +2154,7 @@
                   "properties": {
                     "reminder": {
                       "type": "string",
-                      "description": "Generated reminder text"
+                      "example": "Don't forget to complete your 'Research new marketing strategies' task! It's due tomorrow and is high priority. You've allocated 3 hours for this task, so make sure to schedule adequate time today."
                     }
                   }
                 }
@@ -2202,51 +2162,41 @@
             }
           },
           "400": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Invalid input"
           },
           "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error or AI service unavailable"
           }
         }
       }
     },
-    "/ai/daily-schedule": {
+    "/api/ai/daily-schedule": {
       "post": {
-        "tags": [
-          "ai"
-        ],
+        "tags": ["AI"],
         "summary": "Generate daily schedule",
         "description": "Generate an optimized daily schedule based on user's tasks",
-        "operationId": "generateDailySchedule",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "tasks"
-                ],
+                "required": ["tasks"],
                 "properties": {
                   "tasks": {
                     "type": "array",
                     "items": {
-                      "$ref": "#/components/schemas/TaskInput"
-                    }
+                      "type": "object"
+                    },
+                    "description": "Array of user tasks"
                   }
                 }
               }
@@ -2255,35 +2205,24 @@
         },
         "responses": {
           "200": {
-            "description": "Schedule generated successfully",
+            "description": "Daily schedule generated successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "schedule": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "time": {
-                            "type": "string",
-                            "description": "Time slot"
-                          },
-                          "taskId": {
-                            "type": "integer",
-                            "format": "int64",
-                            "description": "Task ID"
-                          },
-                          "title": {
-                            "type": "string",
-                            "description": "Task title"
-                          },
-                          "duration": {
-                            "type": "string",
-                            "description": "Task duration"
-                          }
-                        }
+                      "type": "object",
+                      "example": {
+                        "morning": [
+                          { "time": "9:00 AM - 10:30 AM", "task": "Research new marketing strategies", "priority": "high" },
+                          { "time": "10:45 AM - 11:30 AM", "task": "Team check-in call", "priority": "medium" }
+                        ],
+                        "afternoon": [
+                          { "time": "1:00 PM - 2:30 PM", "task": "Complete project proposal", "priority": "medium" },
+                          { "time": "3:00 PM - 4:00 PM", "task": "Review quarterly reports", "priority": "low" }
+                        ],
+                        "evening": []
                       }
                     }
                   }
@@ -2292,52 +2231,43 @@
             }
           },
           "400": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Invalid input"
           },
           "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error or AI service unavailable"
           }
         }
       }
     },
-    "/ai/delegate-task": {
+    "/api/ai/delegate-task": {
       "post": {
-        "tags": [
-          "ai"
-        ],
+        "tags": ["AI"],
         "summary": "Delegate task to AI",
-        "description": "Delegate a task to the AI assistant for detailed completion steps",
-        "operationId": "delegateTaskToAI",
+        "description": "Delegate a task to AI assistant for detailed completion steps",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "task"
-                ],
+                "required": ["task"],
                 "properties": {
                   "task": {
-                    "$ref": "#/components/schemas/TaskInput"
+                    "type": "object",
+                    "description": "Task object to delegate"
                   },
                   "context": {
                     "type": "string",
-                    "description": "Additional context for the task"
+                    "description": "Additional context or instructions for the AI",
+                    "example": "Focus on digital marketing strategies for a small business"
                   }
                 }
               }
@@ -2352,50 +2282,22 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "result": {
-                      "type": "object",
-                      "properties": {
-                        "steps": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "title": {
-                                "type": "string",
-                                "description": "Step title"
-                              },
-                              "description": {
-                                "type": "string",
-                                "description": "Step description"
-                              }
-                            }
-                          }
-                        },
-                        "resources": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "title": {
-                                "type": "string",
-                                "description": "Resource title"
-                              },
-                              "url": {
-                                "type": "string",
-                                "description": "Resource URL"
-                              },
-                              "description": {
-                                "type": "string",
-                                "description": "Resource description"
-                              }
-                            }
-                          }
-                        },
-                        "completionNotes": {
-                          "type": "string",
-                          "description": "Additional notes on task completion"
-                        }
-                      }
+                    "steps": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "1. Research current market trends in digital marketing for small businesses",
+                        "2. Analyze competitor strategies and identify gaps",
+                        "3. Create a list of 5-7 potential marketing strategies specifically tailored to your small business",
+                        "4. Evaluate each strategy based on cost, potential ROI, and implementation difficulty",
+                        "5. Compile findings into a structured report with recommendations"
+                      ]
+                    },
+                    "recommendations": {
+                      "type": "string",
+                      "example": "Focus on social media marketing and email campaigns as they offer the best ROI for small businesses with limited marketing budgets."
                     }
                   }
                 }
@@ -2403,49 +2305,100 @@
             }
           },
           "400": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Invalid input"
           },
           "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error or AI service unavailable"
           }
         }
       }
     },
-    "/ai/generate-image": {
+    "/api/ai/chat": {
       "post": {
-        "tags": [
-          "ai"
+        "tags": ["AI"],
+        "summary": "Generate chat completion",
+        "description": "Generate a response from the AI assistant for a given prompt",
+        "security": [
+          {
+            "BearerAuth": []
+          }
         ],
-        "summary": "Generate image",
-        "description": "Generate an image based on a prompt using DALL-E",
-        "operationId": "generateImage",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "prompt"
-                ],
+                "required": ["prompt"],
                 "properties": {
                   "prompt": {
                     "type": "string",
-                    "description": "Image generation prompt"
+                    "example": "What are some effective ways to prioritize tasks?"
+                  },
+                  "useModel": {
+                    "type": "string",
+                    "enum": ["openai", "anthropic"],
+                    "default": "openai",
+                    "example": "anthropic"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chat completion generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "response": {
+                      "type": "string",
+                      "example": "Effective task prioritization methods include:\n\n1. The Eisenhower Matrix - Sort tasks by urgency and importance\n2. The ABCDE Method - Assign priority levels from A (most important) to E (eliminate)\n3. The MoSCoW Method - Categorize tasks as Must, Should, Could, or Won't\n4. Time-blocking - Allocate specific time blocks for different priorities\n5. Value-based prioritization - Focus on tasks with highest ROI\n\nChoose a method that aligns with your work style and goals."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error or AI service unavailable"
+          }
+        }
+      }
+    },
+    "/api/ai/generate-image": {
+      "post": {
+        "tags": ["AI"],
+        "summary": "Generate image using DALL-E",
+        "description": "Generate an image using OpenAI's DALL-E model",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prompt"],
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "example": "A minimalist task management dashboard with a productivity theme"
                   }
                 }
               }
@@ -2462,7 +2415,7 @@
                   "properties": {
                     "url": {
                       "type": "string",
-                      "description": "URL of the generated image"
+                      "example": "https://example.com/generated-image.png"
                     }
                   }
                 }
@@ -2470,54 +2423,344 @@
             }
           },
           "400": {
-            "description": "Invalid input or generation failed",
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error or AI service unavailable"
+          }
+        }
+      }
+    },
+    "/api/task-bids/{taskId}": {
+      "get": {
+        "tags": ["Bidding"],
+        "summary": "Get bids for a task",
+        "description": "Retrieve all bids for a specific task",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "description": "Task ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task bids retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "taskId": {
+                        "type": "integer",
+                        "example": 10
+                      },
+                      "bidderId": {
+                        "type": "integer",
+                        "example": 2
+                      },
+                      "amount": {
+                        "type": "number",
+                        "example": 50.00
+                      },
+                      "proposal": {
+                        "type": "string",
+                        "example": "I can complete this task by the end of the week with high quality results."
+                      },
+                      "estimatedTime": {
+                        "type": "integer",
+                        "nullable": true,
+                        "example": 4
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": ["pending", "accepted", "rejected", "completed"],
+                        "example": "pending"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-04-20T10:15:30Z"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-04-20T10:15:30Z"
+                      }
+                    }
+                  }
                 }
               }
             }
           },
           "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Forbidden - Not authorized to view bids for this task"
+          },
+          "404": {
+            "description": "Task not found"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
-      }
-    },
-    "/ai/generate-code": {
+      },
       "post": {
-        "tags": [
-          "ai"
+        "tags": ["Bidding"],
+        "summary": "Create a bid for a task",
+        "description": "Submit a bid for a specific task",
+        "security": [
+          {
+            "BearerAuth": []
+          }
         ],
-        "summary": "Generate code",
-        "description": "Generate code in a specified programming language based on a prompt",
-        "operationId": "generateCode",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "description": "Task ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "prompt",
-                  "language"
-                ],
+                "required": ["amount", "proposal"],
                 "properties": {
-                  "prompt": {
-                    "type": "string",
-                    "description": "Code generation prompt"
+                  "amount": {
+                    "type": "number",
+                    "example": 45.50
                   },
-                  "language": {
+                  "proposal": {
                     "type": "string",
-                    "description": "Programming language"
+                    "example": "I have extensive experience with closet door installation and can complete this task efficiently."
+                  },
+                  "estimatedTime": {
+                    "type": "integer",
+                    "nullable": true,
+                    "example": 3
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Bid created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 5
+                    },
+                    "taskId": {
+                      "type": "integer",
+                      "example": 10
+                    },
+                    "bidderId": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "amount": {
+                      "type": "number",
+                      "example": 45.50
+                    },
+                    "proposal": {
+                      "type": "string",
+                      "example": "I have extensive experience with closet door installation and can complete this task efficiently."
+                    },
+                    "estimatedTime": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "pending"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2025-04-27T14:30:00Z"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2025-04-27T14:30:00Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Forbidden - Cannot bid on your own task or task is not public"
+          },
+          "404": {
+            "description": "Task not found"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/task-bids/{taskId}/accept/{bidId}": {
+      "post": {
+        "tags": ["Bidding"],
+        "summary": "Accept a bid",
+        "description": "Accept a specific bid for a task",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "description": "Task ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "bidId",
+            "in": "path",
+            "description": "Bid ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bid accepted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "task": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "example": 10
+                        },
+                        "title": {
+                          "type": "string",
+                          "example": "Finish Closet doors"
+                        },
+                        "assignedToUserId": {
+                          "type": "integer",
+                          "example": 2
+                        },
+                        "winningBidId": {
+                          "type": "integer",
+                          "example": 1
+                        }
+                      }
+                    },
+                    "bid": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "status": {
+                          "type": "string",
+                          "example": "accepted"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Forbidden - Not authorized to accept bids for this task"
+          },
+          "404": {
+            "description": "Task or bid not found"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/payment/create-intent": {
+      "post": {
+        "tags": ["Bidding"],
+        "summary": "Create payment intent",
+        "description": "Create a Stripe payment intent for a task bid",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount", "taskId", "bidId"],
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "example": 45.50
+                  },
+                  "taskId": {
+                    "type": "integer",
+                    "example": 10
+                  },
+                  "bidId": {
+                    "type": "integer",
+                    "example": 1
                   }
                 }
               }
@@ -2526,19 +2769,15 @@
         },
         "responses": {
           "200": {
-            "description": "Code generated successfully",
+            "description": "Payment intent created successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "code": {
+                    "clientSecret": {
                       "type": "string",
-                      "description": "Generated code"
-                    },
-                    "explanation": {
-                      "type": "string",
-                      "description": "Explanation of the generated code"
+                      "example": "pi_3NJfZMDpvT0XUt0E1O4YgVdS_secret_LWvsNQOhwzcz0GYmqQqLaXLH1"
                     }
                   }
                 }
@@ -2546,900 +2785,247 @@
             }
           },
           "400": {
-            "description": "Invalid input or generation failed",
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "Task or bid not found"
+          },
+          "500": {
+            "description": "Server error or payment service unavailable"
+          }
+        }
+      }
+    },
+    "/api/keys": {
+      "get": {
+        "tags": ["API Keys"],
+        "summary": "Get all API keys",
+        "description": "Retrieve all API keys for the current user",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API keys retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "Development"
+                      },
+                      "key": {
+                        "type": "string",
+                        "example": "appmo_f5e8d...3a7c1"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-04-10T12:00:00Z"
+                      },
+                      "lastUsedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "example": "2025-04-15T15:30:00Z"
+                      },
+                      "expiresAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true,
+                        "example": null
+                      }
+                    }
+                  }
                 }
               }
             }
           },
           "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      },
+      "post": {
+        "tags": ["API Keys"],
+        "summary": "Create a new API key",
+        "description": "Create a new API key for the current user",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Production"
+                  }
                 }
               }
             }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "API key created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 2
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "Production"
+                    },
+                    "key": {
+                      "type": "string",
+                      "example": "appmo_a9b8c7d6e5f4g3h2i1j0k"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2025-04-17T14:30:00Z"
+                    },
+                    "lastUsedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/keys/{id}": {
+      "delete": {
+        "tags": ["API Keys"],
+        "summary": "Revoke an API key",
+        "description": "Revoke (delete) a specific API key",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "API key ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "API key revoked successfully"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "API key not found"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/verify-key": {
+      "get": {
+        "tags": ["API Keys"],
+        "summary": "Verify API key",
+        "description": "Verify that an API key is valid",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API key verified successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "valid": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "userId": {
+                      "type": "integer",
+                      "example": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
       }
     }
   },
   "components": {
-    "schemas": {
-      "LoginRequest": {
-        "type": "object",
-        "required": [
-          "username",
-          "password"
-        ],
-        "properties": {
-          "username": {
-            "type": "string",
-            "example": "demo"
-          },
-          "password": {
-            "type": "string",
-            "example": "password"
-          }
-        }
-      },
-      "RegisterRequest": {
-        "type": "object",
-        "required": [
-          "username",
-          "password",
-          "confirmPassword"
-        ],
-        "properties": {
-          "username": {
-            "type": "string",
-            "example": "newuser"
-          },
-          "password": {
-            "type": "string",
-            "example": "securepassword"
-          },
-          "confirmPassword": {
-            "type": "string",
-            "example": "securepassword"
-          }
-        }
-      },
-      "GoogleAuthRequest": {
-        "type": "object",
-        "required": [
-          "idToken"
-        ],
-        "properties": {
-          "idToken": {
-            "type": "string",
-            "description": "Google ID token"
-          }
-        }
-      },
-      "User": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "example": 1
-          },
-          "username": {
-            "type": "string",
-            "example": "demo"
-          },
-          "displayName": {
-            "type": "string",
-            "example": "Demo User"
-          },
-          "bio": {
-            "type": "string",
-            "example": "I'm a productivity enthusiast who loves trying new task management methods."
-          },
-          "interests": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "example": [
-              "productivity",
-              "technology",
-              "time management"
-            ]
-          },
-          "skills": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "example": [
-              "organization",
-              "planning",
-              "prioritization"
-            ]
-          },
-          "avatarUrl": {
-            "type": "string",
-            "nullable": true,
-            "example": null
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2025-04-07T17:32:33.772Z"
-          }
-        }
-      },
-      "UserBasic": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "example": 1
-          },
-          "username": {
-            "type": "string",
-            "example": "demo"
-          },
-          "displayName": {
-            "type": "string",
-            "example": "Demo User"
-          }
-        }
-      },
-      "UserProfile": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "example": 1
-          },
-          "username": {
-            "type": "string",
-            "example": "demo"
-          },
-          "displayName": {
-            "type": "string",
-            "example": "Demo User"
-          },
-          "bio": {
-            "type": "string",
-            "example": "I'm a productivity enthusiast who loves trying new task management methods."
-          },
-          "interests": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "example": [
-              "productivity",
-              "technology",
-              "time management"
-            ]
-          },
-          "skills": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "example": [
-              "organization",
-              "planning",
-              "prioritization"
-            ]
-          },
-          "avatarUrl": {
-            "type": "string",
-            "nullable": true,
-            "example": null
-          }
-        }
-      },
-      "UpdateProfileRequest": {
-        "type": "object",
-        "properties": {
-          "displayName": {
-            "type": "string",
-            "example": "Updated Name"
-          },
-          "bio": {
-            "type": "string",
-            "example": "Updated bio information"
-          },
-          "interests": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "example": [
-              "productivity",
-              "technology",
-              "time management"
-            ]
-          },
-          "skills": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "example": [
-              "organization",
-              "planning",
-              "prioritization"
-            ]
-          },
-          "avatarUrl": {
-            "type": "string",
-            "nullable": true,
-            "example": "https://example.com/avatar.jpg"
-          }
-        }
-      },
-      "Task": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "example": 1
-          },
-          "title": {
-            "type": "string",
-            "example": "Finish project report"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true,
-            "example": "Complete the quarterly project report with all metrics and insights"
-          },
-          "dueDate": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "example": "2025-04-20T23:59:59.999Z"
-          },
-          "completed": {
-            "type": "boolean",
-            "example": false
-          },
-          "completedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "example": null
-          },
-          "priority": {
-            "type": "string",
-            "enum": [
-              "high",
-              "medium",
-              "low"
-            ],
-            "example": "high"
-          },
-          "category": {
-            "type": "string",
-            "example": "Work"
-          },
-          "estimatedTime": {
-            "type": "integer",
-            "nullable": true,
-            "example": 120
-          },
-          "userId": {
-            "type": "integer",
-            "format": "int64",
-            "example": 1
-          },
-          "assignedToUserId": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true,
-            "example": null
-          },
-          "isPublic": {
-            "type": "boolean",
-            "example": false
-          },
-          "budget": {
-            "type": "number",
-            "format": "float",
-            "nullable": true,
-            "example": 50
-          },
-          "acceptingBids": {
-            "type": "boolean",
-            "example": true
-          },
-          "biddingDeadline": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "example": "2025-04-15T23:59:59.999Z"
-          },
-          "winningBidId": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true,
-            "example": null
-          }
-        }
-      },
-      "TaskInput": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "example": 1
-          },
-          "title": {
-            "type": "string",
-            "example": "Finish project report"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true,
-            "example": "Complete the quarterly project report with all metrics and insights"
-          },
-          "dueDate": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "example": "2025-04-20T23:59:59.999Z"
-          },
-          "completed": {
-            "type": "boolean",
-            "example": false
-          },
-          "completedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "example": null
-          },
-          "priority": {
-            "type": "string",
-            "enum": [
-              "high",
-              "medium",
-              "low"
-            ],
-            "example": "high"
-          },
-          "category": {
-            "type": "string",
-            "example": "Work"
-          },
-          "estimatedTime": {
-            "type": "integer",
-            "nullable": true,
-            "example": 120
-          }
-        }
-      },
-      "CreateTaskRequest": {
-        "type": "object",
-        "required": [
-          "title"
-        ],
-        "properties": {
-          "title": {
-            "type": "string",
-            "example": "Finish project report"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true,
-            "example": "Complete the quarterly project report with all metrics and insights"
-          },
-          "dueDate": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "example": "2025-04-20T23:59:59.999Z"
-          },
-          "priority": {
-            "type": "string",
-            "enum": [
-              "high",
-              "medium",
-              "low"
-            ],
-            "default": "medium",
-            "example": "high"
-          },
-          "category": {
-            "type": "string",
-            "example": "Work"
-          },
-          "estimatedTime": {
-            "type": "integer",
-            "nullable": true,
-            "example": 120
-          },
-          "isPublic": {
-            "type": "boolean",
-            "default": false,
-            "example": false
-          },
-          "budget": {
-            "type": "number",
-            "format": "float",
-            "nullable": true,
-            "example": 50
-          },
-          "acceptingBids": {
-            "type": "boolean",
-            "default": false,
-            "example": true
-          },
-          "biddingDeadline": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "example": "2025-04-15T23:59:59.999Z"
-          }
-        }
-      },
-      "UpdateTaskRequest": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "example": "Updated project report title"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true,
-            "example": "Updated description for the project report"
-          },
-          "dueDate": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "example": "2025-04-25T23:59:59.999Z"
-          },
-          "priority": {
-            "type": "string",
-            "enum": [
-              "high",
-              "medium",
-              "low"
-            ],
-            "example": "medium"
-          },
-          "category": {
-            "type": "string",
-            "example": "Work"
-          },
-          "estimatedTime": {
-            "type": "integer",
-            "nullable": true,
-            "example": 90
-          },
-          "isPublic": {
-            "type": "boolean",
-            "example": true
-          },
-          "budget": {
-            "type": "number",
-            "format": "float",
-            "nullable": true,
-            "example": 75
-          },
-          "acceptingBids": {
-            "type": "boolean",
-            "example": false
-          },
-          "biddingDeadline": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "example": "2025-04-20T23:59:59.999Z"
-          }
-        }
-      },
-      "TaskTemplate": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "example": 1
-          },
-          "title": {
-            "type": "string",
-            "example": "Weekly Report Template"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true,
-            "example": "Standard template for weekly status reports"
-          },
-          "priority": {
-            "type": "string",
-            "enum": [
-              "high",
-              "medium",
-              "low"
-            ],
-            "example": "medium"
-          },
-          "category": {
-            "type": "string",
-            "example": "Work"
-          },
-          "estimatedTime": {
-            "type": "integer",
-            "nullable": true,
-            "example": 60
-          },
-          "userId": {
-            "type": "integer",
-            "format": "int64",
-            "example": 1
-          },
-          "isPublic": {
-            "type": "boolean",
-            "example": true
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2025-04-01T10:30:00.000Z"
-          }
-        }
-      },
-      "CreateTaskTemplateRequest": {
-        "type": "object",
-        "required": [
-          "title"
-        ],
-        "properties": {
-          "title": {
-            "type": "string",
-            "example": "Weekly Report Template"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true,
-            "example": "Standard template for weekly status reports"
-          },
-          "priority": {
-            "type": "string",
-            "enum": [
-              "high",
-              "medium",
-              "low"
-            ],
-            "default": "medium",
-            "example": "medium"
-          },
-          "category": {
-            "type": "string",
-            "example": "Work"
-          },
-          "estimatedTime": {
-            "type": "integer",
-            "nullable": true,
-            "example": 60
-          },
-          "isPublic": {
-            "type": "boolean",
-            "default": false,
-            "example": true
-          }
-        }
-      },
-      "TaskBid": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "example": 1
-          },
-          "taskId": {
-            "type": "integer",
-            "format": "int64",
-            "example": 5
-          },
-          "bidderId": {
-            "type": "integer",
-            "format": "int64",
-            "example": 2
-          },
-          "amount": {
-            "type": "string",
-            "example": "45.00"
-          },
-          "proposal": {
-            "type": "string",
-            "example": "I can complete this task efficiently with high quality results"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "pending",
-              "accepted",
-              "rejected",
-              "completed"
-            ],
-            "example": "pending"
-          },
-          "estimatedTime": {
-            "type": "integer",
-            "nullable": true,
-            "example": 90
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2025-04-10T14:30:00.000Z"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "example": null
-          },
-          "completedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "example": null
-          },
-          "stripePaymentIntentId": {
-            "type": "string",
-            "nullable": true,
-            "example": null
-          },
-          "stripePaymentStatus": {
-            "type": "string",
-            "nullable": true,
-            "example": null
-          }
-        }
-      },
-      "TaskBidWithBidder": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/TaskBid"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "bidder": {
-                "$ref": "#/components/schemas/UserBasic"
-              }
-            }
-          }
-        ]
-      },
-      "TaskBidWithTask": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/TaskBid"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "task": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "integer",
-                    "format": "int64",
-                    "example": 5
-                  },
-                  "title": {
-                    "type": "string",
-                    "example": "Design a logo"
-                  },
-                  "description": {
-                    "type": "string",
-                    "nullable": true,
-                    "example": "Create a professional logo for a tech startup"
-                  },
-                  "dueDate": {
-                    "type": "string",
-                    "format": "date-time",
-                    "nullable": true,
-                    "example": "2025-04-20T23:59:59.999Z"
-                  }
-                }
-              }
-            }
-          }
-        ]
-      },
-      "CreateBidRequest": {
-        "type": "object",
-        "required": [
-          "amount",
-          "proposal"
-        ],
-        "properties": {
-          "amount": {
-            "type": "number",
-            "format": "float",
-            "example": 45
-          },
-          "proposal": {
-            "type": "string",
-            "example": "I can complete this task efficiently with high quality results"
-          },
-          "estimatedTime": {
-            "type": "integer",
-            "nullable": true,
-            "example": 90
-          }
-        }
-      },
-      "UpdateBidRequest": {
-        "type": "object",
-        "properties": {
-          "amount": {
-            "type": "number",
-            "format": "float",
-            "example": 40
-          },
-          "proposal": {
-            "type": "string",
-            "example": "Updated proposal with additional details on my approach"
-          },
-          "estimatedTime": {
-            "type": "integer",
-            "nullable": true,
-            "example": 75
-          }
-        }
-      },
-      "DirectMessage": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "example": 1
-          },
-          "senderId": {
-            "type": "integer",
-            "format": "int64",
-            "example": 1
-          },
-          "receiverId": {
-            "type": "integer",
-            "format": "int64",
-            "example": 2
-          },
-          "message": {
-            "type": "string",
-            "example": "Hi there, how are you doing?"
-          },
-          "read": {
-            "type": "boolean",
-            "example": false
-          },
-          "delivered": {
-            "type": "boolean",
-            "example": true
-          },
-          "edited": {
-            "type": "boolean",
-            "example": false
-          },
-          "editedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "example": null
-          },
-          "deleted": {
-            "type": "boolean",
-            "example": false
-          },
-          "reactions": {
-            "type": "object",
-            "example": {
-              "👍": [1],
-              "❤️": [2]
-            }
-          },
-          "replyToId": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true,
-            "example": null
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2025-04-10T14:30:00.000Z"
-          }
-        }
-      },
-      "Conversation": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64",
-            "example": 1
-          },
-          "user1Id": {
-            "type": "integer",
-            "format": "int64",
-            "example": 1
-          },
-          "user2Id": {
-            "type": "integer",
-            "format": "int64",
-            "example": 2
-          },
-          "lastMessageAt": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2025-04-10T14:30:00.000Z"
-          },
-          "unreadCount": {
-            "type": "integer",
-            "example": 3
-          }
-        }
-      },
-      "ConversationWithUser": {
-        "type": "object",
-        "properties": {
-          "conversation": {
-            "$ref": "#/components/schemas/Conversation"
-          },
-          "user": {
-            "$ref": "#/components/schemas/UserProfile"
-          }
-        }
-      },
-      "SendMessageRequest": {
-        "type": "object",
-        "required": [
-          "receiverId",
-          "message"
-        ],
-        "properties": {
-          "receiverId": {
-            "type": "integer",
-            "format": "int64",
-            "example": 2
-          },
-          "message": {
-            "type": "string",
-            "example": "Hi there, how are you doing?"
-          },
-          "replyToId": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true,
-            "example": null
-          }
-        }
-      },
-      "ErrorResponse": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "example": "An error occurred"
-          }
-        }
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "API key"
       }
     }
   }

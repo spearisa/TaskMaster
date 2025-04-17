@@ -8,7 +8,7 @@ import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, Tabl
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Clipboard, Check, Copy, ExternalLink, Lock, Unlock, Save } from 'lucide-react';
-import SwaggerDocs from '../../appmo-api-swagger.json';
+import { apiRequest } from '@/lib/queryClient';
 
 // Type for API Key
 interface ApiKey {
@@ -35,23 +35,52 @@ export default function ApiDocsPage() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
   const [filteredEndpoints, setFilteredEndpoints] = useState<any[]>([]);
+  const [swaggerDocs, setSwaggerDocs] = useState<any>({ paths: {}, tags: [] });
+  const [endpoints, setEndpoints] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Extract endpoints from Swagger
-  const endpoints = Object.entries(SwaggerDocs.paths).map(([path, methods]) => {
-    const methodEntries = Object.entries(methods as any);
-    return methodEntries.map(([method, details]) => ({
-      path,
-      method: method.toUpperCase(),
-      summary: (details as any).summary || '',
-      description: (details as any).description || '',
-      tags: (details as any).tags || [],
-      requiresAuth: ((details as any).security || []).length > 0 || path.includes('/user') || !path.includes('/public'),
-      responses: (details as any).responses || {}
-    }));
-  }).flat();
+  // Fetch Swagger documentation
+  useEffect(() => {
+    const fetchSwaggerDocs = async () => {
+      try {
+        // Fetch from local file
+        const response = await fetch('/appmo-api-swagger.json');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch API documentation: ${response.status}`);
+        }
+        const data = await response.json();
+        setSwaggerDocs(data);
+        
+        // Extract endpoints
+        const extractedEndpoints = Object.entries(data.paths).map(([path, methods]: [string, any]) => {
+          const methodEntries = Object.entries(methods);
+          return methodEntries.map(([method, details]: [string, any]) => ({
+            path,
+            method: method.toUpperCase(),
+            summary: details.summary || '',
+            description: details.description || '',
+            tags: details.tags || [],
+            requiresAuth: (details.security || []).length > 0 || path.includes('/user') || !path.includes('/public'),
+            responses: details.responses || {}
+          }));
+        }).flat();
+        
+        setEndpoints(extractedEndpoints);
+        setFilteredEndpoints(extractedEndpoints);
+      } catch (error) {
+        console.error('Error fetching API documentation:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchSwaggerDocs();
+  }, []);
 
   // Filter endpoints based on search
   useEffect(() => {
+    if (!endpoints.length) return;
+    
     if (!filter) {
       setFilteredEndpoints(endpoints);
       return;
@@ -233,128 +262,136 @@ export default function ApiDocsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="mb-6">
-                <Label htmlFor="filter" className="sr-only">Filter endpoints</Label>
-                <Input
-                  id="filter"
-                  placeholder="Search endpoints by path, method, or description..."
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                  className="mb-4"
-                />
-                
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {SwaggerDocs.tags.map((tag: any) => (
-                    <Badge 
-                      key={tag.name}
-                      className="cursor-pointer"
-                      variant={filter === tag.name ? "default" : "outline"}
-                      onClick={() => setFilter(filter === tag.name ? '' : tag.name)}
-                    >
-                      {tag.name}
-                    </Badge>
-                  ))}
+              {isLoading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
                 </div>
-              </div>
-              
-              <Accordion type="multiple" className="w-full">
-                {filteredEndpoints.map((endpoint, idx) => (
-                  <AccordionItem value={`endpoint-${idx}`} key={`${endpoint.method}-${endpoint.path}-${idx}`}>
-                    <AccordionTrigger className="hover:no-underline">
-                      <div className="flex items-center w-full">
+              ) : (
+                <>
+                  <div className="mb-6">
+                    <Label htmlFor="filter" className="sr-only">Filter endpoints</Label>
+                    <Input
+                      id="filter"
+                      placeholder="Search endpoints by path, method, or description..."
+                      value={filter}
+                      onChange={(e) => setFilter(e.target.value)}
+                      className="mb-4"
+                    />
+                    
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {swaggerDocs.tags && swaggerDocs.tags.map((tag: any) => (
                         <Badge 
-                          className={`mr-3 ${
-                            endpoint.method === 'GET' ? 'bg-blue-500' :
-                            endpoint.method === 'POST' ? 'bg-green-500' :
-                            endpoint.method === 'PATCH' ? 'bg-orange-500' :
-                            endpoint.method === 'DELETE' ? 'bg-red-500' : 
-                            'bg-purple-500'
-                          }`}
+                          key={tag.name}
+                          className="cursor-pointer"
+                          variant={filter === tag.name ? "default" : "outline"}
+                          onClick={() => setFilter(filter === tag.name ? '' : tag.name)}
                         >
-                          {endpoint.method}
+                          {tag.name}
                         </Badge>
-                        <span className="font-mono text-sm mr-2">{endpoint.path}</span>
-                        <span className="text-gray-500 text-sm hidden sm:inline ml-auto mr-2">{endpoint.summary}</span>
-                        {endpoint.requiresAuth && (
-                          <Lock className="h-4 w-4 text-gray-400" />
-                        )}
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="pl-2 py-2">
-                        <div className="mb-4">
-                          <h4 className="font-medium mb-1">Description</h4>
-                          <p className="text-gray-700 dark:text-gray-300 text-sm">{endpoint.description}</p>
-                        </div>
-                        
-                        <div className="mb-4">
-                          <h4 className="font-medium mb-1">Authentication</h4>
-                          <p className="text-gray-700 dark:text-gray-300 text-sm flex items-center">
-                            {endpoint.requiresAuth ? (
-                              <>
-                                <Lock className="h-4 w-4 mr-1 text-amber-500" />
-                                Requires API key
-                              </>
-                            ) : (
-                              <>
-                                <Unlock className="h-4 w-4 mr-1 text-green-500" />
-                                No authentication required
-                              </>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <Accordion type="multiple" className="w-full">
+                    {filteredEndpoints.map((endpoint, idx) => (
+                      <AccordionItem value={`endpoint-${idx}`} key={`${endpoint.method}-${endpoint.path}-${idx}`}>
+                        <AccordionTrigger className="hover:no-underline">
+                          <div className="flex items-center w-full">
+                            <Badge 
+                              className={`mr-3 ${
+                                endpoint.method === 'GET' ? 'bg-blue-500' :
+                                endpoint.method === 'POST' ? 'bg-green-500' :
+                                endpoint.method === 'PATCH' ? 'bg-orange-500' :
+                                endpoint.method === 'DELETE' ? 'bg-red-500' : 
+                                'bg-purple-500'
+                              }`}
+                            >
+                              {endpoint.method}
+                            </Badge>
+                            <span className="font-mono text-sm mr-2">{endpoint.path}</span>
+                            <span className="text-gray-500 text-sm hidden sm:inline ml-auto mr-2">{endpoint.summary}</span>
+                            {endpoint.requiresAuth && (
+                              <Lock className="h-4 w-4 text-gray-400" />
                             )}
-                          </p>
-                        </div>
-                        
-                        {endpoint.tags && endpoint.tags.length > 0 && (
-                          <div className="mb-4">
-                            <h4 className="font-medium mb-1">Tags</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {endpoint.tags.map((tag: string) => (
-                                <Badge key={tag} variant="secondary">{tag}</Badge>
-                              ))}
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="pl-2 py-2">
+                            <div className="mb-4">
+                              <h4 className="font-medium mb-1">Description</h4>
+                              <p className="text-gray-700 dark:text-gray-300 text-sm">{endpoint.description}</p>
+                            </div>
+                            
+                            <div className="mb-4">
+                              <h4 className="font-medium mb-1">Authentication</h4>
+                              <p className="text-gray-700 dark:text-gray-300 text-sm flex items-center">
+                                {endpoint.requiresAuth ? (
+                                  <>
+                                    <Lock className="h-4 w-4 mr-1 text-amber-500" />
+                                    Requires API key
+                                  </>
+                                ) : (
+                                  <>
+                                    <Unlock className="h-4 w-4 mr-1 text-green-500" />
+                                    No authentication required
+                                  </>
+                                )}
+                              </p>
+                            </div>
+                            
+                            {endpoint.tags && endpoint.tags.length > 0 && (
+                              <div className="mb-4">
+                                <h4 className="font-medium mb-1">Tags</h4>
+                                <div className="flex flex-wrap gap-2">
+                                  {endpoint.tags.map((tag: string) => (
+                                    <Badge key={tag} variant="secondary">{tag}</Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            <div className="mb-4">
+                              <h4 className="font-medium mb-1">Responses</h4>
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="w-20">Status</TableHead>
+                                    <TableHead>Description</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {Object.entries(endpoint.responses).map(([status, details]: [string, any]) => (
+                                    <TableRow key={status}>
+                                      <TableCell>
+                                        <Badge 
+                                          className={`${
+                                            status.startsWith('2') ? 'bg-green-500' :
+                                            status.startsWith('4') ? 'bg-amber-500' :
+                                            status.startsWith('5') ? 'bg-red-500' : 
+                                            'bg-blue-500'
+                                          }`}
+                                        >
+                                          {status}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell>{details.description}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
                             </div>
                           </div>
-                        )}
-                        
-                        <div className="mb-4">
-                          <h4 className="font-medium mb-1">Responses</h4>
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="w-20">Status</TableHead>
-                                <TableHead>Description</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {Object.entries(endpoint.responses).map(([status, details]: [string, any]) => (
-                                <TableRow key={status}>
-                                  <TableCell>
-                                    <Badge 
-                                      className={`${
-                                        status.startsWith('2') ? 'bg-green-500' :
-                                        status.startsWith('4') ? 'bg-amber-500' :
-                                        status.startsWith('5') ? 'bg-red-500' : 
-                                        'bg-blue-500'
-                                      }`}
-                                    >
-                                      {status}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell>{details.description}</TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-              
-              {filteredEndpoints.length === 0 && (
-                <div className="text-center py-6">
-                  <p className="text-gray-500">No endpoints found for your search criteria.</p>
-                </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                  
+                  {filteredEndpoints.length === 0 && !isLoading && (
+                    <div className="text-center py-6">
+                      <p className="text-gray-500">No endpoints found for your search criteria.</p>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
