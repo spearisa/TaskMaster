@@ -69,7 +69,7 @@ export function MobileLayout({
   }
   
   // Determine current page title
-  const currentPageTitle = pageTitle || pageTitles[location] || 'TaskFlow';
+  const currentPageTitle = pageTitle || pageTitles[location] || 'Appmo';
 
   // Menu items for sidebar navigation - different items based on authentication
   const menuItems = user ? [
@@ -147,7 +147,7 @@ export function MobileLayout({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center p-4 border-b">
-              <h2 className="font-semibold">Menu</h2>
+              <h2 className="font-semibold">Appmo Menu</h2>
               <Button variant="ghost" size="sm" onClick={() => setMenuOpen(false)}>
                 <X size={20} />
               </Button>

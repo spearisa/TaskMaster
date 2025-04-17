@@ -61,10 +61,10 @@ export default function AuthPage() {
       <div className="hidden md:flex flex-1 bg-primary/10 items-center justify-center p-8">
         <div className="max-w-md text-center">
           <ClipboardList className="h-24 w-24 mx-auto mb-6 text-primary" />
-          <h1 className="text-3xl font-bold mb-3">Task Manager Pro</h1>
+          <h1 className="text-3xl font-bold mb-3">Appmo</h1>
           <p className="text-lg mb-6">
-            Your personal AI-powered task assistant to optimize your productivity 
-            and never miss a deadline again.
+            Your intelligent task management platform with AI-powered features
+            to optimize your productivity and never miss a deadline again.
           </p>
           <ul className="text-left space-y-2 mb-6">
             <li className="flex items-center">
