@@ -23,12 +23,39 @@ async function detectUserCountry(): Promise<string> {
   }
 }
 
+// This is a completely new approach using direct URL manipulation
+// to force a hard reload with the language parameter
+function changeAppLanguage(languageCode: string) {
+  console.log(`Setting language to: ${languageCode}`);
+  localStorage.setItem('i18nextLng', languageCode);
+  // Create a form that will submit and cause a full page reload
+  const form = document.createElement('form');
+  form.method = 'GET';
+  form.action = window.location.pathname;
+  
+  // Add a hidden field for the language
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = '_lang'; // Custom parameter to force refresh
+  input.value = languageCode;
+  
+  // Add the timestamp to force reload
+  const timestamp = document.createElement('input');
+  timestamp.type = 'hidden';
+  timestamp.name = '_t';
+  timestamp.value = Date.now().toString();
+  
+  form.appendChild(input);
+  form.appendChild(timestamp);
+  document.body.appendChild(form);
+  form.submit();
+}
+
 export function LanguageRegionSelector() {
   const { 
     t, 
     i18n, 
     currentLanguage,
-    changeLanguage, 
     getLanguageName,
     getRegionName,
     getAvailableLanguages,
@@ -67,15 +94,15 @@ export function LanguageRegionSelector() {
     } else {
       detectAndSetLanguage();
     }
+
+    // Check URL params for language change
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('_lang');
+    if (langParam) {
+      console.log(`Language param found in URL: ${langParam}`);
+      i18n.changeLanguage(langParam);
+    }
   }, []);
-  
-  // Handle region change
-  const handleRegionChange = (regionCode: string) => {
-    setCurrentRegion(regionCode);
-    localStorage.setItem('appmoRegion', regionCode);
-    const newLanguage = setLanguageByCountry(regionCode);
-    console.log(`Region changed to ${regionCode}, language set to ${newLanguage}`);
-  };
   
   return (
     <DropdownMenu>
@@ -123,19 +150,7 @@ export function LanguageRegionSelector() {
               >
                 <DropdownMenuItem
                   className="flex justify-between"
-                  onClick={() => {
-                    // Use direct approach for language change
-                    console.log(`Language selection clicked: ${language.code}`);
-                    // First set in localStorage directly (this is what i18next reads on page load)
-                    localStorage.setItem('i18nextLng', language.code);
-                    // Then trigger language change in i18next
-                    i18n.changeLanguage(language.code);
-                    // Force reload after a short delay
-                    setTimeout(() => {
-                      console.log(`Forcing reload to apply language change to ${language.code}`);
-                      window.location.href = window.location.href.split('?')[0]; // Remove any query params
-                    }, 100);
-                  }}
+                  onClick={() => changeAppLanguage(language.code)}
                 >
                   {language.name}
                   {currentLanguage === language.code && (
@@ -187,22 +202,14 @@ export function LanguageRegionSelector() {
                 <DropdownMenuItem
                   className="flex justify-between"
                   onClick={() => {
-                    // Direct approach for region change as well
-                    console.log(`Region selection clicked: ${region.code}`);
-                    // First set directly in localStorage
+                    // Set region in localStorage
                     localStorage.setItem('appmoRegion', region.code);
-                    // Set language based on region
-                    const languageCode = setLanguageByCountry(region.code);
-                    console.log(`Region ${region.code} maps to language ${languageCode}`);
-                    // First set in localStorage directly (this is what i18next reads on page load)
-                    localStorage.setItem('i18nextLng', languageCode);
-                    // Then trigger language change in i18next
-                    i18n.changeLanguage(languageCode);
-                    // Force reload after a short delay
-                    setTimeout(() => {
-                      console.log(`Forcing reload to apply region/language change`);
-                      window.location.href = window.location.href.split('?')[0]; // Remove any query params
-                    }, 100);
+                    // Get corresponding language and change to it
+                    const languageForRegion = (region.code in setLanguageByCountry) 
+                      ? setLanguageByCountry(region.code) 
+                      : 'en';
+                    // Use the same form submission approach
+                    changeAppLanguage(languageForRegion);
                   }}
                 >
                   {region.name}
