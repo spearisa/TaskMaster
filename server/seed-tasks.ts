@@ -157,10 +157,11 @@ async function seedTasks() {
   const userIds = [1, 2, 3, 4, 5, 6];
   
   try {
-    for (let i = 0; i < 100; i++) {
+    // Reduced to 20 tasks for faster execution
+    for (let i = 0; i < 20; i++) {
       const userId = userIds[i % userIds.length];
       const task = await createTask(userId, i);
-      console.log(`Created task ${i+1}/100: ${task.title} for user ${userId}`);
+      console.log(`Created task ${i+1}/20: ${task.title} for user ${userId}`);
     }
     console.log('Task seeding completed successfully!');
   } catch (error) {
