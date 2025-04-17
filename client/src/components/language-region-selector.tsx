@@ -122,7 +122,14 @@ export function LanguageRegionSelector() {
               >
                 <DropdownMenuItem
                   className="flex justify-between"
-                  onClick={() => changeLanguage(language.code)}
+                  onClick={() => {
+                    // Change language and force page reload to apply changes everywhere
+                    changeLanguage(language.code);
+                    // Wait a moment for the language to be saved to localStorage
+                    setTimeout(() => {
+                      window.location.reload();
+                    }, 100);
+                  }}
                 >
                   {language.name}
                   {currentLanguage === language.code && (
@@ -173,7 +180,13 @@ export function LanguageRegionSelector() {
               >
                 <DropdownMenuItem
                   className="flex justify-between"
-                  onClick={() => handleRegionChange(region.code)}
+                  onClick={() => {
+                    handleRegionChange(region.code);
+                    // Wait a moment for the region to be saved to localStorage
+                    setTimeout(() => {
+                      window.location.reload();
+                    }, 100);
+                  }}
                 >
                   {region.name}
                   {currentRegion === region.code && (

@@ -115,12 +115,22 @@ app.use((req, res, next) => {
 
   // Start server with port fallback for Replit compatibility
   const startServer = async () => {
-    const availablePorts = [5000, 5001, 5002, 5003, 5004];
+    // Expanded range of ports to try
+    const availablePorts = [5000, 5001, 5002, 5003, 5004, 5005, 5006, 5007, 5008, 5009, 5010, 3000, 3001, 3002, 8000, 8001, 8080, 8081];
     
     for (const port of availablePorts) {
       try {
         await new Promise<void>((resolve, reject) => {
+          // Set a timeout to avoid hanging if connection takes too long
+          const timeout = setTimeout(() => {
+            log(`Timeout trying to connect to port ${port}, trying next port...`);
+            server.removeAllListeners('listening');
+            server.removeAllListeners('error');
+            resolve(); // Continue to next port
+          }, 1000);
+          
           server.once('error', (err: any) => {
+            clearTimeout(timeout);
             if (err.code === 'EADDRINUSE') {
               log(`Port ${port} is already in use, trying next port...`);
               server.removeAllListeners('listening');
@@ -132,10 +142,18 @@ app.use((req, res, next) => {
           });
           
           server.once('listening', () => {
+            clearTimeout(timeout);
             log(`Server successfully started on port ${port}`);
+            
+            // Let the user know which port we're using
+            console.log(`\n\n--------------------------------------------`);
+            console.log(`🚀 Appmo server running on port: ${port}`);
+            console.log(`--------------------------------------------\n\n`);
+            
             resolve();
           });
           
+          // Try to listen on this port
           server.listen(port, "0.0.0.0");
         });
         
@@ -145,6 +163,7 @@ app.use((req, res, next) => {
         log(`Error starting server: ${err.message}`);
         if (port === availablePorts[availablePorts.length - 1]) {
           // If we've tried all ports and still failed, exit
+          console.error(`\n❌ Failed to start server after trying all ports. Please restart the application.\n`);
           process.exit(1);
         }
       }
