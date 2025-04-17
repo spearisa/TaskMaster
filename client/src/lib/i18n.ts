@@ -917,81 +917,21 @@ export const setLanguageByCountry = (countryCode: string): string => {
   return languageCode;
 };
 
-// Try to get language from URL if present (_lang parameter)
-function getLanguageFromUrl(): string | null {
-  if (typeof window !== 'undefined') {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('_lang');
-  }
-  return null;
-}
-
-// Get default language through multiple means
-function getDefaultLanguage(): string {
-  // Priority 1: URL parameter
-  const urlLanguage = getLanguageFromUrl();
-  if (urlLanguage) {
-    console.log(`Using language from URL: ${urlLanguage}`);
-    return urlLanguage;
-  }
-  
-  // Priority 2: localStorage
-  const savedLanguage = localStorage.getItem('i18nextLng');
-  if (savedLanguage) {
-    console.log(`Using language from localStorage: ${savedLanguage}`);
-    return savedLanguage;
-  }
-  
-  // Priority 3: browser language
-  const browserLang = navigator.language.split('-')[0];
-  if (browserLang) {
-    console.log(`Using browser language: ${browserLang}`);
-    return browserLang;
-  }
-  
-  // Fallback
-  return 'en';
-}
-
 // Initialize i18next
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources,
-    lng: getDefaultLanguage(), // Force the language from our custom function
     fallbackLng: 'en',
     debug: process.env.NODE_ENV === 'development',
     interpolation: {
       escapeValue: false, // React already escapes values
     },
     detection: {
-      order: ['querystring', 'localStorage', 'navigator'],
-      lookupQuerystring: '_lang', // This matches our custom URL parameter
+      order: ['localStorage', 'navigator'],
       caches: ['localStorage'],
     },
-  }, (err, t) => {
-    if (err) {
-      console.error('i18next initialization error:', err);
-    } else {
-      console.log(`i18next initialized with language: ${i18n.language}`);
-      
-      // Listen for language changes
-      i18n.on('languageChanged', (lng) => {
-        console.log(`Language changed event: ${lng}`);
-      });
-      
-      // Clean URL parameters after initialization if they exist
-      if (typeof window !== 'undefined' && window.history && window.location.search.includes('_lang')) {
-        try {
-          const cleanUrl = window.location.pathname;
-          window.history.replaceState({}, document.title, cleanUrl);
-          console.log('Cleaned URL params after language initialization');
-        } catch (e) {
-          console.error('Error cleaning URL:', e);
-        }
-      }
-    }
   });
 
 export default i18n;

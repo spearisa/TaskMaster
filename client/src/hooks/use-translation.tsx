@@ -26,19 +26,10 @@ export function useTranslation() {
     return region ? region.name : code;
   }, []);
   
-  // Change language with hard reload
+  // Change language
   const changeLanguage = useCallback((languageCode: string) => {
-    console.log(`Changing language to ${languageCode}`);
-    // Set language in localStorage directly
-    localStorage.setItem('i18nextLng', languageCode);
-    // Also change i18n instance
     i18nInstance.changeLanguage(languageCode);
-    // Let's force app to use the new language by adding a timestamp to localStorage
-    localStorage.setItem('appmo_lang_updated', Date.now().toString());
-    console.log(`Language changed to ${languageCode}, reloading page...`);
-    
-    // Return the language code for reference
-    return languageCode;
+    localStorage.setItem('i18nextLng', languageCode);
   }, [i18nInstance]);
   
   return {
