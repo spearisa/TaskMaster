@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { MobileLayout } from "@/components/layouts/mobile-layout";
 import { FloatingAIButton } from "@/components/floating-ai-button";
 import { LanguageRegionSelector } from "@/components/language-region-selector";
+import { SimpleLanguageSwitcher } from "@/components/simple-language-switcher";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import HomePage from "@/pages/home";
@@ -74,10 +75,8 @@ function AppContent() {
       </MobileLayout>
       {user && <FloatingAIButton />}
       
-      {/* Language and Region Selector (positioned in bottom-right) */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <LanguageRegionSelector />
-      </div>
+      {/* Simple Language Switcher (with direct reload approach) */}
+      <SimpleLanguageSwitcher />
       
       <Toaster />
     </div>
