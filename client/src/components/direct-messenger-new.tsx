@@ -538,9 +538,8 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
               // Check if message is from current user
               const isFromMe = msg.senderId === user?.id;
               
-              // State for editing
-              const [isEditing, setIsEditing] = useState(false);
-              const [editContent, setEditContent] = useState(msg.message || msg.content || '');
+              // Check if this message is being edited
+              const isEditing = editingMessageId === msg.id;
               
               // Format message content based on status
               const messageContent = msg.deleted ? 
@@ -573,24 +572,13 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            onClick={() => {
-                              setIsEditing(false);
-                              setEditContent(msg.message || msg.content || '');
-                            }}
+                            onClick={cancelEditing}
                           >
                             Cancel
                           </Button>
                           <Button 
                             size="sm" 
-                            onClick={() => {
-                              if (editContent.trim() !== '') {
-                                editMessageMutation.mutate({
-                                  messageId: msg.id,
-                                  content: editContent
-                                });
-                                setIsEditing(false);
-                              }
-                            }}
+                            onClick={() => saveEditedMessage(msg.id)}
                             disabled={editMessageMutation.isPending}
                           >
                             Save
@@ -628,7 +616,7 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
                       )}
                     </div>
                     
-                    {/* Message actions */}
+                    {/* Message actions - only show if not editing and not deleted */}
                     {!isEditing && !msg.deleted && (
                       <div 
                         className={`absolute ${isFromMe ? 'left-0' : 'right-0'} top-0 transform ${
@@ -678,7 +666,7 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
                             size="icon" 
                             variant="ghost" 
                             className="h-7 w-7"
-                            onClick={() => setIsEditing(true)}
+                            onClick={() => startEditingMessage(msg.id, msg.message || msg.content || '')}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
