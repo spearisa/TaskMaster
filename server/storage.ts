@@ -397,7 +397,11 @@ export class DatabaseStorage implements IStorage {
         estimatedTime: insertTask.estimatedTime || null,
         userId: insertTask.userId || null,
         assignedToUserId: insertTask.assignedToUserId || null,
-        isPublic: insertTask.isPublic || false
+        isPublic: insertTask.isPublic || false,
+        budget: insertTask.budget || null,
+        acceptingBids: insertTask.acceptingBids || false,
+        biddingDeadline: insertTask.biddingDeadline ? new Date(insertTask.biddingDeadline) : null,
+        winningBidId: null
       };
       
       console.log("Safe insert task with converted date:", JSON.stringify(safeInsertTask, (key, value) => {
