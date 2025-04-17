@@ -2,7 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
-import { ChevronLeft, Loader2, MessageCircle, Send, Smile, Search, AlertCircle } from 'lucide-react';
+import { 
+  ChevronLeft, Loader2, MessageCircle, Send, Smile, Search, AlertCircle, 
+  MoreVertical, Check, Edit, Trash2, Copy, CheckCheck 
+} from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -105,6 +108,129 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
       setTimeout(() => {
         queryClient.refetchQueries({ queryKey: ['/api/conversations'] });
       }, 300);
+    }
+  });
+  
+  // Add emoji reaction to a message
+  const addReactionMutation = useMutation({
+    mutationFn: async ({ messageId, emoji }: { messageId: number, emoji: string }) => {
+      const res = await apiRequest('POST', `/api/messages/${messageId}/reactions`, { emoji });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/messages/${recipientId}`],
+        refetchType: 'none' 
+      });
+      
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: [`/api/messages/${recipientId}`] });
+      }, 300);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error adding reaction',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  });
+  
+  // Remove emoji reaction from a message
+  const removeReactionMutation = useMutation({
+    mutationFn: async ({ messageId, emoji }: { messageId: number, emoji: string }) => {
+      const res = await apiRequest('DELETE', `/api/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/messages/${recipientId}`],
+        refetchType: 'none' 
+      });
+      
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: [`/api/messages/${recipientId}`] });
+      }, 300);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error removing reaction',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  });
+  
+  // Edit a message
+  const editMessageMutation = useMutation({
+    mutationFn: async ({ messageId, content }: { messageId: number, content: string }) => {
+      const res = await apiRequest('PUT', `/api/messages/${messageId}`, { content });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/messages/${recipientId}`],
+        refetchType: 'none' 
+      });
+      
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: [`/api/messages/${recipientId}`] });
+      }, 300);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error editing message',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  });
+  
+  // Delete a message (soft delete)
+  const deleteMessageMutation = useMutation({
+    mutationFn: async (messageId: number) => {
+      const res = await apiRequest('DELETE', `/api/messages/${messageId}`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/messages/${recipientId}`],
+        refetchType: 'none' 
+      });
+      
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/conversations'],
+        refetchType: 'none'
+      });
+      
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: [`/api/messages/${recipientId}`] });
+        queryClient.refetchQueries({ queryKey: ['/api/conversations'] });
+      }, 300);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error deleting message',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  });
+  
+  // Mark a message as delivered
+  const markMessageDeliveredMutation = useMutation({
+    mutationFn: async (messageId: number) => {
+      const res = await apiRequest('POST', `/api/messages/${messageId}/delivered`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/messages/${recipientId}`],
+        refetchType: 'none' 
+      });
+    },
+    onError: (error: Error) => {
+      console.error('Error marking message as delivered:', error);
     }
   });
 
@@ -229,6 +355,33 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
     !msg.read
   );
 
+  // State for message editing - moved outside of the map function
+  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
+  const [editContent, setEditContent] = useState('');
+  
+  // Start editing a message
+  const startEditingMessage = (messageId: number, content: string) => {
+    setEditingMessageId(messageId);
+    setEditContent(content);
+  };
+  
+  // Cancel editing
+  const cancelEditing = () => {
+    setEditingMessageId(null);
+    setEditContent('');
+  };
+  
+  // Save edited message
+  const saveEditedMessage = (messageId: number) => {
+    if (editContent.trim() !== '') {
+      editMessageMutation.mutate({
+        messageId,
+        content: editContent
+      });
+      setEditingMessageId(null);
+    }
+  };
+  
   // Highlight search terms in message text
   const highlightText = (text: string, query: string): React.ReactNode => {
     if (!query.trim() || !text) return text;
@@ -371,37 +524,220 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
               </span>
             </div>
             
-            {dateMessages.map((msg) => (
-              <div 
-                key={msg.id} 
-                className={`flex ${msg.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
-              >
+            {dateMessages.map((msg) => {
+              // Parse reactions if they exist
+              const reactions = msg.reactions ? 
+                (typeof msg.reactions === 'string' ? 
+                  JSON.parse(msg.reactions as string) : 
+                  msg.reactions) || {} : 
+                {};
+              
+              // Get all reaction emojis
+              const reactionEmojis = Object.keys(reactions);
+              
+              // Check if message is from current user
+              const isFromMe = msg.senderId === user?.id;
+              
+              // State for editing
+              const [isEditing, setIsEditing] = useState(false);
+              const [editContent, setEditContent] = useState(msg.message || msg.content || '');
+              
+              // Format message content based on status
+              const messageContent = msg.deleted ? 
+                <em className="text-gray-400">This message was deleted</em> : 
+                searchQuery ? 
+                  highlightText(msg.message || msg.content || '', searchQuery) : 
+                  msg.message || msg.content;
+              
+              return (
                 <div 
-                  className={`max-w-[80%] p-3 rounded-lg ${
-                    msg.senderId === user?.id 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-gray-100 text-gray-900'
-                  }`}
+                  key={msg.id} 
+                  className={`flex ${isFromMe ? 'justify-end' : 'justify-start'} group`}
                 >
-                  <div className="whitespace-pre-wrap break-words">
-                    {searchQuery ? (
-                      // Highlight searched text
-                      highlightText(msg.message || msg.content || '', searchQuery)
-                    ) : (
-                      // Normal display
-                      msg.message || msg.content
-                    )}
-                  </div>
                   <div 
-                    className={`text-xs mt-1 ${
-                      msg.senderId === user?.id ? 'text-primary-foreground/70' : 'text-gray-500'
+                    className={`max-w-[80%] p-3 rounded-lg relative ${
+                      isFromMe 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-gray-100 text-gray-900'
                     }`}
                   >
-                    {formatMessageDate(msg.createdAt.toString())}
+                    {/* Message content or edit field */}
+                    {isEditing ? (
+                      <div className="mb-2">
+                        <Textarea 
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className="min-h-[60px] w-full bg-white text-gray-900 border border-gray-300 rounded p-2 mb-1"
+                        />
+                        <div className="flex justify-end gap-1 mt-1">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => {
+                              setIsEditing(false);
+                              setEditContent(msg.message || msg.content || '');
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            onClick={() => {
+                              if (editContent.trim() !== '') {
+                                editMessageMutation.mutate({
+                                  messageId: msg.id,
+                                  content: editContent
+                                });
+                                setIsEditing(false);
+                              }
+                            }}
+                            disabled={editMessageMutation.isPending}
+                          >
+                            Save
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="whitespace-pre-wrap break-words">
+                        {messageContent}
+                        {msg.edited && (
+                          <span className={`text-xs ml-1 ${isFromMe ? 'text-primary-foreground/70' : 'text-gray-500'}`}>
+                            (edited)
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Message info */}
+                    <div 
+                      className={`text-xs mt-1 flex items-center ${
+                        isFromMe ? 'text-primary-foreground/70 justify-end' : 'text-gray-500'
+                      }`}
+                    >
+                      <span>{formatMessageDate(msg.createdAt.toString())}</span>
+                      
+                      {/* Delivery status for sent messages */}
+                      {isFromMe && !msg.deleted && (
+                        <div className="ml-2 flex items-center">
+                          {msg.delivered ? (
+                            <CheckCheck className="h-3 w-3 ml-1" />
+                          ) : (
+                            <Check className="h-3 w-3 ml-1" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Message actions */}
+                    {!isEditing && !msg.deleted && (
+                      <div 
+                        className={`absolute ${isFromMe ? 'left-0' : 'right-0'} top-0 transform ${
+                          isFromMe ? '-translate-x-full' : 'translate-x-full'
+                        } hidden group-hover:flex flex-col gap-1 p-1 bg-white shadow-md rounded-md`}
+                      >
+                        {/* Reaction button */}
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-7 w-7">
+                              <Smile className="h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-2">
+                            <EmojiPicker 
+                              onEmojiClick={(emojiData: EmojiClickData) => {
+                                addReactionMutation.mutate({
+                                  messageId: msg.id,
+                                  emoji: emojiData.emoji
+                                });
+                              }}
+                              width={300}
+                              height={350}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        
+                        {/* Copy message */}
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="h-7 w-7"
+                          onClick={() => {
+                            navigator.clipboard.writeText(msg.message || msg.content || '');
+                            toast({
+                              title: "Copied to clipboard",
+                              duration: 2000
+                            });
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        
+                        {/* Edit own message */}
+                        {isFromMe && (
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-7 w-7"
+                            onClick={() => setIsEditing(true)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        
+                        {/* Delete own message */}
+                        {isFromMe && (
+                          <Button 
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => {
+                              if (window.confirm('Are you sure you want to delete this message?')) {
+                                deleteMessageMutation.mutate(msg.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Display reactions */}
+                    {reactionEmojis.length > 0 && !msg.deleted && (
+                      <div className={`flex flex-wrap gap-1 mt-1 ${
+                        isFromMe ? 'justify-end' : 'justify-start'
+                      }`}>
+                        {reactionEmojis.map(emoji => (
+                          <button
+                            key={emoji}
+                            className={`text-xs rounded-full px-1.5 py-0.5 flex items-center ${
+                              isFromMe ? 'bg-primary-foreground/10' : 'bg-gray-200'
+                            }`}
+                            onClick={() => {
+                              // Toggle reaction
+                              if (reactions[emoji].includes(user?.id)) {
+                                removeReactionMutation.mutate({
+                                  messageId: msg.id,
+                                  emoji
+                                });
+                              } else {
+                                addReactionMutation.mutate({
+                                  messageId: msg.id,
+                                  emoji
+                                });
+                              }
+                            }}
+                          >
+                            <span>{emoji}</span>
+                            <span className="ml-1">{reactions[emoji].length}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ))}
         
