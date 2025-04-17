@@ -24,6 +24,17 @@ import {
 } from "./api-keys";
 import { z } from "zod";
 
+// Extend Express Request type to include API user
+declare global {
+  namespace Express {
+    interface Request {
+      apiUser?: {
+        id: number;
+      };
+    }
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
   setupAuth(app);

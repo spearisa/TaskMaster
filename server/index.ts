@@ -113,20 +113,27 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Start server only on port 5000 (required by Replit workflow)
+  // Simple server start on port 5000
   const port = 5000;
   try {
     server.listen({
       port,
       host: "0.0.0.0",
     }, () => {
-      log(`serving on port ${port}`);
+      log(`Server successfully started on port ${port}`);
     });
-      
+    
+    // Add an error handler for the server
     server.on('error', (err: any) => {
-      log(`Server error: ${err.message}`);
+      if (err.code === 'EADDRINUSE') {
+        log(`Port ${port} is already in use. Terminating server to allow restart.`);
+        process.exit(1); // Exit with error code to trigger restart
+      } else {
+        log(`Server error: ${err.message}`);
+      }
     });
   } catch (err: any) {
     log(`Error starting server: ${err.message}`);
+    process.exit(1); // Exit with error code to trigger restart
   }
 })();

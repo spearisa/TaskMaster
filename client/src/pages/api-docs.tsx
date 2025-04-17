@@ -7,31 +7,28 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Clipboard, Check, Copy, ExternalLink, Lock, Unlock, Save } from 'lucide-react';
-import { apiRequest } from '@/lib/queryClient';
+import { Clipboard, Check, Copy, ExternalLink, Lock, Unlock, Save, AlertCircle, Loader2 } from 'lucide-react';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
+import { useQuery, useMutation } from '@tanstack/react-query';
 
 // Type for API Key
 interface ApiKey {
-  id: string;
+  id: number;
   name: string;
   key: string;
   createdAt: string;
-  lastUsed?: string;
+  lastUsedAt?: string;
+  expiresAt?: string;
+  revoked: string;
 }
 
 export default function ApiDocsPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
   const [newKeyName, setNewKeyName] = useState('');
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([
-    // Demo API keys for display purposes
-    {
-      id: '1',
-      name: 'Development',
-      key: 'appmo_dev_' + Math.random().toString(36).substring(2, 15),
-      createdAt: new Date().toISOString(),
-      lastUsed: new Date().toISOString()
-    }
-  ]);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
   const [filteredEndpoints, setFilteredEndpoints] = useState<any[]>([]);
@@ -39,31 +36,93 @@ export default function ApiDocsPage() {
   const [endpoints, setEndpoints] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch Swagger documentation
+  // Fetch API keys
+  const {
+    data: apiKeys = [],
+    isLoading: isLoadingKeys,
+    refetch: refetchApiKeys
+  } = useQuery<ApiKey[]>({
+    queryKey: ['/api/keys'],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', '/api/keys');
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Error fetching API keys:', error);
+        return [];
+      }
+    },
+    enabled: !!user
+  });
+
+  // Create new API key
+  const createKeyMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const response = await apiRequest('POST', '/api/keys', { name });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'API Key Created',
+        description: 'Your new API key has been generated successfully.',
+      });
+      setNewKeyName('');
+      refetchApiKeys();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error Creating API Key',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Delete API key
+  const deleteKeyMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest('DELETE', `/api/keys/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'API Key Revoked',
+        description: 'The API key has been revoked successfully.',
+      });
+      refetchApiKeys();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error Revoking API Key',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Load Swagger documentation
   useEffect(() => {
     const fetchSwaggerDocs = async () => {
       try {
-        // Fetch from local file
         const response = await fetch('/appmo-api-swagger.json');
-        if (!response.ok) {
-          throw new Error(`Failed to fetch API documentation: ${response.status}`);
-        }
         const data = await response.json();
         setSwaggerDocs(data);
         
-        // Extract endpoints
-        const extractedEndpoints = Object.entries(data.paths).map(([path, methods]: [string, any]) => {
-          const methodEntries = Object.entries(methods);
-          return methodEntries.map(([method, details]: [string, any]) => ({
-            path,
-            method: method.toUpperCase(),
-            summary: details.summary || '',
-            description: details.description || '',
-            tags: details.tags || [],
-            requiresAuth: (details.security || []).length > 0 || path.includes('/user') || !path.includes('/public'),
-            responses: details.responses || {}
-          }));
-        }).flat();
+        // Extract endpoints from Swagger docs
+        const extractedEndpoints = [];
+        for (const [path, methods] of Object.entries(data.paths)) {
+          for (const [method, details] of Object.entries(methods as Record<string, any>)) {
+            extractedEndpoints.push({
+              path,
+              method: method.toUpperCase(),
+              summary: details.summary || '',
+              description: details.description || '',
+              tags: details.tags || [],
+              requiresAuth: details.security && details.security.some((s: any) => s.ApiKeyAuth),
+              responses: details.responses || {},
+            });
+          }
+        }
         
         setEndpoints(extractedEndpoints);
         setFilteredEndpoints(extractedEndpoints);
@@ -102,27 +161,24 @@ export default function ApiDocsPage() {
   const copyApiKey = (key: string) => {
     navigator.clipboard.writeText(key);
     setCopiedKey(key);
+    toast({
+      title: 'Copied to clipboard',
+      description: 'API key has been copied to your clipboard.',
+    });
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  // Generate new API key
-  const generateApiKey = () => {
+  // Create new API key
+  const generateApiKey = async () => {
     if (!newKeyName.trim()) return;
-    
-    const newKey = {
-      id: (apiKeys.length + 1).toString(),
-      name: newKeyName,
-      key: 'appmo_' + Math.random().toString(36).substring(2, 15) + '_' + Math.random().toString(36).substring(2, 15),
-      createdAt: new Date().toISOString()
-    };
-    
-    setApiKeys([...apiKeys, newKey]);
-    setNewKeyName('');
+    createKeyMutation.mutate(newKeyName);
   };
 
   // Delete API key
-  const deleteApiKey = (id: string) => {
-    setApiKeys(apiKeys.filter(key => key.id !== id));
+  const deleteApiKey = (id: number) => {
+    if (confirm('Are you sure you want to revoke this API key? This action cannot be undone.')) {
+      deleteKeyMutation.mutate(id);
+    }
   };
 
   return (
@@ -399,127 +455,171 @@ export default function ApiDocsPage() {
         
         {/* API Keys Tab */}
         <TabsContent value="keys" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Your API Keys</CardTitle>
-              <CardDescription>
-                Create and manage your API keys
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-6">
-                <p className="text-gray-700 dark:text-gray-300 mb-4">
-                  API keys grant access to the Appmo API. Keep your keys secure and never share them in public repositories or client-side code.
-                </p>
-                
-                <div className="flex items-end gap-4 mb-6">
-                  <div className="flex-1">
-                    <Label htmlFor="new-key-name" className="mb-2 block">Key name</Label>
-                    <Input
-                      id="new-key-name"
-                      placeholder="e.g., Production, Testing"
-                      value={newKeyName}
-                      onChange={(e) => setNewKeyName(e.target.value)}
-                    />
-                  </div>
-                  <Button onClick={generateApiKey} disabled={!newKeyName.trim()}>
-                    Generate new key
+          {!user ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Authentication Required</CardTitle>
+                <CardDescription>
+                  Please log in to manage your API keys
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col items-center justify-center py-8">
+                  <Lock className="h-16 w-16 text-gray-300 mb-4" />
+                  <p className="text-center text-gray-700 dark:text-gray-300 mb-4">
+                    You need to be logged in to create and manage API keys.
+                  </p>
+                  <Button 
+                    onClick={() => window.location.href = '/auth'}
+                    className="mt-2"
+                  >
+                    Sign In
                   </Button>
                 </div>
-                
-                <div className="border rounded-md mb-4">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Key</TableHead>
-                        <TableHead className="hidden md:table-cell">Created</TableHead>
-                        <TableHead className="hidden lg:table-cell">Last used</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {apiKeys.map((apiKey) => (
-                        <TableRow key={apiKey.id}>
-                          <TableCell className="font-medium">{apiKey.name}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <span className="font-mono text-xs mr-2">
-                                {apiKey.key.substring(0, 10)}...{apiKey.key.substring(apiKey.key.length - 5)}
-                              </span>
-                              <Button variant="ghost" size="icon" onClick={() => copyApiKey(apiKey.key)}>
-                                {copiedKey === apiKey.key ? (
-                                  <Check className="h-4 w-4 text-green-500" />
-                                ) : (
-                                  <Copy className="h-4 w-4" />
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Your API Keys</CardTitle>
+                  <CardDescription>
+                    Create and manage your API keys
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-6">
+                    <p className="text-gray-700 dark:text-gray-300 mb-4">
+                      API keys grant access to the Appmo API. Keep your keys secure and never share them publicly.
+                    </p>
+                    
+                    <div className="flex flex-col sm:flex-row gap-2 mb-6">
+                      <Input
+                        placeholder="Name your API key (e.g., 'Development', 'Production')"
+                        value={newKeyName}
+                        onChange={(e) => setNewKeyName(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button 
+                        onClick={generateApiKey} 
+                        disabled={!newKeyName.trim() || createKeyMutation.isPending}
+                      >
+                        {createKeyMutation.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Creating...
+                          </>
+                        ) : "Generate new key"}
+                      </Button>
+                    </div>
+                    
+                    {isLoadingKeys ? (
+                      <div className="flex justify-center items-center py-12">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      </div>
+                    ) : apiKeys.length === 0 ? (
+                      <div className="text-center py-8 border border-dashed rounded-lg">
+                        <p className="text-gray-500 mb-2">No API keys found</p>
+                        <p className="text-gray-500 text-sm">Generate a new API key to get started</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {apiKeys.map((apiKey) => (
+                          <Card key={apiKey.id} className="overflow-hidden">
+                            <CardHeader className="pb-2">
+                              <div className="flex items-center justify-between">
+                                <CardTitle className="text-lg">{apiKey.name}</CardTitle>
+                                <Badge variant={apiKey.revoked === 'true' ? 'destructive' : 'default'}>
+                                  {apiKey.revoked === 'true' ? 'Revoked' : 'Active'}
+                                </Badge>
+                              </div>
+                              <CardDescription className="flex items-center gap-2">
+                                Created {new Date(apiKey.createdAt).toLocaleDateString()}
+                                {apiKey.lastUsedAt && (
+                                  <span className="text-xs text-gray-500">
+                                    • Last used {new Date(apiKey.lastUsedAt).toLocaleDateString()}
+                                  </span>
                                 )}
-                              </Button>
-                            </div>
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell">
-                            {new Date(apiKey.createdAt).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className="hidden lg:table-cell">
-                            {apiKey.lastUsed ? new Date(apiKey.lastUsed).toLocaleDateString() : 'Never'}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" onClick={() => deleteApiKey(apiKey.id)}>
-                              Delete
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                
-                <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-md border border-amber-200 dark:border-amber-800">
-                  <h3 className="text-amber-800 dark:text-amber-300 font-medium mb-2">API Key Security</h3>
-                  <p className="text-amber-700 dark:text-amber-400 text-sm">
-                    Your API key carries many privileges, so be sure to keep it secure. Don't share your API key in publicly accessible areas such
-                    as GitHub, client-side code, or in calls to the API that can be intercepted. Appmo cannot revoke a compromised key, so you'll
-                    need to delete it and generate a new one.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Using Your API Key</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Authentication</h3>
-                  <p className="text-gray-700 dark:text-gray-300 mb-2">
-                    Pass your API key in the Authorization header with a Bearer prefix:
-                  </p>
-                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm">
-                    Authorization: Bearer YOUR_API_KEY
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm text-ellipsis overflow-hidden flex items-center">
+                                <span className="truncate mr-2">{apiKey.key}</span>
+                                <Button 
+                                  size="icon" 
+                                  variant="ghost" 
+                                  onClick={() => copyApiKey(apiKey.key)}
+                                  className="ml-auto shrink-0"
+                                >
+                                  {copiedKey === apiKey.key ? (
+                                    <Check className="h-4 w-4 text-green-500" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
+                            </CardContent>
+                            <CardFooter className="pt-0 flex justify-end gap-2">
+                              {apiKey.revoked !== 'true' && (
+                                <Button 
+                                  size="sm" 
+                                  variant="destructive"
+                                  onClick={() => deleteApiKey(apiKey.id)}
+                                  disabled={deleteKeyMutation.isPending}
+                                >
+                                  {deleteKeyMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    'Revoke'
+                                  )}
+                                </Button>
+                              )}
+                            </CardFooter>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-                
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Example Request</h3>
-                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm">
-                    curl -X GET "https://api.appmo.com/tasks" \<br />
-                    &nbsp;&nbsp;-H "Authorization: Bearer YOUR_API_KEY" \<br />
-                    &nbsp;&nbsp;-H "Content-Type: application/json"
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Using Your API Key</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Authentication</h3>
+                      <p className="text-gray-700 dark:text-gray-300 mb-2">
+                        Pass your API key in the Authorization header with a Bearer prefix:
+                      </p>
+                      <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm">
+                        Authorization: Bearer YOUR_API_KEY
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Example Request</h3>
+                      <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm">
+                        curl -X GET "https://api.appmo.com/tasks" <br />
+                        &nbsp;&nbsp;-H "Authorization: Bearer YOUR_API_KEY" <br />
+                        &nbsp;&nbsp;-H "Content-Type: application/json"
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Rate Limits</h3>
+                      <p className="text-gray-700 dark:text-gray-300">
+                        The Appmo API has a rate limit of 100 requests per minute per API key. If you exceed this limit,
+                        you'll receive a 429 Too Many Requests response.
+                      </p>
+                    </div>
                   </div>
-                </div>
-                
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Rate Limits</h3>
-                  <p className="text-gray-700 dark:text-gray-300">
-                    The Appmo API has a rate limit of 100 requests per minute per API key. If you exceed this limit,
-                    you'll receive a 429 Too Many Requests response.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>
