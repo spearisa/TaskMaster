@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { MobileLayout } from "@/components/layouts/mobile-layout";
 import { FloatingAIButton } from "@/components/floating-ai-button";
+import { LanguageRegionSelector } from "@/components/language-region-selector";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import HomePage from "@/pages/home";
@@ -23,6 +24,9 @@ import ProfilePage from "@/pages/profile";
 import MessengerPage from "@/pages/messenger";
 import MyBidsPage from "@/pages/my-bids";
 import NotFound from "@/pages/not-found";
+import ApiDocsPage from "@/pages/api-docs";
+// Import i18n instance
+import '@/lib/i18n';
 
 function Router() {
   return (
@@ -42,6 +46,7 @@ function Router() {
       <ProtectedRoute path="/messenger" component={MessengerPage} />
       <ProtectedRoute path="/messenger/:userId" component={MessengerPage} />
       <ProtectedRoute path="/my-bids" component={MyBidsPage} />
+      <ProtectedRoute path="/api-docs" component={ApiDocsPage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/shared-task/:id" component={SharedTaskPage} />
       <Route component={NotFound} />
@@ -68,7 +73,12 @@ function AppContent() {
         <Router />
       </MobileLayout>
       {user && <FloatingAIButton />}
-      {/* Removed FloatingAddButton as requested */}
+      
+      {/* Language and Region Selector (positioned in bottom-right) */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <LanguageRegionSelector />
+      </div>
+      
       <Toaster />
     </div>
   );

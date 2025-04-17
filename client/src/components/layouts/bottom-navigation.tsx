@@ -9,17 +9,19 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import { useTranslation } from '@/hooks/use-translation';
 
 // Define the type for navigation items
 interface NavItem {
   path: string;
-  label: string;
+  labelKey: string;
   icon: React.ElementType;
 }
 
 export function BottomNavigation() {
   const [location, navigate] = useLocation();
   const { user } = useAuth();
+  const { t } = useTranslation();
   
   // Log when component mounts and shows current location
   useEffect(() => {
@@ -33,17 +35,25 @@ export function BottomNavigation() {
   };
 
   // Different navigation items based on authentication status
-  const navItems: NavItem[] = user ? [
-    // Authenticated user navigation
-    { path: '/', label: 'Home', icon: Home },
-    { path: '/calendar', label: 'Calendar', icon: Calendar },
-    { path: '/public-tasks', label: 'Public', icon: Globe },
-    { path: '/messenger', label: 'Chat', icon: MessageSquare },
-  ] : [
-    // Non-authenticated user navigation - limited options
-    { path: '/public-tasks', label: 'Public', icon: Globe },
-    { path: '/auth', label: 'Sign In', icon: User },
-  ];
+  const getNavItems = (): NavItem[] => {
+    if (user) {
+      return [
+        // Authenticated user navigation
+        { path: '/', labelKey: 'navigation.tasks', icon: Home },
+        { path: '/calendar', labelKey: 'navigation.calendar', icon: Calendar },
+        { path: '/public-tasks', labelKey: 'navigation.publicTasks', icon: Globe },
+        { path: '/messenger', labelKey: 'messages.messages', icon: MessageSquare },
+      ];
+    } else {
+      return [
+        // Non-authenticated user navigation - limited options
+        { path: '/public-tasks', labelKey: 'navigation.publicTasks', icon: Globe },
+        { path: '/auth', labelKey: 'auth.signIn', icon: User },
+      ];
+    }
+  };
+  
+  const navItems = getNavItems();
 
   return (
     <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 py-0 h-12 z-50 shadow-lg md:hidden">
@@ -65,7 +75,7 @@ export function BottomNavigation() {
                 "text-[9px] font-medium",
                 isActive(item.path) ? "text-primary" : "text-gray-400"
               )}>
-                {item.label}
+                {t(item.labelKey)}
               </span>
             </div>
           </Link>

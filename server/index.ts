@@ -113,27 +113,25 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Simple server start on port 5000
-  const port = 5000;
-  try {
-    server.listen({
-      port,
-      host: "0.0.0.0",
-    }, () => {
-      log(`Server successfully started on port ${port}`);
-    });
-    
-    // Add an error handler for the server
-    server.on('error', (err: any) => {
-      if (err.code === 'EADDRINUSE') {
-        log(`Port ${port} is already in use. Terminating server to allow restart.`);
-        process.exit(1); // Exit with error code to trigger restart
-      } else {
-        log(`Server error: ${err.message}`);
-      }
-    });
-  } catch (err: any) {
-    log(`Error starting server: ${err.message}`);
-    process.exit(1); // Exit with error code to trigger restart
-  }
+  // Start server on fixed port for Replit compatibility
+  // Replit expects the server to run on port 5000
+  const PORT = process.env.PORT || 5000;
+  
+  server.listen(PORT, "0.0.0.0", () => {
+    log(`Server successfully started on port ${PORT}`);
+  });
+  
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      log(`Port ${PORT} is already in use. This may affect Replit workflow detection.`);
+      // Use a fallback port - note this may cause workflow detection issues in Replit
+      const fallbackPort = 5001;
+      server.listen(fallbackPort, "0.0.0.0", () => {
+        log(`Server successfully started on fallback port ${fallbackPort}`);
+      });
+    } else {
+      log(`Server error: ${err.message}`);
+      process.exit(1);
+    }
+  });
 })();

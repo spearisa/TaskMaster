@@ -2,7 +2,9 @@ import { ReactNode, useState, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
 import { User, ChevronLeft, Menu, X, FileText, LayoutTemplate, MessageSquare, Sparkles, Globe, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { useTranslation } from '@/hooks/use-translation';
 import { Button } from "@/components/ui/button";
+import { LanguageRegionSelector } from '@/components/language-region-selector';
 import { BottomNavigation } from './bottom-navigation';
 import { SideNavigation } from './navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -23,6 +25,7 @@ export function MobileLayout({
 }: MobileLayoutProps) {
   const [location, navigate] = useLocation();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -45,44 +48,45 @@ export function MobileLayout({
     return <>{children}</>;
   }
 
-  // Pages with appropriate title mapping
+  // Pages with appropriate title mapping using translations
   const pageTitles: Record<string, string> = {
-    '/': 'My Tasks',
-    '/completed': 'Completed Tasks',
-    '/assigned-tasks': 'Assigned Tasks',
-    '/new-task': 'Add New Task',
-    '/messenger': 'Messages',
-    '/calendar': 'Calendar',
-    '/ai-assistant': 'AI Assistant',
-    '/ai-tools': 'AI Tools',
-    '/profile': 'My Profile',
-    '/public-tasks': 'Public Task Board',
-    '/task-templates': 'Templates',
+    '/': t('navigation.tasks'),
+    '/completed': t('tasks.completedTasks'),
+    '/assigned-tasks': t('navigation.assignedTasks'),
+    '/new-task': t('tasks.newTask'),
+    '/messenger': t('navigation.messenger'),
+    '/calendar': t('navigation.calendar'),
+    '/ai-assistant': t('navigation.aiTools'),
+    '/ai-tools': t('navigation.aiTools'),
+    '/profile': t('navigation.profile'),
+    '/public-tasks': t('navigation.publicTasks'),
+    '/task-templates': t('tasks.templates'),
+    '/api-docs': t('navigation.apiDocs'),
   };
 
   // For paths with dynamic segments like /task/:id or /messenger/:userId
   if (location.startsWith('/task/')) {
-    pageTitles[location] = 'Task Details';
+    pageTitles[location] = t('tasks.taskDetails');
   }
   if (location.startsWith('/messenger/')) {
-    pageTitles[location] = 'Direct Message';
+    pageTitles[location] = t('messages.directMessage');
   }
   
   // Determine current page title
-  const currentPageTitle = pageTitle || pageTitles[location] || 'Appmo';
+  const currentPageTitle = pageTitle || pageTitles[location] || t('common.appName');
 
   // Menu items for sidebar navigation - different items based on authentication
   const menuItems = user ? [
-    { path: '/', icon: <FileText size={18} />, label: 'My Tasks' },
-    { path: '/task-templates', icon: <LayoutTemplate size={18} />, label: 'Templates' },
-    { path: '/public-tasks', icon: <Globe size={18} />, label: 'Public Tasks' },
-    { path: '/messenger', icon: <MessageSquare size={18} />, label: 'Messages' },
-    { path: '/ai-assistant', icon: <Sparkles size={18} />, label: 'AI Assistant' },
-    { path: '/ai-tools', icon: <Sparkles size={18} />, label: 'AI Tools' },
+    { path: '/', icon: <FileText size={18} />, label: t('navigation.tasks') },
+    { path: '/task-templates', icon: <LayoutTemplate size={18} />, label: t('tasks.templates') },
+    { path: '/public-tasks', icon: <Globe size={18} />, label: t('navigation.publicTasks') },
+    { path: '/messenger', icon: <MessageSquare size={18} />, label: t('navigation.messenger') },
+    { path: '/ai-assistant', icon: <Sparkles size={18} />, label: t('navigation.aiTools') },
+    { path: '/ai-tools', icon: <Sparkles size={18} />, label: t('navigation.aiTools') },
   ] : [
     // Only show public tasks and login for unauthenticated users
-    { path: '/public-tasks', icon: <Globe size={18} />, label: 'Public Tasks' },
-    { path: '/auth', icon: <User size={18} />, label: 'Sign In' },
+    { path: '/public-tasks', icon: <Globe size={18} />, label: t('navigation.publicTasks') },
+    { path: '/auth', icon: <User size={18} />, label: t('auth.login') },
   ];
 
   const isActive = (path: string) => {
@@ -118,25 +122,29 @@ export function MobileLayout({
           <h1 className="text-base font-semibold">{currentPageTitle}</h1>
         </div>
         
-        {user ? (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => navigate('/profile')}
-            className="rounded-full h-6 w-6 p-0" 
-          >
-            <User className="h-4 w-4" />
-          </Button>
-        ) : (
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => navigate('/auth')}
-            className="rounded-full h-6 p-0 text-xs" 
-          >
-            Login
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <LanguageRegionSelector />
+          
+          {user ? (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigate('/profile')}
+              className="rounded-full h-6 w-6 p-0" 
+            >
+              <User className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => navigate('/auth')}
+              className="rounded-full h-6 p-0 text-xs" 
+            >
+              {t('auth.login')}
+            </Button>
+          )}
+        </div>
       </header>
 
       {/* Mobile menu overlay */}
@@ -147,7 +155,7 @@ export function MobileLayout({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center p-4 border-b">
-              <h2 className="font-semibold">Appmo Menu</h2>
+              <h2 className="font-semibold">{t('common.appMenu')}</h2>
               <Button variant="ghost" size="sm" onClick={() => setMenuOpen(false)}>
                 <X size={20} />
               </Button>
@@ -192,7 +200,7 @@ export function MobileLayout({
                     <div className="flex items-center justify-center w-6 h-6">
                       <User size={18} />
                     </div>
-                    <span className="font-medium">Profile</span>
+                    <span className="font-medium">{t('navigation.profile')}</span>
                   </div>
                 </Link>
               )}
