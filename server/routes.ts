@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { pool } from "./db";
@@ -19,6 +19,10 @@ import {
 } from "./stripe-service";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import { 
+  createApiKey, getApiKeys, validateApiKey, revokeApiKey 
+} from "./api-keys";
+import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
@@ -1972,6 +1976,146 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create HTTP server
+  // API Key Management Routes
+  
+  // Middleware to authenticate via API key
+  const authenticateApiKey = async (req: Request, res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'API key required' });
+    }
+    
+    const apiKey = authHeader.split(' ')[1];
+    const validKey = await validateApiKey(apiKey);
+    
+    if (!validKey) {
+      return res.status(401).json({ message: 'Invalid API key' });
+    }
+    
+    // Set userId from the API key
+    req.apiUser = { id: validKey.userId };
+    next();
+  };
+  
+  // Handle API key validation for endpoints that support both session and API key auth
+  const optionalApiKeyAuth = async (req: Request, res: Response, next: NextFunction) => {
+    if (req.isAuthenticated()) {
+      return next();
+    }
+    
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const apiKey = authHeader.split(' ')[1];
+      const validKey = await validateApiKey(apiKey);
+      
+      if (validKey) {
+        req.apiUser = { id: validKey.userId };
+      }
+    }
+    
+    next();
+  };
+  
+  // Get all API keys for the current user
+  app.get('/api/keys', async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+      
+      const userId = req.user!.id;
+      const keys = await getApiKeys(userId);
+      
+      // Mask the actual keys for security
+      const maskedKeys = keys.map(key => ({
+        ...key,
+        key: `${key.key.substring(0, 10)}...${key.key.substring(key.key.length - 5)}`,
+        createdAt: key.createdAt.toISOString(),
+        lastUsedAt: key.lastUsedAt ? key.lastUsedAt.toISOString() : null,
+        expiresAt: key.expiresAt ? key.expiresAt.toISOString() : null
+      }));
+      
+      return res.json(maskedKeys);
+    } catch (error) {
+      console.error('Error fetching API keys:', error);
+      return res.status(500).json({ message: 'Failed to retrieve API keys' });
+    }
+  });
+  
+  // Create a new API key
+  app.post('/api/keys', async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+      
+      const createApiKeySchema = z.object({
+        name: z.string().min(1, 'Name is required')
+      });
+      
+      const result = createApiKeySchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({
+          message: 'Invalid input',
+          errors: fromZodError(result.error).message
+        });
+      }
+      
+      const userId = req.user!.id;
+      const apiKey = await createApiKey(userId, result.data.name);
+      
+      return res.status(201).json({
+        ...apiKey,
+        createdAt: apiKey.createdAt.toISOString(),
+        lastUsedAt: apiKey.lastUsedAt ? apiKey.lastUsedAt.toISOString() : null,
+        expiresAt: apiKey.expiresAt ? apiKey.expiresAt.toISOString() : null
+      });
+    } catch (error) {
+      console.error('Error creating API key:', error);
+      return res.status(500).json({ message: 'Failed to create API key' });
+    }
+  });
+  
+  // Revoke (delete) an API key
+  app.delete('/api/keys/:id', async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+      
+      const keyId = parseInt(req.params.id);
+      if (isNaN(keyId)) {
+        return res.status(400).json({ message: 'Invalid API key ID' });
+      }
+      
+      const userId = req.user!.id;
+      const success = await revokeApiKey(keyId, userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: 'API key not found' });
+      }
+      
+      return res.sendStatus(204);
+    } catch (error) {
+      console.error('Error revoking API key:', error);
+      return res.status(500).json({ message: 'Failed to revoke API key' });
+    }
+  });
+  
+  // Verify an API key (for testing)
+  app.get('/api/verify-key', authenticateApiKey, (req, res) => {
+    return res.json({
+      valid: true,
+      userId: req.apiUser!.id
+    });
+  });
+  
+  // Documentation page for the API
+  app.get('/api/docs', (req, res) => {
+    res.redirect('/api-docs');
+  });
+
   const httpServer = createServer(app);
   
   // Set up WebSocket server
