@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, real, decimal } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real, decimal, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -105,6 +105,12 @@ export const directMessages = pgTable("direct_messages", {
   receiverId: integer("receiver_id").references(() => users.id).notNull(),
   message: text("message").notNull(),
   read: boolean("read").default(false).notNull(),
+  delivered: boolean("delivered").default(false).notNull(),
+  edited: boolean("edited").default(false),
+  editedAt: timestamp("edited_at"),
+  deleted: boolean("deleted").default(false),
+  reactions: json("reactions").default('{}'),
+  replyToId: integer("reply_to_id").references(() => directMessages.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -139,7 +145,25 @@ export const insertDirectMessageSchema = z.object({
   receiverId: z.number(),
   content: z.string().min(1),
   read: z.boolean().default(false).optional(),
+  delivered: z.boolean().default(false).optional(),
+  edited: z.boolean().default(false).optional(),
+  deleted: z.boolean().default(false).optional(),
+  reactions: z.record(z.string(), z.number()).optional(),
+  replyToId: z.number().optional().nullable(),
   createdAt: z.date().optional(),
+});
+
+// Schema for message reactions
+export const messageReactionSchema = z.object({
+  messageId: z.number(),
+  userId: z.number(),
+  emoji: z.string(),
+});
+
+// Schema for message editing
+export const editMessageSchema = z.object({
+  messageId: z.number(),
+  content: z.string().min(1),
 });
 
 // Schema for inserting task templates
