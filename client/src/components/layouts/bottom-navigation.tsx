@@ -56,7 +56,7 @@ export function BottomNavigation() {
   const navItems = getNavItems();
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 py-0 h-12 z-50 shadow-lg md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 py-0 h-14 z-40 shadow-lg md:hidden">
       <div className="flex justify-around items-center w-full max-w-lg mx-auto px-2 h-full">
         {navItems.map((item) => (
           <Link

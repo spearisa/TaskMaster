@@ -75,7 +75,7 @@ function AppContent() {
       {user && <FloatingAIButton />}
       
       {/* Language and Region Selector (positioned in bottom-right) */}
-      <div className="fixed bottom-4 right-4 z-50">
+      <div className="fixed bottom-4 left-4 z-50 md:bottom-8 md:left-8">
         <LanguageRegionSelector />
       </div>
       

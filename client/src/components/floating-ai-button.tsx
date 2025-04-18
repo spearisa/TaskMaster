@@ -71,7 +71,7 @@ export function FloatingAIButton() {
       {/* Main floating button */}
       <div 
         className={cn(
-          "fixed bottom-20 right-4 z-30 transition-all duration-300 md:bottom-8",
+          "fixed bottom-24 right-4 z-30 transition-all duration-300 md:bottom-8 md:right-8",
           menuOpen ? "scale-0 opacity-0" : "scale-100 opacity-100"
         )}
       >
@@ -90,7 +90,7 @@ export function FloatingAIButton() {
       {/* Menu that appears when the button is clicked */}
       <div 
         className={cn(
-          "fixed bottom-20 right-4 z-30 transition-all duration-300 md:bottom-8",
+          "fixed bottom-24 right-4 z-30 transition-all duration-300 md:bottom-8 md:right-8",
           !menuOpen ? "scale-0 opacity-0" : "scale-100 opacity-100"
         )}
       >
