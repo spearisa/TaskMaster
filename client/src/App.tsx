@@ -7,6 +7,7 @@ import { FloatingAIButton } from "@/components/floating-ai-button";
 import { LanguageRegionSelector } from "@/components/language-region-selector";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
+import { AdminProtectedRoute } from "@/lib/admin-protected-route";
 import HomePage from "@/pages/home";
 import NewTaskPage from "@/pages/new-task";
 import CalendarPage from "@/pages/calendar";
@@ -25,12 +26,16 @@ import MessengerPage from "@/pages/messenger";
 import MyBidsPage from "@/pages/my-bids";
 import NotFound from "@/pages/not-found";
 import ApiDocsPage from "@/pages/api-docs";
+import AdminDashboard from "@/pages/admin/dashboard";
+import AdminUsersPage from "@/pages/admin/users";
+import AdminBlogPage from "@/pages/admin/blog";
 // Import i18n instance
 import '@/lib/i18n';
 
 function Router() {
   return (
     <Switch>
+      {/* Normal routes */}
       <ProtectedRoute path="/" component={HomePage} />
       <ProtectedRoute path="/new-task" component={NewTaskPage} />
       <ProtectedRoute path="/calendar" component={CalendarPage} />
@@ -49,6 +54,12 @@ function Router() {
       <Route path="/api-docs" component={ApiDocsPage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/shared-task/:id" component={SharedTaskPage} />
+      
+      {/* Admin routes - protected by admin role */}
+      <AdminProtectedRoute path="/admin/dashboard" component={AdminDashboard} />
+      <AdminProtectedRoute path="/admin/users" component={AdminUsersPage} />
+      <AdminProtectedRoute path="/admin/blog" component={AdminBlogPage} />
+      
       <Route component={NotFound} />
     </Switch>
   );
