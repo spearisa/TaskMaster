@@ -106,7 +106,7 @@ export default function ApiDocsPage() {
       try {
         const response = await fetch('/appmo-api-swagger.json');
         const data = await response.json();
-        console.log('Swagger docs loaded:', Object.keys(data.paths).length, 'endpoints');
+        console.log('Swagger docs loaded:', Object.keys(data.paths).length, 'paths in Swagger doc');
         setSwaggerDocs(data);
         
         // Extract endpoints from Swagger docs
@@ -119,12 +119,13 @@ export default function ApiDocsPage() {
               summary: details.summary || '',
               description: details.description || '',
               tags: details.tags || [],
-              requiresAuth: details.security && details.security.length > 0,
+              requiresAuth: details.security && details.security.some((s: any) => s.BearerAuth),
               responses: details.responses || {},
             });
           }
         }
         
+        console.log('Extracted', extractedEndpoints.length, 'endpoints from Swagger paths');
         setEndpoints(extractedEndpoints);
         setFilteredEndpoints(extractedEndpoints);
       } catch (error) {
@@ -349,98 +350,6 @@ export default function ApiDocsPage() {
                           <pre>npm install @appmo/sdk</pre>
                         </div>
                       </div>
-                      
-                      <div>
-                        <h3 className="text-lg font-medium mb-2">Usage</h3>
-                        <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
-                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => {
-                                const jsCode = `import { AppmoClient } from '@appmo/sdk';
-
-// Initialize client with your API key
-const appmo = new AppmoClient('YOUR_API_KEY');
-
-// Get all tasks
-async function getTasks() {
-  try {
-    const tasks = await appmo.tasks.list();
-    console.log(tasks);
-    
-    // Create a new task
-    const newTask = await appmo.tasks.create({
-      title: 'Complete documentation',
-      description: 'Finish the API documentation',
-      priority: 'high',
-      category: 'Development',
-      dueDate: '2025-04-25T00:00:00Z'
-    });
-    
-    console.log('New task created:', newTask);
-    
-    // Update a task
-    const updatedTask = await appmo.tasks.update(newTask.id, {
-      completed: true
-    });
-    
-    console.log('Task updated:', updatedTask);
-  } catch (error) {
-    console.error('Error:', error);
-  }
-}
-
-getTasks();`;
-                                navigator.clipboard.writeText(jsCode);
-                                toast({
-                                  title: "Copied to clipboard",
-                                  description: "JavaScript example copied to clipboard",
-                                });
-                              }}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <pre className="whitespace-pre-wrap">
-{`import { AppmoClient } from '@appmo/sdk';
-
-// Initialize client with your API key
-const appmo = new AppmoClient('YOUR_API_KEY');
-
-// Get all tasks
-async function getTasks() {
-  try {
-    const tasks = await appmo.tasks.list();
-    console.log(tasks);
-    
-    // Create a new task
-    const newTask = await appmo.tasks.create({
-      title: 'Complete documentation',
-      description: 'Finish the API documentation',
-      priority: 'high',
-      category: 'Development',
-      dueDate: '2025-04-25T00:00:00Z'
-    });
-    
-    console.log('New task created:', newTask);
-    
-    // Update a task
-    const updatedTask = await appmo.tasks.update(newTask.id, {
-      completed: true
-    });
-    
-    console.log('Task updated:', updatedTask);
-  } catch (error) {
-    console.error('Error:', error);
-  }
-}
-
-getTasks();`}
-                          </pre>
-                        </div>
-                      </div>
                     </div>
                   </TabsContent>
                   
@@ -469,104 +378,6 @@ getTasks();`}
                           <pre>pip install appmo-sdk</pre>
                         </div>
                       </div>
-                      
-                      <div>
-                        <h3 className="text-lg font-medium mb-2">Usage</h3>
-                        <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
-                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => {
-                                const pythonCode = `from appmo import AppmoClient
-from datetime import datetime
-
-# Initialize client with your API key
-client = AppmoClient(api_key="YOUR_API_KEY")
-
-# Get all tasks
-def manage_tasks():
-    try:
-        # List all tasks
-        tasks = client.tasks.list()
-        print(f"Found {len(tasks)} tasks")
-        
-        # Create a new task
-        new_task = client.tasks.create(
-            title="Complete documentation",
-            description="Finish the API documentation",
-            priority="high",
-            category="Development",
-            due_date="2025-04-25T00:00:00Z"
-        )
-        
-        print(f"New task created: {new_task.title} (ID: {new_task.id})")
-        
-        # Update a task
-        updated_task = client.tasks.update(
-            task_id=new_task.id,
-            completed=True
-        )
-        
-        print(f"Task updated: {updated_task.title} (Completed: {updated_task.completed})")
-        
-    except Exception as e:
-        print(f"Error: {e}")
-
-if __name__ == "__main__":
-    manage_tasks()`;
-                                navigator.clipboard.writeText(pythonCode);
-                                toast({
-                                  title: "Copied to clipboard",
-                                  description: "Python example copied to clipboard",
-                                });
-                              }}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <pre className="whitespace-pre-wrap">
-{`from appmo import AppmoClient
-from datetime import datetime
-
-# Initialize client with your API key
-client = AppmoClient(api_key="YOUR_API_KEY")
-
-# Get all tasks
-def manage_tasks():
-    try:
-        # List all tasks
-        tasks = client.tasks.list()
-        print(f"Found {len(tasks)} tasks")
-        
-        # Create a new task
-        new_task = client.tasks.create(
-            title="Complete documentation",
-            description="Finish the API documentation",
-            priority="high",
-            category="Development",
-            due_date="2025-04-25T00:00:00Z"
-        )
-        
-        print(f"New task created: {new_task.title} (ID: {new_task.id})")
-        
-        # Update a task
-        updated_task = client.tasks.update(
-            task_id=new_task.id,
-            completed=True
-        )
-        
-        print(f"Task updated: {updated_task.title} (Completed: {updated_task.completed})")
-        
-    except Exception as e:
-        print(f"Error: {e}")
-
-if __name__ == "__main__":
-    manage_tasks()`}
-                          </pre>
-                        </div>
-                      </div>
                     </div>
                   </TabsContent>
                   
@@ -582,162 +393,22 @@ if __name__ == "__main__":
                               size="icon"
                               className="h-6 w-6"
                               onClick={() => {
-                                navigator.clipboard.writeText(`<!-- Maven -->
-<dependency>
-    <groupId>com.appmo</groupId>
-    <artifactId>appmo-sdk</artifactId>
-    <version>1.0.0</version>
-</dependency>
-
-<!-- Gradle -->
-implementation 'com.appmo:appmo-sdk:1.0.0'`);
+                                navigator.clipboard.writeText('<dependency>\n  <groupId>com.appmo</groupId>\n  <artifactId>appmo-sdk</artifactId>\n  <version>1.0.0</version>\n</dependency>');
                                 toast({
                                   title: "Copied to clipboard",
-                                  description: "Installation commands copied to clipboard",
+                                  description: "Installation command copied to clipboard",
                                 });
                               }}
                             >
                               <Copy className="h-4 w-4" />
                             </Button>
                           </div>
-                          <pre className="whitespace-pre-wrap">
-{`<!-- Maven -->
-<dependency>
-    <groupId>com.appmo</groupId>
-    <artifactId>appmo-sdk</artifactId>
-    <version>1.0.0</version>
-</dependency>
-
-<!-- Gradle -->
-implementation 'com.appmo:appmo-sdk:1.0.0'`}
-                          </pre>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-lg font-medium mb-2">Usage</h3>
-                        <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
-                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => {
-                                const javaCode = `import com.appmo.AppmoClient;
-import com.appmo.models.Task;
-import com.appmo.models.TaskRequest;
-import com.appmo.exceptions.AppmoException;
-
-import java.time.ZonedDateTime;
-import java.util.List;
-
-public class AppmoExample {
-    public static void main(String[] args) {
-        // Initialize client with your API key
-        AppmoClient client = new AppmoClient("YOUR_API_KEY");
-        
-        try {
-            // List all tasks
-            List<Task> tasks = client.tasks().list();
-            System.out.println("Found " + tasks.size() + " tasks");
-            
-            // Create a new task
-            TaskRequest newTaskRequest = new TaskRequest.Builder()
-                .title("Complete documentation")
-                .description("Finish the API documentation")
-                .priority(Task.Priority.HIGH)
-                .category("Development")
-                .dueDate(ZonedDateTime.parse("2025-04-25T00:00:00Z"))
-                .build();
-                
-            Task newTask = client.tasks().create(newTaskRequest);
-            System.out.println("New task created: " + newTask.getTitle() + " (ID: " + newTask.getId() + ")");
-            
-            // Update a task
-            Task updatedTask = client.tasks().update(newTask.getId(), 
-                new TaskRequest.Builder().completed(true).build());
-                
-            System.out.println("Task updated: " + updatedTask.getTitle() + 
-                " (Completed: " + updatedTask.isCompleted() + ")");
-                
-        } catch (AppmoException e) {
-            System.err.println("Error: " + e.getMessage());
-        }
-    }
-}`;
-                                navigator.clipboard.writeText(javaCode);
-                                toast({
-                                  title: "Copied to clipboard",
-                                  description: "Java example copied to clipboard",
-                                });
-                              }}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <pre className="whitespace-pre-wrap">
-{`import com.appmo.AppmoClient;
-import com.appmo.models.Task;
-import com.appmo.models.TaskRequest;
-import com.appmo.exceptions.AppmoException;
-
-import java.time.ZonedDateTime;
-import java.util.List;
-
-public class AppmoExample {
-    public static void main(String[] args) {
-        // Initialize client with your API key
-        AppmoClient client = new AppmoClient("YOUR_API_KEY");
-        
-        try {
-            // List all tasks
-            List<Task> tasks = client.tasks().list();
-            System.out.println("Found " + tasks.size() + " tasks");
-            
-            // Create a new task
-            TaskRequest newTaskRequest = new TaskRequest.Builder()
-                .title("Complete documentation")
-                .description("Finish the API documentation")
-                .priority(Task.Priority.HIGH)
-                .category("Development")
-                .dueDate(ZonedDateTime.parse("2025-04-25T00:00:00Z"))
-                .build();
-                
-            Task newTask = client.tasks().create(newTaskRequest);
-            System.out.println("New task created: " + newTask.getTitle() + " (ID: " + newTask.getId() + ")");
-            
-            // Update a task
-            Task updatedTask = client.tasks().update(newTask.getId(), 
-                new TaskRequest.Builder().completed(true).build());
-                
-            System.out.println("Task updated: " + updatedTask.getTitle() + 
-                " (Completed: " + updatedTask.isCompleted() + ")");
-                
-        } catch (AppmoException e) {
-            System.err.println("Error: " + e.getMessage());
-        }
-    }
-}`}
-                          </pre>
+                          <pre>{'<dependency>\n  <groupId>com.appmo</groupId>\n  <artifactId>appmo-sdk</artifactId>\n  <version>1.0.0</version>\n</dependency>'}</pre>
                         </div>
                       </div>
                     </div>
                   </TabsContent>
                 </Tabs>
-                
-                <div className="pt-2">
-                  <h3 className="text-lg font-medium mb-2">SDK Documentation</h3>
-                  <p className="text-gray-700 dark:text-gray-300 mb-4">
-                    For detailed SDK documentation, examples, and integration guides, visit our developer docs:
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => window.open('https://docs.appmo.com/sdk', '_blank')}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    SDK Documentation
-                  </Button>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -749,106 +420,109 @@ public class AppmoExample {
             <CardHeader>
               <CardTitle>API Endpoints</CardTitle>
               <CardDescription>
-                Browse and search all available API endpoints
+                Explore all available endpoints in the Appmo API
               </CardDescription>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                <div className="flex justify-center py-12">
+                  <div className="flex flex-col items-center space-y-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm text-gray-500">Loading API documentation...</p>
+                  </div>
                 </div>
               ) : (
-                <>
-                  <div className="mb-6">
-                    <Label htmlFor="filter" className="sr-only">Filter endpoints</Label>
-                    <Input
-                      id="filter"
-                      placeholder="Search endpoints by path, method, or description..."
-                      value={filter}
-                      onChange={(e) => setFilter(e.target.value)}
-                      className="mb-4"
-                    />
-                    
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {swaggerDocs.tags && swaggerDocs.tags.map((tag: any) => (
-                        <Badge 
-                          key={tag.name}
-                          className="cursor-pointer"
-                          variant={filter === tag.name ? "default" : "outline"}
-                          onClick={() => setFilter(filter === tag.name ? '' : tag.name)}
-                        >
-                          {tag.name}
-                        </Badge>
-                      ))}
+                <div className="space-y-6">
+                  <div>
+                    <Label htmlFor="filter-endpoints">Filter Endpoints</Label>
+                    <div className="flex gap-2 mt-1.5">
+                      <Input
+                        id="filter-endpoints"
+                        placeholder="Search by path, method, description..."
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                      />
+                      {filter && (
+                        <Button variant="ghost" size="icon" onClick={() => setFilter('')}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                          <span className="sr-only">Clear</span>
+                        </Button>
+                      )}
                     </div>
                   </div>
                   
                   <Accordion type="multiple" className="w-full">
-                    {filteredEndpoints.map((endpoint, idx) => (
-                      <AccordionItem value={`endpoint-${idx}`} key={`${endpoint.method}-${endpoint.path}-${idx}`}>
-                        <AccordionTrigger className="hover:no-underline">
-                          <div className="flex items-center w-full">
-                            <Badge 
-                              className={`mr-3 ${
-                                endpoint.method === 'GET' ? 'bg-blue-500' :
-                                endpoint.method === 'POST' ? 'bg-green-500' :
-                                endpoint.method === 'PATCH' ? 'bg-orange-500' :
-                                endpoint.method === 'DELETE' ? 'bg-red-500' : 
-                                'bg-purple-500'
-                              }`}
-                            >
-                              {endpoint.method}
-                            </Badge>
-                            <span className="font-mono text-sm mr-2">{endpoint.path}</span>
-                            <span className="text-gray-500 text-sm hidden sm:inline ml-auto mr-2">{endpoint.summary}</span>
-                            {endpoint.requiresAuth && (
-                              <Lock className="h-4 w-4 text-gray-400" />
-                            )}
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="pl-2 py-2">
-                            <div className="mb-4">
-                              <h4 className="font-medium mb-1">Description</h4>
-                              <p className="text-gray-700 dark:text-gray-300 text-sm">{endpoint.description}</p>
+                    {filteredEndpoints.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500">No endpoints found for your search criteria.</p>
+                        <p className="text-sm text-gray-400 mt-2">Try adjusting your filter or check back later.</p>
+                      </div>
+                    ) : (
+                      filteredEndpoints.map((endpoint, idx) => (
+                        <AccordionItem value={`endpoint-${idx}`} key={`${endpoint.method}-${endpoint.path}-${idx}`}>
+                          <AccordionTrigger className="hover:no-underline">
+                            <div className="flex items-center w-full">
+                              <Badge 
+                                className={`mr-3 ${
+                                  endpoint.method === 'GET' ? 'bg-blue-500' :
+                                  endpoint.method === 'POST' ? 'bg-green-500' :
+                                  endpoint.method === 'PATCH' ? 'bg-orange-500' :
+                                  endpoint.method === 'DELETE' ? 'bg-red-500' : 
+                                  'bg-purple-500'
+                                }`}
+                              >
+                                {endpoint.method}
+                              </Badge>
+                              <span className="font-mono text-sm mr-2">{endpoint.path}</span>
+                              <span className="text-gray-500 text-sm hidden sm:inline ml-auto mr-2">{endpoint.summary}</span>
+                              {endpoint.requiresAuth && (
+                                <Lock className="h-4 w-4 text-gray-400" />
+                              )}
                             </div>
-                            
-                            <div className="mb-4">
-                              <h4 className="font-medium mb-1">Authentication</h4>
-                              <p className="text-gray-700 dark:text-gray-300 text-sm flex items-center">
-                                {endpoint.requiresAuth ? (
-                                  <>
-                                    <Lock className="h-4 w-4 mr-1 text-amber-500" />
-                                    Requires API key
-                                  </>
-                                ) : (
-                                  <>
-                                    <Unlock className="h-4 w-4 mr-1 text-green-500" />
-                                    No authentication required
-                                  </>
-                                )}
-                              </p>
-                            </div>
-                            
-                            {/* Add schema information */}
-                            <div className="mb-4">
-                              <Tabs defaultValue="request" className="w-full">
-                                <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-2">
-                                  <TabsTrigger value="request">Request Schema</TabsTrigger>
-                                  <TabsTrigger value="response">Response Schema</TabsTrigger>
-                                </TabsList>
-                                <TabsContent value="request" className="mt-2">
-                                  {endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH' ? (
-                                    <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
-                                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button 
-                                          variant="ghost" 
-                                          size="icon"
-                                          className="h-6 w-6"
-                                          onClick={() => {
-                                            let schema = '';
-                                            if (endpoint.path.includes('task')) {
-                                              schema = `{
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="pl-2 py-2">
+                              <div className="mb-4">
+                                <h4 className="font-medium mb-1">Description</h4>
+                                <p className="text-gray-700 dark:text-gray-300 text-sm">{endpoint.description}</p>
+                              </div>
+                              
+                              <div className="mb-4">
+                                <h4 className="font-medium mb-1">Authentication</h4>
+                                <p className="text-gray-700 dark:text-gray-300 text-sm flex items-center">
+                                  {endpoint.requiresAuth ? (
+                                    <>
+                                      <Lock className="h-4 w-4 mr-1 text-amber-500" />
+                                      Requires API key
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Unlock className="h-4 w-4 mr-1 text-green-500" />
+                                      No authentication required
+                                    </>
+                                  )}
+                                </p>
+                              </div>
+                              
+                              {/* Add schema information */}
+                              <div className="mb-4">
+                                <Tabs defaultValue="request" className="w-full">
+                                  <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-2">
+                                    <TabsTrigger value="request">Request Schema</TabsTrigger>
+                                    <TabsTrigger value="response">Response Schema</TabsTrigger>
+                                  </TabsList>
+                                  <TabsContent value="request" className="mt-2">
+                                    {endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH' ? (
+                                      <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
+                                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                          <Button 
+                                            variant="ghost" 
+                                            size="icon"
+                                            className="h-6 w-6"
+                                            onClick={() => {
+                                              let schema = '';
+                                              if (endpoint.path.includes('task')) {
+                                                schema = `{
   "title": "string",
   "description": "string",
   "priority": "high" | "medium" | "low", 
@@ -856,37 +530,37 @@ public class AppmoExample {
   "dueDate": "string (ISO 8601)",
   "estimatedTime": "number (minutes)"
 }`;
-                                            } else if (endpoint.path.includes('user')) {
-                                              schema = `{
+                                              } else if (endpoint.path.includes('user')) {
+                                                schema = `{
   "username": "string",
   "displayName": "string",
   "bio": "string",
   "interests": "string[]",
   "skills": "string[]"
 }`;
-                                            } else if (endpoint.path.includes('bid')) {
-                                              schema = `{
+                                              } else if (endpoint.path.includes('bid')) {
+                                                schema = `{
   "taskId": "number",
   "amount": "number",
   "proposal": "string",
   "estimatedTime": "number (minutes)"
 }`;
-                                            } else {
-                                              schema = `{
+                                              } else {
+                                                schema = `{
   "key": "value"
 }`;
-                                            }
-                                            navigator.clipboard.writeText(schema);
-                                            toast({
-                                              title: "Copied to clipboard",
-                                              description: "Schema copied to clipboard",
-                                            });
-                                          }}
-                                        >
-                                          <Copy className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                      <pre className="whitespace-pre-wrap">
+                                              }
+                                              navigator.clipboard.writeText(schema);
+                                              toast({
+                                                title: "Copied to clipboard",
+                                                description: "Schema copied to clipboard",
+                                              });
+                                            }}
+                                          >
+                                            <Copy className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                        <pre className="whitespace-pre-wrap">
 {endpoint.path.includes('task') ? `{
   "title": "string",
   "description": "string",
@@ -908,23 +582,23 @@ public class AppmoExample {
 }` : `{
   "key": "value"
 }`}
-                                      </pre>
-                                    </div>
-                                  ) : (
-                                    <p className="text-gray-700 dark:text-gray-300 text-sm p-2">No request body required for {endpoint.method} requests.</p>
-                                  )}
-                                </TabsContent>
-                                <TabsContent value="response" className="mt-2">
-                                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
-                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon"
-                                        className="h-6 w-6"
-                                        onClick={() => {
-                                          let schema = '';
-                                          if (endpoint.path.includes('task') && !endpoint.path.includes('tasks')) {
-                                            schema = `{
+                                        </pre>
+                                      </div>
+                                    ) : (
+                                      <p className="text-gray-700 dark:text-gray-300 text-sm p-2">No request body required for {endpoint.method} requests.</p>
+                                    )}
+                                  </TabsContent>
+                                  <TabsContent value="response" className="mt-2">
+                                    <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
+                                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon"
+                                          className="h-6 w-6"
+                                          onClick={() => {
+                                            let schema = '';
+                                            if (endpoint.path.includes('task') && !endpoint.path.includes('tasks')) {
+                                              schema = `{
   "id": "number",
   "title": "string",
   "description": "string",
@@ -939,8 +613,8 @@ public class AppmoExample {
   "assignedToUserId": "number | null",
   "isPublic": "boolean"
 }`;
-                                          } else if (endpoint.path.includes('tasks')) {
-                                            schema = `[
+                                            } else if (endpoint.path.includes('tasks')) {
+                                              schema = `[
   {
     "id": "number",
     "title": "string",
@@ -958,8 +632,8 @@ public class AppmoExample {
   },
   // ...more tasks
 ]`;
-                                          } else if (endpoint.path.includes('user')) {
-                                            schema = `{
+                                            } else if (endpoint.path.includes('user')) {
+                                              schema = `{
   "id": "number",
   "username": "string",
   "displayName": "string",
@@ -969,8 +643,8 @@ public class AppmoExample {
   "avatarUrl": "string | null",
   "createdAt": "string (ISO 8601)"
 }`;
-                                          } else if (endpoint.path.includes('bid')) {
-                                            schema = `{
+                                            } else if (endpoint.path.includes('bid')) {
+                                              schema = `{
   "id": "number",
   "taskId": "number",
   "bidderId": "number",
@@ -981,23 +655,23 @@ public class AppmoExample {
   "createdAt": "string (ISO 8601)",
   "updatedAt": "string (ISO 8601)"
 }`;
-                                          } else {
-                                            schema = `{
+                                            } else {
+                                              schema = `{
   "success": "boolean",
   "data": "object"
 }`;
-                                          }
-                                          navigator.clipboard.writeText(schema);
-                                          toast({
-                                            title: "Copied to clipboard",
-                                            description: "Schema copied to clipboard",
-                                          });
-                                        }}
-                                      >
-                                        <Copy className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                    <pre className="whitespace-pre-wrap">
+                                            }
+                                            navigator.clipboard.writeText(schema);
+                                            toast({
+                                              title: "Copied to clipboard",
+                                              description: "Schema copied to clipboard",
+                                            });
+                                          }}
+                                        >
+                                          <Copy className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                      <pre className="whitespace-pre-wrap">
 {endpoint.path.includes('task') && !endpoint.path.includes('tasks') ? `{
   "id": "number",
   "title": "string",
@@ -1052,281 +726,29 @@ public class AppmoExample {
   "success": "boolean",
   "data": "object"
 }`}
-                                    </pre>
-                                  </div>
-                                </TabsContent>
-                              </Tabs>
-                            </div>
-                            
-                            {endpoint.tags && endpoint.tags.length > 0 && (
-                              <div className="mb-4">
-                                <h4 className="font-medium mb-1">Tags</h4>
-                                <div className="flex flex-wrap gap-2">
-                                  {endpoint.tags.map((tag: string) => (
-                                    <Badge key={tag} variant="secondary">{tag}</Badge>
-                                  ))}
-                                </div>
+                                      </pre>
+                                    </div>
+                                  </TabsContent>
+                                </Tabs>
                               </div>
-                            )}
-                            
-                            <div className="mb-4">
-                              <h4 className="font-medium mb-1">Responses</h4>
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="w-20">Status</TableHead>
-                                    <TableHead>Description</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {Object.entries(endpoint.responses).map(([status, details]: [string, any]) => (
-                                    <TableRow key={status}>
-                                      <TableCell>
-                                        <Badge 
-                                          className={`${
-                                            status.startsWith('2') ? 'bg-green-500' :
-                                            status.startsWith('4') ? 'bg-amber-500' :
-                                            status.startsWith('5') ? 'bg-red-500' : 
-                                            'bg-blue-500'
-                                          }`}
-                                        >
-                                          {status}
-                                        </Badge>
-                                      </TableCell>
-                                      <TableCell>{details.description}</TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
+                              
+                              {endpoint.tags && endpoint.tags.length > 0 && (
+                                <div className="mb-4">
+                                  <h4 className="font-medium mb-1">Tags</h4>
+                                  <div className="flex flex-wrap gap-2">
+                                    {endpoint.tags.map((tag: string) => (
+                                      <Badge key={tag} variant="secondary">{tag}</Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            
-                            {/* Code Examples */}
-                            <div className="mb-4">
-                              <h4 className="font-medium mb-1">Code Examples</h4>
-                              <Tabs defaultValue="curl" className="w-full">
-                                <TabsList className="grid w-full grid-cols-4">
-                                  <TabsTrigger value="curl">cURL</TabsTrigger>
-                                  <TabsTrigger value="javascript">JavaScript</TabsTrigger>
-                                  <TabsTrigger value="python">Python</TabsTrigger>
-                                  <TabsTrigger value="node">Node.js</TabsTrigger>
-                                </TabsList>
-                                <TabsContent value="curl" className="mt-2">
-                                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
-                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon"
-                                        className="h-6 w-6"
-                                        onClick={() => {
-                                          const curlCommand = `curl -X ${endpoint.method} "https://api.appmo.com${endpoint.path}" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json"`;
-                                          navigator.clipboard.writeText(curlCommand);
-                                          toast({
-                                            title: "Copied to clipboard",
-                                            description: "cURL command copied to clipboard",
-                                          });
-                                        }}
-                                      >
-                                        <Copy className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                    <pre className="whitespace-pre-wrap">
-{`curl -X ${endpoint.method} "https://api.appmo.com${endpoint.path}" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json"${endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH' ? ` \\
-  -d '{"key": "value"}'` : ''}`}
-                                    </pre>
-                                  </div>
-                                </TabsContent>
-                                <TabsContent value="javascript" className="mt-2">
-                                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
-                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon"
-                                        className="h-6 w-6"
-                                        onClick={() => {
-                                          const jsCode = `const fetchData = async () => {
-  const response = await fetch('https://api.appmo.com${endpoint.path}', {
-    method: '${endpoint.method}',
-    headers: {
-      'Authorization': 'Bearer YOUR_API_KEY',
-      'Content-Type': 'application/json'
-    }${endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH' ? `,
-    body: JSON.stringify({
-      key: 'value'
-    })` : ''}
-  });
-  const data = await response.json();
-  console.log(data);
-};
-
-fetchData();`;
-                                          navigator.clipboard.writeText(jsCode);
-                                          toast({
-                                            title: "Copied to clipboard",
-                                            description: "JavaScript code copied to clipboard",
-                                          });
-                                        }}
-                                      >
-                                        <Copy className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                    <pre className="whitespace-pre-wrap">
-{`const fetchData = async () => {
-  const response = await fetch('https://api.appmo.com${endpoint.path}', {
-    method: '${endpoint.method}',
-    headers: {
-      'Authorization': 'Bearer YOUR_API_KEY',
-      'Content-Type': 'application/json'
-    }${endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH' ? `,
-    body: JSON.stringify({
-      key: 'value'
-    })` : ''}
-  });
-  const data = await response.json();
-  console.log(data);
-};
-
-fetchData();`}
-                                    </pre>
-                                  </div>
-                                </TabsContent>
-                                <TabsContent value="python" className="mt-2">
-                                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
-                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon"
-                                        className="h-6 w-6"
-                                        onClick={() => {
-                                          const pythonCode = `import requests
-
-url = "https://api.appmo.com${endpoint.path}"
-headers = {
-    "Authorization": "Bearer YOUR_API_KEY",
-    "Content-Type": "application/json"
-}${endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH' ? `
-payload = {
-    "key": "value"
-}
-
-response = requests.${endpoint.method.toLowerCase()}(url, json=payload, headers=headers)` : `
-
-response = requests.${endpoint.method.toLowerCase()}(url, headers=headers)`}
-data = response.json()
-print(data)`;
-                                          navigator.clipboard.writeText(pythonCode);
-                                          toast({
-                                            title: "Copied to clipboard",
-                                            description: "Python code copied to clipboard",
-                                          });
-                                        }}
-                                      >
-                                        <Copy className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                    <pre className="whitespace-pre-wrap">
-{`import requests
-
-url = "https://api.appmo.com${endpoint.path}"
-headers = {
-    "Authorization": "Bearer YOUR_API_KEY",
-    "Content-Type": "application/json"
-}${endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH' ? `
-payload = {
-    "key": "value"
-}
-
-response = requests.${endpoint.method.toLowerCase()}(url, json=payload, headers=headers)` : `
-
-response = requests.${endpoint.method.toLowerCase()}(url, headers=headers)`}
-data = response.json()
-print(data)`}
-                                    </pre>
-                                  </div>
-                                </TabsContent>
-                                <TabsContent value="node" className="mt-2">
-                                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
-                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon"
-                                        className="h-6 w-6"
-                                        onClick={() => {
-                                          const nodeCode = `const axios = require('axios');
-
-const fetchData = async () => {
-  try {
-    const response = await axios({
-      method: '${endpoint.method}',
-      url: 'https://api.appmo.com${endpoint.path}',
-      headers: {
-        'Authorization': 'Bearer YOUR_API_KEY',
-        'Content-Type': 'application/json'
-      }${endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH' ? `,
-      data: {
-        key: 'value'
-      }` : ''}
-    });
-    console.log(response.data);
-  } catch (error) {
-    console.error('Error:', error.response?.data || error.message);
-  }
-};
-
-fetchData();`;
-                                          navigator.clipboard.writeText(nodeCode);
-                                          toast({
-                                            title: "Copied to clipboard",
-                                            description: "Node.js code copied to clipboard",
-                                          });
-                                        }}
-                                      >
-                                        <Copy className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                    <pre className="whitespace-pre-wrap">
-{`const axios = require('axios');
-
-const fetchData = async () => {
-  try {
-    const response = await axios({
-      method: '${endpoint.method}',
-      url: 'https://api.appmo.com${endpoint.path}',
-      headers: {
-        'Authorization': 'Bearer YOUR_API_KEY',
-        'Content-Type': 'application/json'
-      }${endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH' ? `,
-      data: {
-        key: 'value'
-      }` : ''}
-    });
-    console.log(response.data);
-  } catch (error) {
-    console.error('Error:', error.response?.data || error.message);
-  }
-};
-
-fetchData();`}
-                                    </pre>
-                                  </div>
-                                </TabsContent>
-                              </Tabs>
-                            </div>
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))
+                    )}
                   </Accordion>
-                  
-                  {filteredEndpoints.length === 0 && !isLoading && (
-                    <div className="text-center py-6">
-                      <p className="text-gray-500">No endpoints found for your search criteria.</p>
-                    </div>
-                  )}
-                </>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -1334,171 +756,152 @@ fetchData();`}
         
         {/* API Keys Tab */}
         <TabsContent value="keys" className="space-y-6">
-          {!user ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Authentication Required</CardTitle>
-                <CardDescription>
-                  Please log in to manage your API keys
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col items-center justify-center py-8">
-                  <Lock className="h-16 w-16 text-gray-300 mb-4" />
-                  <p className="text-center text-gray-700 dark:text-gray-300 mb-4">
-                    You need to be logged in to create and manage API keys.
+          <Card>
+            <CardHeader>
+              <CardTitle>API Keys</CardTitle>
+              <CardDescription>
+                Manage your API keys to authenticate with the Appmo API
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!user ? (
+                <div className="text-center py-8">
+                  <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-2">Authentication Required</h3>
+                  <p className="text-gray-700 dark:text-gray-300 mb-4">
+                    You need to be logged in to view and manage your API keys.
                   </p>
-                  <Button 
-                    onClick={() => window.location.href = '/auth'}
-                    className="mt-2"
-                  >
+                  <Button onClick={() => window.location.href = '/auth'}>
                     Sign In
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Your API Keys</CardTitle>
-                  <CardDescription>
-                    Create and manage your API keys
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-6">
-                    <p className="text-gray-700 dark:text-gray-300 mb-4">
-                      API keys grant access to the Appmo API. Keep your keys secure and never share them publicly.
-                    </p>
+              ) : isLoadingKeys ? (
+                <div className="flex justify-center py-12">
+                  <div className="flex flex-col items-center space-y-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm text-gray-500">Loading your API keys...</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium mb-4">Your API Keys</h3>
                     
-                    <div className="flex flex-col sm:flex-row gap-2 mb-6">
-                      <Input
-                        placeholder="Name your API key (e.g., 'Development', 'Production')"
-                        value={newKeyName}
-                        onChange={(e) => setNewKeyName(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button 
-                        onClick={generateApiKey} 
-                        disabled={!newKeyName.trim() || createKeyMutation.isPending}
-                      >
-                        {createKeyMutation.isPending ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Creating...
-                          </>
-                        ) : "Generate new key"}
-                      </Button>
-                    </div>
-                    
-                    {isLoadingKeys ? (
-                      <div className="flex justify-center items-center py-12">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      </div>
-                    ) : apiKeys.length === 0 ? (
-                      <div className="text-center py-8 border border-dashed rounded-lg">
-                        <p className="text-gray-500 mb-2">No API keys found</p>
-                        <p className="text-gray-500 text-sm">Generate a new API key to get started</p>
+                    {apiKeys.length === 0 ? (
+                      <div className="text-center py-6 bg-gray-50 dark:bg-gray-800 rounded-md">
+                        <p className="text-gray-700 dark:text-gray-300 mb-2">
+                          You don't have any API keys yet.
+                        </p>
+                        <p className="text-gray-500 text-sm mb-4">
+                          Create a key to start using the Appmo API.
+                        </p>
                       </div>
                     ) : (
-                      <div className="space-y-4">
-                        {apiKeys.map((apiKey) => (
-                          <Card key={apiKey.id} className="overflow-hidden">
-                            <CardHeader className="pb-2">
-                              <div className="flex items-center justify-between">
-                                <CardTitle className="text-lg">{apiKey.name}</CardTitle>
-                                <Badge variant={apiKey.revoked === 'true' ? 'destructive' : 'default'}>
-                                  {apiKey.revoked === 'true' ? 'Revoked' : 'Active'}
-                                </Badge>
-                              </div>
-                              <CardDescription className="flex items-center gap-2">
-                                Created {new Date(apiKey.createdAt).toLocaleDateString()}
-                                {apiKey.lastUsedAt && (
-                                  <span className="text-xs text-gray-500">
-                                    • Last used {new Date(apiKey.lastUsedAt).toLocaleDateString()}
-                                  </span>
-                                )}
-                              </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm text-ellipsis overflow-hidden flex items-center">
-                                <span className="truncate mr-2">{apiKey.key}</span>
-                                <Button 
-                                  size="icon" 
-                                  variant="ghost" 
-                                  onClick={() => copyApiKey(apiKey.key)}
-                                  className="ml-auto shrink-0"
-                                >
-                                  {copiedKey === apiKey.key ? (
-                                    <Check className="h-4 w-4 text-green-500" />
-                                  ) : (
-                                    <Copy className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </div>
-                            </CardContent>
-                            <CardFooter className="pt-0 flex justify-end gap-2">
-                              {apiKey.revoked !== 'true' && (
-                                <Button 
-                                  size="sm" 
-                                  variant="destructive"
-                                  onClick={() => deleteApiKey(apiKey.id)}
-                                  disabled={deleteKeyMutation.isPending}
-                                >
-                                  {deleteKeyMutation.isPending ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    'Revoke'
-                                  )}
-                                </Button>
-                              )}
-                            </CardFooter>
-                          </Card>
-                        ))}
+                      <div className="border rounded-md overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Name</TableHead>
+                              <TableHead>Key</TableHead>
+                              <TableHead>Created</TableHead>
+                              <TableHead>Last Used</TableHead>
+                              <TableHead></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {apiKeys.map((apiKey) => (
+                              <TableRow key={apiKey.id}>
+                                <TableCell>{apiKey.name}</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center space-x-2">
+                                    <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-xs font-mono">
+                                      {apiKey.key.slice(0, 8)}...{apiKey.key.slice(-4)}
+                                    </code>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => copyApiKey(apiKey.key)}
+                                      className="h-6 w-6"
+                                    >
+                                      {copiedKey === apiKey.key ? (
+                                        <Check className="h-3 w-3" />
+                                      ) : (
+                                        <Copy className="h-3 w-3" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  {new Date(apiKey.createdAt).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell>
+                                  {apiKey.lastUsedAt
+                                    ? new Date(apiKey.lastUsedAt).toLocaleDateString()
+                                    : 'Never'}
+                                </TableCell>
+                                <TableCell>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => deleteApiKey(apiKey.id)}
+                                  >
+                                    Revoke
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
                       </div>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Using Your API Key</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">Authentication</h3>
-                      <p className="text-gray-700 dark:text-gray-300 mb-2">
-                        Pass your API key in the Authorization header with a Bearer prefix:
-                      </p>
-                      <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm">
-                        Authorization: Bearer YOUR_API_KEY
+                  
+                  <div className="pt-4 border-t">
+                    <h3 className="text-lg font-medium mb-4">Create a New API Key</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                      <div className="col-span-2">
+                        <Label htmlFor="new-key-name">Key Name</Label>
+                        <Input
+                          id="new-key-name"
+                          placeholder="e.g., Development, Production"
+                          value={newKeyName}
+                          onChange={(e) => setNewKeyName(e.target.value)}
+                          className="mt-1.5"
+                        />
                       </div>
+                      <Button
+                        onClick={generateApiKey}
+                        disabled={!newKeyName.trim() || createKeyMutation.isPending}
+                        className="col-span-1"
+                      >
+                        {createKeyMutation.isPending && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Generate Key
+                      </Button>
                     </div>
                     
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">Example Request</h3>
-                      <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm">
-                        curl -X GET "https://api.appmo.com/tasks" <br />
-                        &nbsp;&nbsp;-H "Authorization: Bearer YOUR_API_KEY" <br />
-                        &nbsp;&nbsp;-H "Content-Type: application/json"
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">Rate Limits</h3>
-                      <p className="text-gray-700 dark:text-gray-300">
-                        The Appmo API has a rate limit of 100 requests per minute per API key. If you exceed this limit,
-                        you'll receive a 429 Too Many Requests response.
+                    {createKeyMutation.isPending && (
+                      <p className="text-sm text-gray-500 mt-2">
+                        Creating your new API key...
                       </p>
-                    </div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            </>
-          )}
+                  
+                  <div className="pt-4 border-t">
+                    <h3 className="text-lg font-medium mb-2">Security Best Practices</h3>
+                    <ul className="list-disc pl-5 space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                      <li>Keep your API keys secure and never expose them in client-side code.</li>
+                      <li>Use a specific key for each application or integration.</li>
+                      <li>Rotate your keys periodically for enhanced security.</li>
+                      <li>If a key is compromised, revoke it immediately and create a new one.</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
