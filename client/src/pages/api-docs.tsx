@@ -109,11 +109,11 @@ export default function ApiDocsPage() {
         if (!response.ok) {
           throw new Error(`Failed to fetch Swagger docs: ${response.status} ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         console.log('Swagger docs loaded successfully:', Object.keys(data.paths || {}).length, 'paths in Swagger doc');
         setSwaggerDocs(data);
-        
+
         // Extract endpoints from Swagger docs
         const extractedEndpoints = [];
         if (data.paths) {
@@ -136,7 +136,7 @@ export default function ApiDocsPage() {
             }
           }
         }
-        
+
         console.log('Extracted', extractedEndpoints.length, 'endpoints from Swagger paths');
         setEndpoints(extractedEndpoints);
         setFilteredEndpoints(extractedEndpoints);
@@ -149,19 +149,19 @@ export default function ApiDocsPage() {
         setIsLoading(false);
       }
     };
-    
+
     fetchSwaggerDocs();
   }, []);
 
   // Filter endpoints based on search
   useEffect(() => {
     if (!endpoints.length) return;
-    
+
     if (!filter) {
       setFilteredEndpoints(endpoints);
       return;
     }
-    
+
     const lowerFilter = filter.toLowerCase();
     const filtered = endpoints.filter(endpoint => 
       endpoint.path.toLowerCase().includes(lowerFilter) || 
@@ -170,7 +170,7 @@ export default function ApiDocsPage() {
       endpoint.tags.some((tag: string) => tag.toLowerCase().includes(lowerFilter)) ||
       endpoint.method.toLowerCase().includes(lowerFilter)
     );
-    
+
     setFilteredEndpoints(filtered);
   }, [filter, endpoints]);
 
@@ -201,14 +201,14 @@ export default function ApiDocsPage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-6">Appmo API Documentation</h1>
-      
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-3 mb-8">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="endpoints">Endpoints</TabsTrigger>
           <TabsTrigger value="keys">API Keys</TabsTrigger>
         </TabsList>
-        
+
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
           <Card>
@@ -232,12 +232,12 @@ export default function ApiDocsPage() {
                   </Button> 
                   section.
                 </p>
-                
+
                 <h4 className="text-lg font-semibold mb-2">Base URL</h4>
                 <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm mb-4">
                   https://api.appmo.com
                 </div>
-                
+
                 <h4 className="text-lg font-semibold mb-2">Authentication</h4>
                 <p className="text-gray-700 dark:text-gray-300 mb-4">
                   Include your API key in the Authorization header of your requests:
@@ -245,12 +245,12 @@ export default function ApiDocsPage() {
                 <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm mb-4">
                   Authorization: Bearer YOUR_API_KEY
                 </div>
-                
+
                 <h4 className="text-lg font-semibold mb-2">Response Format</h4>
                 <p className="text-gray-700 dark:text-gray-300 mb-2">
                   All API responses are returned in JSON format.
                 </p>
-                
+
                 <div className="mt-6">
                   <Button 
                     onClick={() => setActiveTab('endpoints')} 
@@ -269,7 +269,7 @@ export default function ApiDocsPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>API Features</CardTitle>
@@ -285,35 +285,35 @@ export default function ApiDocsPage() {
                     Create, read, update and delete tasks. Assign tasks, mark them complete, and manage priorities.
                   </p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold">Bidding System</h3>
                   <p className="text-gray-700 dark:text-gray-300 text-sm">
                     Place bids on tasks, accept bids, and process payments.
                   </p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold">AI Integration</h3>
                   <p className="text-gray-700 dark:text-gray-300 text-sm">
                     Leverage AI features like task delegation, schedule generation, and code generation.
                   </p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold">Messaging</h3>
                   <p className="text-gray-700 dark:text-gray-300 text-sm">
                     Send and receive messages between users with reactions and read status.
                   </p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold">User Management</h3>
                   <p className="text-gray-700 dark:text-gray-300 text-sm">
                     Search users, update profiles, and manage authentication.
                   </p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold">Templates</h3>
                   <p className="text-gray-700 dark:text-gray-300 text-sm">
@@ -323,7 +323,7 @@ export default function ApiDocsPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Appmo SDK</CardTitle>
@@ -339,7 +339,7 @@ export default function ApiDocsPage() {
                     <TabsTrigger value="python">Python</TabsTrigger>
                     <TabsTrigger value="java">Java</TabsTrigger>
                   </TabsList>
-                  
+
                   {/* JavaScript SDK */}
                   <TabsContent value="javascript" className="mt-4">
                     <div className="space-y-4">
@@ -367,7 +367,7 @@ export default function ApiDocsPage() {
                       </div>
                     </div>
                   </TabsContent>
-                  
+
                   {/* Python SDK */}
                   <TabsContent value="python" className="mt-4">
                     <div className="space-y-4">
@@ -395,7 +395,7 @@ export default function ApiDocsPage() {
                       </div>
                     </div>
                   </TabsContent>
-                  
+
                   {/* Java SDK */}
                   <TabsContent value="java" className="mt-4">
                     <div className="space-y-4">
@@ -428,7 +428,7 @@ export default function ApiDocsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Endpoints Tab */}
         <TabsContent value="endpoints" className="space-y-6">
           <Card>
@@ -465,7 +465,7 @@ export default function ApiDocsPage() {
                       )}
                     </div>
                   </div>
-                  
+
                   <Accordion type="multiple" className="w-full">
                     {filteredEndpoints.length === 0 ? (
                       <div className="text-center py-8">
@@ -501,7 +501,7 @@ export default function ApiDocsPage() {
                                 <h4 className="font-medium mb-1">Description</h4>
                                 <p className="text-gray-700 dark:text-gray-300 text-sm">{endpoint.description}</p>
                               </div>
-                              
+
                               <div className="mb-4">
                                 <h4 className="font-medium mb-1">Authentication</h4>
                                 <p className="text-gray-700 dark:text-gray-300 text-sm flex items-center">
@@ -518,7 +518,7 @@ export default function ApiDocsPage() {
                                   )}
                                 </p>
                               </div>
-                              
+
                               {/* Add schema information */}
                               <div className="mb-4">
                                 <Tabs defaultValue="request" className="w-full">
@@ -746,7 +746,7 @@ export default function ApiDocsPage() {
                                   </TabsContent>
                                 </Tabs>
                               </div>
-                              
+
                               {endpoint.tags && endpoint.tags.length > 0 && (
                                 <div className="mb-4">
                                   <h4 className="font-medium mb-1">Tags</h4>
@@ -768,7 +768,7 @@ export default function ApiDocsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* API Keys Tab */}
         <TabsContent value="keys" className="space-y-6">
           <Card>
@@ -801,14 +801,13 @@ export default function ApiDocsPage() {
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-medium mb-4">Your API Keys</h3>
-                    
+
                     {apiKeys.length === 0 ? (
                       <div className="text-center py-6 bg-gray-50 dark:bg-gray-800 rounded-md">
                         <p className="text-gray-700 dark:text-gray-300 mb-2">
                           You don't have any API keys yet.
                         </p>
-                        <p className="text-gray-500 text-sm mb-4">
-                          Create a key to start using the Appmo API.
+                        <p className="text-gray-500 text-sm mb-4                        Create a key to start using the Appmo API.
                         </p>
                       </div>
                     ) : (
@@ -870,10 +869,10 @@ export default function ApiDocsPage() {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="pt-4 border-t">
                     <h3 className="text-lg font-medium mb-4">Create a New API Key</h3>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                       <div className="col-span-2">
                         <Label htmlFor="new-key-name">Key Name</Label>
@@ -896,14 +895,14 @@ export default function ApiDocsPage() {
                         Generate Key
                       </Button>
                     </div>
-                    
+
                     {createKeyMutation.isPending && (
                       <p className="text-sm text-gray-500 mt-2">
                         Creating your new API key...
                       </p>
                     )}
                   </div>
-                  
+
                   <div className="pt-4 border-t">
                     <h3 className="text-lg font-medium mb-2">Security Best Practices</h3>
                     <ul className="list-disc pl-5 space-y-1 text-sm text-gray-700 dark:text-gray-300">
