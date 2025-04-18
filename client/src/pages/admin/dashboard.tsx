@@ -42,6 +42,7 @@ interface AdminStats {
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
+  const { toast } = useToast();
 
   const { data: stats, isLoading, error } = useQuery<AdminStats>({
     queryKey: ["/api/admin/stats"],
@@ -54,8 +55,20 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (error) {
       console.error("Error fetching admin stats:", error);
+      
+      // Show toast error to notify the user
+      toast({
+        title: "Error loading dashboard data",
+        description: error.message || "Failed to fetch admin statistics",
+        variant: "destructive"
+      });
     }
-  }, [error]);
+  }, [error, toast]);
+  
+  // Debug log for stats data
+  useEffect(() => {
+    console.log("Admin dashboard stats loaded:", stats);
+  }, [stats]);
 
   // Default admin stats when data is not loaded yet
   const defaultStats: AdminStats = {
