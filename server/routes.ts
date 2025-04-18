@@ -38,6 +38,24 @@ declare global {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Serve the Swagger JSON file for API documentation
+  app.get('/appmo-api-swagger.json', (req, res) => {
+    try {
+      const swaggerFilePath = path.join(process.cwd(), 'appmo-api-swagger.json');
+      console.log(`[API] Serving Swagger file from: ${swaggerFilePath}`);
+      
+      if (fs.existsSync(swaggerFilePath)) {
+        res.sendFile(swaggerFilePath);
+      } else {
+        console.error(`[API] Swagger file not found at: ${swaggerFilePath}`);
+        res.status(404).json({ error: 'API documentation file not found' });
+      }
+    } catch (error) {
+      console.error('[API] Error serving Swagger file:', error);
+      res.status(500).json({ error: 'Internal server error loading API documentation' });
+    }
+  });
+  
   // Setup authentication routes
   setupAuth(app);
   // All routes are prefixed with /api
