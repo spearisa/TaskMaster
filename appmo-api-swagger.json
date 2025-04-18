@@ -2052,9 +2052,75 @@
       }
     },
     "/api/ai/task-suggestions": {
-      "post": {
+      "get": {
         "tags": ["AI"],
         "summary": "Get AI task suggestions",
+        "description": "Get AI-generated suggestions for task optimization based on current tasks",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task suggestions retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "suggestions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "Consider combining your two research tasks to save time",
+                        "The 'Fix closet doors' task could be delegated since you have several high-priority items"
+                      ]
+                    },
+                    "optimizedSchedule": {
+                      "type": "object",
+                      "properties": {
+                        "morning": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": ["Complete the weekly report", "Call client about project updates"]
+                        },
+                        "afternoon": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": ["Research new productivity tools", "Update project timeline"]
+                        },
+                        "evening": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": ["Review tomorrow's agenda", "Prepare materials for morning meeting"]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error or AI service unavailable"
+          }
+        }
+      },
+      "post": {
+        "tags": ["AI"],
+        "summary": "Get AI task suggestions (legacy)",
         "description": "Get AI-generated suggestions for optimizing task management",
         "security": [
           {
@@ -2672,7 +2738,244 @@
         ],
         "responses": {
           "200": {
-            "description": "Bid accepted successfully",
+            "description": "Bid accepted successfully"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Forbidden - Only task owner can accept bids"
+          },
+          "404": {
+            "description": "Task or bid not found"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/bids/received": {
+      "get": {
+        "tags": ["Bidding"],
+        "summary": "Get all bids received",
+        "description": "Retrieve all bids received on the user's tasks",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bids retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "bid": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "taskId": {
+                            "type": "integer",
+                            "example": 5
+                          },
+                          "bidderId": {
+                            "type": "integer",
+                            "example": 2
+                          },
+                          "amount": {
+                            "type": "number",
+                            "format": "float",
+                            "example": 25.50
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": ["pending", "accepted", "rejected", "completed"],
+                            "example": "pending"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "example": "2025-04-17T10:30:00Z"
+                          }
+                        }
+                      },
+                      "task": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 5
+                          },
+                          "title": {
+                            "type": "string",
+                            "example": "Build a website"
+                          }
+                        }
+                      },
+                      "bidder": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 2
+                          },
+                          "username": {
+                            "type": "string",
+                            "example": "janesmith"
+                          },
+                          "displayName": {
+                            "type": "string",
+                            "example": "Jane Smith"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/bids/placed": {
+      "get": {
+        "tags": ["Bidding"],
+        "summary": "Get all bids placed",
+        "description": "Retrieve all bids placed by the current user",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bids retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "bid": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "taskId": {
+                            "type": "integer",
+                            "example": 5
+                          },
+                          "bidderId": {
+                            "type": "integer",
+                            "example": 2
+                          },
+                          "amount": {
+                            "type": "number",
+                            "format": "float",
+                            "example": 25.50
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": ["pending", "accepted", "rejected", "completed"],
+                            "example": "pending"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "example": "2025-04-17T10:30:00Z"
+                          }
+                        }
+                      },
+                      "task": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 5
+                          },
+                          "title": {
+                            "type": "string",
+                            "example": "Build a website"
+                          }
+                        }
+                      },
+                      "taskOwner": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 3
+                          },
+                          "username": {
+                            "type": "string",
+                            "example": "bobcooper"
+                          },
+                          "displayName": {
+                            "type": "string",
+                            "example": "Bob Cooper"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/bids/{bidId}/accept": {
+      "post": {
+        "tags": ["Bidding"],
+        "summary": "Accept a bid (alternative endpoint)",
+        "description": "Accept a specific bid by its ID",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bidId",
+            "in": "path",
+            "description": "Bid ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bid accepted successfully"fully",
             "content": {
               "application/json": {
                 "schema": {
