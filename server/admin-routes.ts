@@ -19,33 +19,31 @@ export function registerAdminRoutes(app: Express) {
    */
   app.get("/api/admin/stats", requireAdmin, async (req: Request, res: Response) => {
     try {
-      // Get total counts for dashboard
+      // Get all users directly
+      const allUsers = await db.select().from(users);
+      
+      // Get all tasks directly
+      const allTasks = await db.select().from(tasks);
+      
+      // Calculate all the counts directly from the retrieved data
+      const completedTasks = allTasks.filter(task => task.completed);
+      const publicTasks = allTasks.filter(task => task.isPublic);
+      
+      // Get the remaining counts
       const [
-        userCount,
-        taskCount,
         templateCount,
-        completedTaskCount,
-        publicTaskCount,
         bidCount,
         messageCount,
         blogPostCount
       ] = await Promise.all([
-        db.select({ count: count() }).from(users),
-        db.select({ count: count() }).from(tasks),
-        db.select({ count: count() }).from(taskTemplates),
-        db.select({ count: count() }).from(tasks).where(eq(tasks.completed, true)),
-        db.select({ count: count() }).from(tasks).where(eq(tasks.isPublic, true)),
-        db.select({ count: count() }).from(taskBids),
-        db.select({ count: count() }).from(directMessages),
-        db.select({ count: count() }).from(blogPosts)
+        db.select().from(taskTemplates),
+        db.select().from(taskBids),
+        db.select().from(directMessages),
+        db.select().from(blogPosts)
       ]);
-
-      // Get data for charts
-      const oneMonthAgo = new Date();
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
       
-      // Get tasks created by week for last month
-      // Tasks don't have created_at, using simple date grouping instead
+      // Generate sample data for charts
+      // Tasks by week (sample data)
       const tasksCreatedByWeek = [
         { week: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(), count: "10" },
         { week: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(), count: "15" },
@@ -53,8 +51,7 @@ export function registerAdminRoutes(app: Express) {
         { week: new Date().toISOString(), count: "25" }
       ];
       
-      // Get users registered by week for last month - using static data similar to tasks
-      // since we don't have created_at date range queries available
+      // Users by week (sample data)
       const usersRegisteredByWeek = [
         { week: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(), count: "3" },
         { week: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(), count: "5" },
@@ -62,18 +59,16 @@ export function registerAdminRoutes(app: Express) {
         { week: new Date().toISOString(), count: "12" }
       ];
       
-      // Get all users with createdAt field
-      const allUsers = await db.select().from(users);
-      
+      // Send response with all calculated values
       res.json({
-        users: allUsers.length, // Use the length directly instead of count query
-        tasks: taskCount[0].count,
-        templates: templateCount[0].count,
-        completedTasks: completedTaskCount[0].count,
-        publicTasks: publicTaskCount[0].count,
-        bids: bidCount[0].count,
-        messages: messageCount[0].count,
-        blogPosts: blogPostCount[0].count,
+        users: allUsers.length,
+        tasks: allTasks.length,
+        templates: templateCount.length,
+        completedTasks: completedTasks.length,
+        publicTasks: publicTasks.length,
+        bids: bidCount.length,
+        messages: messageCount.length,
+        blogPosts: blogPostCount.length,
         tasksByWeek: tasksCreatedByWeek,
         usersByWeek: usersRegisteredByWeek
       });
