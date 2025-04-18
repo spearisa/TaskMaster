@@ -104,24 +104,36 @@ export default function ApiDocsPage() {
   useEffect(() => {
     const fetchSwaggerDocs = async () => {
       try {
+        console.log('Attempting to fetch Swagger docs from:', '/appmo-api-swagger.json');
         const response = await fetch('/appmo-api-swagger.json');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch Swagger docs: ${response.status} ${response.statusText}`);
+        }
+        
         const data = await response.json();
-        console.log('Swagger docs loaded:', Object.keys(data.paths).length, 'paths in Swagger doc');
+        console.log('Swagger docs loaded successfully:', Object.keys(data.paths || {}).length, 'paths in Swagger doc');
         setSwaggerDocs(data);
         
         // Extract endpoints from Swagger docs
         const extractedEndpoints = [];
-        for (const [path, methods] of Object.entries(data.paths)) {
-          for (const [method, details] of Object.entries(methods as Record<string, any>)) {
-            extractedEndpoints.push({
-              path,
-              method: method.toUpperCase(),
-              summary: details.summary || '',
-              description: details.description || '',
-              tags: details.tags || [],
-              requiresAuth: details.security && details.security.some((s: any) => s.BearerAuth),
-              responses: details.responses || {},
-            });
+        if (data.paths) {
+          for (const [path, methods] of Object.entries(data.paths)) {
+            if (methods && typeof methods === 'object') {
+              for (const [method, details] of Object.entries(methods as Record<string, any>)) {
+                if (details) {
+                  extractedEndpoints.push({
+                    path,
+                    method: method.toUpperCase(),
+                    summary: details.summary || '',
+                    description: details.description || '',
+                    tags: details.tags || [],
+                    requiresAuth: details.security && Array.isArray(details.security) && 
+                                 details.security.some((s: any) => s && (s.BearerAuth || s.ApiKeyAuth)),
+                    responses: details.responses || {},
+                  });
+                }
+              }
+            }
           }
         }
         
@@ -130,6 +142,9 @@ export default function ApiDocsPage() {
         setFilteredEndpoints(extractedEndpoints);
       } catch (error) {
         console.error('Error fetching API documentation:', error);
+        // Show a helpful error message in the UI
+        setEndpoints([]);
+        setFilteredEndpoints([]);
       } finally {
         setIsLoading(false);
       }

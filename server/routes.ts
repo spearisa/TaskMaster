@@ -2,6 +2,8 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { pool } from "./db";
+import path from "path";
+import fs from "fs";
 import { 
   insertTaskSchema, taskSchema, insertDirectMessageSchema, 
   updateProfileSchema, insertTaskTemplateSchema, taskTemplateSchema,

@@ -46,7 +46,7 @@ function Router() {
       <ProtectedRoute path="/messenger" component={MessengerPage} />
       <ProtectedRoute path="/messenger/:userId" component={MessengerPage} />
       <ProtectedRoute path="/my-bids" component={MyBidsPage} />
-      <ProtectedRoute path="/api-docs" component={ApiDocsPage} />
+      <Route path="/api-docs" component={ApiDocsPage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/shared-task/:id" component={SharedTaskPage} />
       <Route component={NotFound} />
