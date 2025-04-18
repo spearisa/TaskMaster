@@ -24,7 +24,7 @@ import { eq } from "drizzle-orm";
 import { 
   createApiKey, getApiKeys, validateApiKey, revokeApiKey 
 } from "./api-keys";
-import { adminRouter } from "./admin-routes";
+import { registerAdminRoutes } from "./admin-routes";
 import { z } from "zod";
 
 // Extend Express Request type to include API user
@@ -62,7 +62,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // All routes are prefixed with /api
   
   // Register admin routes
-  app.use('/api/admin', adminRouter);
+  registerAdminRoutes(app);
   
   // Reset demo data (developer route - would be removed in production)
   app.post("/api/dev/reset-demo-data", async (req, res) => {

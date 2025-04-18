@@ -1,455 +1,522 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { 
-  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle 
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger 
-} from "@/components/ui/sheet";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Pencil, Trash2, ArrowLeft, Search, UserCog, ShieldCheck, Shield, MoreHorizontal } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Edit,
+  Trash2,
+  User,
+  Search,
+  Shield,
+  AlertTriangle
+} from "lucide-react";
+import { format } from "date-fns";
 
-// User details component for the side panel
-function UserDetails({ userId, onClose }: { userId: number; onClose: () => void }) {
-  const { data: userData, isLoading, error } = useQuery({
-    queryKey: [`/api/admin/users/${userId}`],
-    enabled: !!userId
-  });
+interface User {
+  id: number;
+  username: string;
+  displayName: string | null;
+  bio: string | null;
+  isAdmin: boolean;
+  createdAt: string;
+  task_count?: number;
+  completed_task_count?: number;
+}
 
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editForm, setEditForm] = useState({
+interface UserDetail {
+  user: User;
+  tasks: any[];
+  messages: any[];
+}
+
+export default function AdminUsersPage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedUser, setSelectedUser] = useState<number | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [userEditData, setUserEditData] = useState({
     displayName: "",
     bio: "",
     isAdmin: false
   });
-
+  
+  const { toast } = useToast();
+  
+  // Fetch all users
+  const { data: users, isLoading: isLoadingUsers } = useQuery({
+    queryKey: ["/api/admin/users"],
+  });
+  
+  // Fetch selected user details
+  const { data: userDetail, isLoading: isLoadingUserDetail } = useQuery({
+    queryKey: ["/api/admin/users", selectedUser],
+    enabled: selectedUser !== null,
+  });
+  
+  // Update user mutation
   const updateUserMutation = useMutation({
-    mutationFn: async (data: typeof editForm) => {
-      const res = await apiRequest("PATCH", `/api/admin/users/${userId}`, data);
-      return await res.json();
+    mutationFn: async (userData: any) => {
+      const response = await apiRequest("PATCH", `/api/admin/users/${selectedUser}`, userData);
+      return await response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/users/${userId}`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
       toast({
         title: "User updated",
-        description: "User information has been updated successfully.",
+        description: "The user has been updated successfully",
       });
-      setIsEditMode(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users", selectedUser] });
+      setIsEditDialogOpen(false);
     },
     onError: (error) => {
       toast({
-        title: "Update failed",
-        description: "Failed to update user. Please try again.",
+        title: "Error updating user",
+        description: error.message,
         variant: "destructive",
       });
-    }
-  });
-
-  // Enter edit mode
-  const handleEdit = () => {
-    if (userData?.user) {
-      setEditForm({
-        displayName: userData.user.displayName || "",
-        bio: userData.user.bio || "",
-        isAdmin: !!userData.user.isAdmin
-      });
-      setIsEditMode(true);
-    }
-  };
-
-  // Save changes
-  const handleSave = () => {
-    updateUserMutation.mutate(editForm);
-  };
-
-  // If loading show skeleton
-  if (isLoading) {
-    return (
-      <div className="space-y-6 p-6">
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-12 w-12 rounded-full" />
-          <div className="space-y-2">
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-4 w-32" />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-3/4" />
-        </div>
-      </div>
-    );
-  }
-
-  // Show error if there is one
-  if (error || !userData) {
-    return (
-      <div className="p-6">
-        <div className="rounded-md bg-red-50 p-4">
-          <h3 className="text-sm font-medium text-red-800">Error loading user</h3>
-          <div className="mt-2 text-sm text-red-700">
-            <p>Failed to load user details. Please try again.</p>
-          </div>
-        </div>
-        <Button onClick={onClose} className="mt-4 w-full">Close</Button>
-      </div>
-    );
-  }
-
-  const { user, tasks, messages } = userData;
-  
-  return (
-    <div className="space-y-8 p-6">
-      <div className="flex justify-between items-start">
-        <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16">
-            <AvatarImage src={user.avatarUrl || ""} alt={user.displayName || user.username} />
-            <AvatarFallback>{(user.displayName || user.username || "User").substring(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <div>
-            <h3 className="text-lg font-semibold">{user.displayName || user.username}</h3>
-            <p className="text-sm text-muted-foreground">@{user.username}</p>
-            <div className="flex gap-2 mt-1">
-              {user.isAdmin && <Badge variant="outline" className="bg-blue-50">Admin</Badge>}
-              <Badge variant="outline">{tasks.length} Tasks</Badge>
-              <Badge variant="outline">{messages.length} Messages</Badge>
-            </div>
-          </div>
-        </div>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-      </div>
-
-      {isEditMode ? (
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="displayName">Display Name</Label>
-            <Input 
-              id="displayName" 
-              value={editForm.displayName} 
-              onChange={(e) => setEditForm({...editForm, displayName: e.target.value})} 
-            />
-          </div>
-          <div>
-            <Label htmlFor="bio">Bio</Label>
-            <Input 
-              id="bio" 
-              value={editForm.bio} 
-              onChange={(e) => setEditForm({...editForm, bio: e.target.value})} 
-            />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch 
-              id="isAdmin" 
-              checked={editForm.isAdmin} 
-              onCheckedChange={(checked) => setEditForm({...editForm, isAdmin: checked})} 
-            />
-            <Label htmlFor="isAdmin">Admin Privileges</Label>
-          </div>
-          <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => setIsEditMode(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={updateUserMutation.isPending}>
-              {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div>
-            <h4 className="text-sm font-medium mb-2">Bio</h4>
-            <p className="text-sm text-muted-foreground">{user.bio || "No bio provided"}</p>
-          </div>
-          
-          <div>
-            <h4 className="text-sm font-medium mb-2">Account Information</h4>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="text-muted-foreground">Member since</div>
-              <div>{new Date(user.createdAt).toLocaleDateString()}</div>
-              <div className="text-muted-foreground">Admin status</div>
-              <div>{user.isAdmin ? "Administrator" : "Regular user"}</div>
-            </div>
-          </div>
-          
-          <div>
-            <h4 className="text-sm font-medium mb-2">Interests</h4>
-            <div className="flex flex-wrap gap-1">
-              {user.interests && user.interests.length > 0 ? 
-                user.interests.map((interest: string, i: number) => (
-                  <Badge key={i} variant="secondary">{interest}</Badge>
-                )) : 
-                <p className="text-sm text-muted-foreground">No interests listed</p>
-              }
-            </div>
-          </div>
-          
-          <div>
-            <h4 className="text-sm font-medium mb-2">Skills</h4>
-            <div className="flex flex-wrap gap-1">
-              {user.skills && user.skills.length > 0 ? 
-                user.skills.map((skill: string, i: number) => (
-                  <Badge key={i} variant="outline">{skill}</Badge>
-                )) : 
-                <p className="text-sm text-muted-foreground">No skills listed</p>
-              }
-            </div>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleEdit} className="flex-1">
-              <Pencil className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-export default function AdminUsersPage() {
-  const [, navigate] = useLocation();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  const [userToDelete, setUserToDelete] = useState<{id: number, username: string} | null>(null);
-  
-  // Fetch users
-  const { data: users, isLoading, error } = useQuery({
-    queryKey: ['/api/admin/users'],
+    },
   });
   
   // Delete user mutation
   const deleteUserMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      const res = await apiRequest("DELETE", `/api/admin/users/${userId}`);
-      return await res.json();
+    mutationFn: async () => {
+      const response = await apiRequest("DELETE", `/api/admin/users/${selectedUser}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete user");
+      }
+      return await response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
       toast({
         title: "User deleted",
-        description: "User has been deleted successfully.",
+        description: "The user has been deleted successfully",
       });
-      setUserToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setSelectedUser(null);
+      setIsDeleteDialogOpen(false);
     },
     onError: (error) => {
       toast({
-        title: "Delete failed",
-        description: "Failed to delete user. Please try again.",
+        title: "Error deleting user",
+        description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
   
-  // Filter users based on search query
-  const filteredUsers = users?.filter((user: any) => {
-    const searchTerms = searchQuery.toLowerCase().split(' ');
-    const userData = `${user.username} ${user.displayName || ''} ${user.bio || ''}`.toLowerCase();
-    
-    return searchTerms.every(term => userData.includes(term));
-  }) || [];
-  
-  // Handle delete confirmation
-  const confirmDelete = (user: {id: number, username: string}) => {
-    setUserToDelete(user);
+  // Handle edit user
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user.id);
+    setUserEditData({
+      displayName: user.displayName || "",
+      bio: user.bio || "",
+      isAdmin: user.isAdmin
+    });
+    setIsEditDialogOpen(true);
   };
   
-  // Execute delete
-  const handleDelete = () => {
-    if (userToDelete) {
-      deleteUserMutation.mutate(userToDelete.id);
-    }
+  // Handle delete user
+  const handleDeleteUser = (userId: number) => {
+    setSelectedUser(userId);
+    setIsDeleteDialogOpen(true);
   };
   
-  // View user details
-  const viewUserDetails = (userId: number) => {
-    setSelectedUserId(userId);
+  // Handle view user details
+  const handleViewUserDetails = (userId: number) => {
+    setSelectedUser(userId);
   };
+  
+  // Filter users based on search
+  const filteredUsers = users ? users.filter((user: User) => 
+    user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (user.displayName && user.displayName.toLowerCase().includes(searchQuery.toLowerCase()))
+  ) : [];
+  
+  if (isLoadingUsers) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
   
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">User Management</h1>
-          <p className="text-sm text-muted-foreground">Manage all users of the Appmo platform</p>
+    <div className="container mx-auto py-6 px-4 md:px-6">
+      <div className="flex flex-col space-y-4 md:space-y-6">
+        <div className="flex flex-col space-y-2">
+          <h1 className="text-3xl font-bold">User Management</h1>
+          <p className="text-muted-foreground">
+            Manage Appmo platform users and their permissions
+          </p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/admin/dashboard">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
-          </Link>
-        </Button>
-      </div>
-      
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Users</CardTitle>
-            <div className="relative w-64">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search users..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="flex items-center space-x-4 py-2">
-                  <Skeleton className="h-10 w-10 rounded-full" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-4 w-48" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : error ? (
-            <div className="rounded-md bg-red-50 p-4">
-              <h3 className="text-sm font-medium text-red-800">Error loading users</h3>
-              <div className="mt-2 text-sm text-red-700">
-                <p>Failed to load user data. Please try refreshing the page.</p>
+        
+        <div className="grid gap-4 md:grid-cols-4">
+          {/* Users List */}
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>Users</CardTitle>
+              <div className="relative">
+                <Search className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search users..."
+                  className="pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Tasks</TableHead>
-                    <TableHead>Joined</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.length === 0 ? (
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[500px]">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        {searchQuery ? "No users match your search" : "No users found"}
-                      </TableCell>
+                      <TableHead>Username</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Tasks</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ) : (
-                    filteredUsers.map((user: any) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={user.avatarUrl || ""} alt={user.displayName || user.username} />
-                              <AvatarFallback>{(user.displayName || user.username || "User").substring(0, 2).toUpperCase()}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-medium">{user.displayName || user.username}</div>
-                              <div className="text-xs text-muted-foreground">@{user.username}</div>
-                            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.map((user: User) => (
+                      <TableRow 
+                        key={user.id}
+                        className={selectedUser === user.id ? "bg-muted" : ""}
+                      >
+                        <TableCell 
+                          className="cursor-pointer"
+                          onClick={() => handleViewUserDetails(user.id)}
+                        >
+                          <div className="flex gap-1 items-center">
+                            <div className="font-medium">{user.username}</div>
+                            {user.displayName && (
+                              <div className="text-xs text-muted-foreground">({user.displayName})</div>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
-                          {user.isAdmin ? (
-                            <Badge variant="secondary" className="flex items-center gap-1 bg-blue-50">
-                              <ShieldCheck className="h-3 w-3" />
-                              Admin
-                            </Badge>
-                          ) : (
+                          {user.isAdmin ? 
+                            <Badge variant="default" className="bg-amber-600">Admin</Badge> : 
                             <Badge variant="outline">User</Badge>
-                          )}
+                          }
                         </TableCell>
                         <TableCell>
-                          <div className="flex gap-1">
-                            <Badge variant="outline">{user.taskCount} Total</Badge>
-                            <Badge variant="outline" className="text-green-600">{user.completedTaskCount} Done</Badge>
+                          <div className="text-sm">
+                            {user.task_count || 0} 
+                            <span className="text-xs text-muted-foreground ml-1">
+                              ({user.completed_task_count || 0} completed)
+                            </span>
                           </div>
                         </TableCell>
-                        <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => viewUserDetails(user.id)}>
-                              <UserCog className="h-4 w-4" />
-                              <span className="sr-only">View Details</span>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="icon" 
+                              onClick={() => handleEditUser(user)}
+                            >
+                              <Edit className="h-4 w-4" />
                             </Button>
                             <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => confirmDelete(user)}
-                              disabled={user.isAdmin && user.id === 1} // Prevent deleting the main admin
+                              variant="outline" 
+                              size="icon"
+                              disabled={user.id === 1} // Prevent deleting main admin
+                              onClick={() => handleDeleteUser(user.id)}
                             >
                               <Trash2 className="h-4 w-4 text-red-500" />
-                              <span className="sr-only">Delete</span>
                             </Button>
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <div className="text-sm text-muted-foreground">
-            {filteredUsers.length} {filteredUsers.length === 1 ? 'user' : 'users'} found
-          </div>
-        </CardFooter>
-      </Card>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+          
+          {/* User Details */}
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>User Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {selectedUser ? (
+                isLoadingUserDetail ? (
+                  <div className="flex items-center justify-center h-[450px]">
+                    <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                  </div>
+                ) : userDetail ? (
+                  <Tabs defaultValue="profile" className="space-y-4">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="profile">Profile</TabsTrigger>
+                      <TabsTrigger value="tasks">Tasks ({userDetail.tasks.length})</TabsTrigger>
+                      <TabsTrigger value="messages">Messages ({userDetail.messages.length})</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="profile" className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-center mb-4">
+                          <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+                            <User className="h-10 w-10 text-primary" />
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Username</p>
+                            <p>{userDetail.user.username}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Display Name</p>
+                            <p>{userDetail.user.displayName || "—"}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Role</p>
+                            <p className="flex items-center gap-1">
+                              {userDetail.user.isAdmin ? (
+                                <>
+                                  <Shield className="h-4 w-4 text-amber-600" />
+                                  <span>Administrator</span>
+                                </>
+                              ) : (
+                                "Regular User"
+                              )}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Member Since</p>
+                            <p>{format(new Date(userDetail.user.createdAt), "PPP")}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="pt-2">
+                          <p className="text-sm font-medium text-muted-foreground">Bio</p>
+                          <p className="text-sm">{userDetail.user.bio || "No bio provided"}</p>
+                        </div>
+                        
+                        <div className="flex justify-end gap-2 pt-4">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => handleEditUser(userDetail.user)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit User
+                          </Button>
+                          <Button 
+                            variant="destructive"
+                            disabled={userDetail.user.id === 1} // Prevent deleting main admin
+                            onClick={() => handleDeleteUser(userDetail.user.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete User
+                          </Button>
+                        </div>
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="tasks">
+                      <ScrollArea className="h-[350px]">
+                        {userDetail.tasks.length > 0 ? (
+                          <div className="space-y-4">
+                            {userDetail.tasks.map((task: any) => (
+                              <div key={task.id} className="border p-3 rounded-md">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <h4 className="font-medium">{task.title}</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      {task.description?.substring(0, 100) || "No description"}
+                                      {task.description && task.description.length > 100 ? "..." : ""}
+                                    </p>
+                                  </div>
+                                  <Badge 
+                                    variant={task.completed ? "default" : "outline"}
+                                    className={task.completed ? "bg-green-500" : ""}
+                                  >
+                                    {task.completed ? "Completed" : "In Progress"}
+                                  </Badge>
+                                </div>
+                                <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
+                                  <span>Priority: {task.priority}</span>
+                                  <span>Category: {task.category}</span>
+                                  {task.dueDate && (
+                                    <span>Due: {format(new Date(task.dueDate), "PPP")}</span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center h-[300px] text-center">
+                            <p className="text-muted-foreground">No tasks found for this user</p>
+                          </div>
+                        )}
+                      </ScrollArea>
+                    </TabsContent>
+                    
+                    <TabsContent value="messages">
+                      <ScrollArea className="h-[350px]">
+                        {userDetail.messages.length > 0 ? (
+                          <div className="space-y-4">
+                            {userDetail.messages.map((message: any) => (
+                              <div key={message.id} className="border p-3 rounded-md">
+                                <div className="flex justify-between items-start">
+                                  <p className="text-sm">
+                                    {message.content?.substring(0, 120) || "No content"}
+                                    {message.content && message.content.length > 120 ? "..." : ""}
+                                  </p>
+                                </div>
+                                <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
+                                  {message.senderId === userDetail.user.id ? (
+                                    <span>Sent to user #{message.receiverId}</span>
+                                  ) : (
+                                    <span>Received from user #{message.senderId}</span>
+                                  )}
+                                  {message.createdAt && (
+                                    <span>{format(new Date(message.createdAt), "PPP")}</span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center h-[300px] text-center">
+                            <p className="text-muted-foreground">No messages found for this user</p>
+                          </div>
+                        )}
+                      </ScrollArea>
+                    </TabsContent>
+                  </Tabs>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-[450px] text-center">
+                    <p className="text-muted-foreground">Error loading user details</p>
+                  </div>
+                )
+              ) : (
+                <div className="flex flex-col items-center justify-center h-[450px] text-center p-4">
+                  <User className="h-12 w-12 text-muted-foreground mb-4" strokeWidth={1} />
+                  <p className="text-muted-foreground">Select a user from the list to view details</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
       
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+      {/* Edit User Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete User</DialogTitle>
+            <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete user "{userToDelete?.username}"? This action cannot be undone.
+              Update the user's profile information and permissions
             </DialogDescription>
           </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="displayName">Display Name</Label>
+              <Input 
+                id="displayName" 
+                value={userEditData.displayName} 
+                onChange={(e) => setUserEditData({...userEditData, displayName: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bio">Bio</Label>
+              <Input 
+                id="bio" 
+                value={userEditData.bio} 
+                onChange={(e) => setUserEditData({...userEditData, bio: e.target.value})}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <input 
+                type="checkbox" 
+                id="isAdmin" 
+                checked={userEditData.isAdmin} 
+                onChange={(e) => setUserEditData({...userEditData, isAdmin: e.target.checked})}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <Label htmlFor="isAdmin" className="text-sm font-medium text-foreground">
+                Administrator privileges
+              </Label>
+            </div>
+          </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setUserToDelete(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleteUserMutation.isPending}>
-              {deleteUserMutation.isPending ? "Deleting..." : "Delete User"}
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => updateUserMutation.mutate(userEditData)}
+              disabled={updateUserMutation.isPending}
+            >
+              {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       
-      {/* User Details Sheet */}
-      <Sheet open={!!selectedUserId} onOpenChange={(open) => !open && setSelectedUserId(null)}>
-        <SheetContent className="sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>User Details</SheetTitle>
-            <SheetDescription>View and manage user information</SheetDescription>
-          </SheetHeader>
-          <ScrollArea className="h-[calc(100vh-120px)] pr-4">
-            {selectedUserId && <UserDetails userId={selectedUserId} onClose={() => setSelectedUserId(null)} />}
-          </ScrollArea>
-        </SheetContent>
-      </Sheet>
+      {/* Delete User Alert Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Confirm User Deletion
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the user account
+              and remove all associated data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => deleteUserMutation.mutate()}
+              disabled={deleteUserMutation.isPending}
+            >
+              {deleteUserMutation.isPending ? "Deleting..." : "Delete User"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

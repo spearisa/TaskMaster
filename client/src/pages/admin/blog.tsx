@@ -1,915 +1,1324 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { 
-  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle 
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger 
-} from "@/components/ui/sheet";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  ArrowLeft, Search, Edit2, Trash2, Plus, FileText, CheckCircle, XCircle, BookOpen,
-  Eye, Layout, Tag, Calendar, User, Filter
-} from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Edit,
+  Trash2,
+  Search,
+  Plus,
+  AlertTriangle,
+  Check,
+  X,
+  Tag,
+  FileText,
+  Folder,
+  MessageSquare
+} from "lucide-react";
+import { format } from "date-fns";
 
-// Blog post form component for create/edit
-function BlogPostForm({ 
-  post = null, 
-  onSubmit, 
-  onCancel,
-  isSubmitting
-}: { 
-  post?: any; 
-  onSubmit: (data: any) => void; 
-  onCancel: () => void; 
-  isSubmitting: boolean;
-}) {
-  const { data: categories } = useQuery({
-    queryKey: ['/api/admin/blog/categories'],
-  });
-  
-  const [formData, setFormData] = useState({
-    title: post?.title || "",
-    slug: post?.slug || "",
-    content: post?.content || "",
-    excerpt: post?.excerpt || "",
-    featuredImage: post?.featuredImage || "",
-    status: post?.status || "draft",
-    tags: post?.tags?.join(", ") || "",
-    categories: post?.categories || []
-  });
-  
-  const handleChange = (field: string, value: string | string[]) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-  
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const processedData = {
-      ...formData,
-      tags: formData.tags.split(",").map(tag => tag.trim()).filter(tag => tag),
-    };
-    
-    onSubmit(processedData);
-  };
-  
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="title">Title</Label>
-          <Input 
-            id="title" 
-            value={formData.title} 
-            onChange={(e) => handleChange("title", e.target.value)}
-            required
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="slug">Slug</Label>
-          <Input 
-            id="slug" 
-            value={formData.slug} 
-            onChange={(e) => handleChange("slug", e.target.value)}
-            required
-            placeholder="url-friendly-title"
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="content">Content</Label>
-          <Textarea 
-            id="content" 
-            value={formData.content}
-            onChange={(e) => handleChange("content", e.target.value)}
-            required
-            className="min-h-[200px]"
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="excerpt">Excerpt</Label>
-          <Textarea 
-            id="excerpt" 
-            value={formData.excerpt}
-            onChange={(e) => handleChange("excerpt", e.target.value)}
-            className="h-20"
-            placeholder="Brief summary of the post (optional)"
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="featuredImage">Featured Image URL</Label>
-          <Input 
-            id="featuredImage" 
-            value={formData.featuredImage}
-            onChange={(e) => handleChange("featuredImage", e.target.value)}
-            placeholder="https://example.com/image.jpg (optional)"
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="tags">Tags</Label>
-          <Input 
-            id="tags" 
-            value={formData.tags}
-            onChange={(e) => handleChange("tags", e.target.value)}
-            placeholder="tag1, tag2, tag3 (comma separated)"
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="categories">Categories</Label>
-          <Select 
-            value={formData.categories.length > 0 ? String(formData.categories[0]) : undefined} 
-            onValueChange={(value) => handleChange("categories", [value])}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select a category" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories?.map((category: any) => (
-                <SelectItem key={category.id} value={String(category.id)}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div>
-          <Label htmlFor="status">Status</Label>
-          <Select 
-            value={formData.status} 
-            onValueChange={(value) => handleChange("status", value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="published">Published</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : (post ? "Update Post" : "Create Post")}
-        </Button>
-      </div>
-    </form>
-  );
+interface BlogCategory {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  createdAt: string;
 }
 
-// Category management component
-function CategoryManagement() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [isAddingCategory, setIsAddingCategory] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
-  const [newCategory, setNewCategory] = useState({
+interface BlogPost {
+  id: number;
+  title: string;
+  slug: string;
+  content: string;
+  excerpt: string | null;
+  featuredImage: string | null;
+  status: 'draft' | 'published';
+  tags: string[];
+  categoryId: number | null;
+  authorId: number;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string | null;
+  author: {
+    username: string;
+    displayName: string | null;
+  };
+  category: BlogCategory | null;
+}
+
+interface BlogComment {
+  id: number;
+  content: string;
+  postId: number;
+  userId: number;
+  approved: boolean;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    username: string;
+    displayName: string | null;
+  };
+  post: {
+    title: string;
+    slug: string;
+  };
+}
+
+export default function AdminBlogPage() {
+  const [activeTab, setActiveTab] = useState("posts");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [selectedPost, setSelectedPost] = useState<number | null>(null);
+  const [selectedComment, setSelectedComment] = useState<number | null>(null);
+  const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false);
+  const [isDeleteCategoryDialogOpen, setIsDeleteCategoryDialogOpen] = useState(false);
+  const [isAddPostDialogOpen, setIsAddPostDialogOpen] = useState(false);
+  const [isEditPostDialogOpen, setIsEditPostDialogOpen] = useState(false);
+  const [isDeletePostDialogOpen, setIsDeletePostDialogOpen] = useState(false);
+  const [isDeleteCommentDialogOpen, setIsDeleteCommentDialogOpen] = useState(false);
+  
+  // Form states
+  const [categoryFormData, setCategoryFormData] = useState({
     name: "",
     slug: "",
     description: ""
   });
   
-  const { data: categories, isLoading } = useQuery({
-    queryKey: ['/api/admin/blog/categories'],
+  const [postFormData, setPostFormData] = useState({
+    title: "",
+    slug: "",
+    content: "",
+    excerpt: "",
+    featuredImage: "",
+    status: "draft",
+    tags: [],
+    categories: [] as string[]
   });
   
+  const [newTag, setNewTag] = useState("");
+  
+  const { toast } = useToast();
+  
+  // ===== QUERIES =====
+  
+  // Get all categories
+  const {
+    data: categories,
+    isLoading: isLoadingCategories
+  } = useQuery({
+    queryKey: ["/api/admin/blog/categories"],
+    enabled: activeTab === "categories" || isAddPostDialogOpen || isEditPostDialogOpen
+  });
+  
+  // Get all posts
+  const {
+    data: posts,
+    isLoading: isLoadingPosts
+  } = useQuery({
+    queryKey: ["/api/admin/blog/posts"],
+    enabled: activeTab === "posts"
+  });
+  
+  // Get post details
+  const {
+    data: postDetail,
+    isLoading: isLoadingPostDetail
+  } = useQuery({
+    queryKey: ["/api/admin/blog/posts", selectedPost],
+    enabled: selectedPost !== null && isEditPostDialogOpen
+  });
+  
+  // Get all comments
+  const {
+    data: comments,
+    isLoading: isLoadingComments
+  } = useQuery({
+    queryKey: ["/api/admin/blog/comments"],
+    enabled: activeTab === "comments"
+  });
+  
+  // ===== MUTATIONS =====
+  
+  // Create category
   const createCategoryMutation = useMutation({
-    mutationFn: async (data: typeof newCategory) => {
-      const res = await apiRequest("POST", "/api/admin/blog/categories", data);
-      return await res.json();
+    mutationFn: async (data: any) => {
+      const response = await apiRequest("POST", "/api/admin/blog/categories", data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create category");
+      }
+      return await response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/blog/categories'] });
       toast({
         title: "Category created",
-        description: "New category has been created successfully."
+        description: "The category has been created successfully",
       });
-      setNewCategory({
-        name: "",
-        slug: "",
-        description: ""
-      });
-      setIsAddingCategory(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blog/categories"] });
+      setIsAddCategoryDialogOpen(false);
+      setCategoryFormData({ name: "", slug: "", description: "" });
     },
-    onError: () => {
+    onError: (error) => {
       toast({
-        title: "Failed to create category",
-        description: "There was an error creating the category.",
-        variant: "destructive"
+        title: "Error creating category",
+        description: error.message,
+        variant: "destructive",
       });
     }
   });
   
+  // Delete category
   const deleteCategoryMutation = useMutation({
-    mutationFn: async (categoryId: number) => {
-      const res = await apiRequest("DELETE", `/api/admin/blog/categories/${categoryId}`);
-      return await res.json();
+    mutationFn: async () => {
+      const response = await apiRequest("DELETE", `/api/admin/blog/categories/${selectedCategory}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete category");
+      }
+      return await response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/blog/categories'] });
       toast({
         title: "Category deleted",
-        description: "Category has been deleted successfully."
+        description: "The category has been deleted successfully",
       });
-      setCategoryToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blog/categories"] });
+      setIsDeleteCategoryDialogOpen(false);
+      setSelectedCategory(null);
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
-        title: "Failed to delete category",
-        description: error.message || "There was an error deleting the category.",
-        variant: "destructive"
+        title: "Error deleting category",
+        description: error.message,
+        variant: "destructive",
       });
     }
   });
   
-  const handleCreateCategory = (e: React.FormEvent) => {
-    e.preventDefault();
-    createCategoryMutation.mutate(newCategory);
+  // Create post
+  const createPostMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest("POST", "/api/admin/blog/posts", data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create post");
+      }
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Post created",
+        description: "The blog post has been created successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blog/posts"] });
+      setIsAddPostDialogOpen(false);
+      setPostFormData({
+        title: "",
+        slug: "",
+        content: "",
+        excerpt: "",
+        featuredImage: "",
+        status: "draft",
+        tags: [],
+        categories: []
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error creating post",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Update post
+  const updatePostMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest("PUT", `/api/admin/blog/posts/${selectedPost}`, data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update post");
+      }
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Post updated",
+        description: "The blog post has been updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blog/posts"] });
+      setIsEditPostDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error updating post",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Delete post
+  const deletePostMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("DELETE", `/api/admin/blog/posts/${selectedPost}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete post");
+      }
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Post deleted",
+        description: "The blog post has been deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blog/posts"] });
+      setIsDeletePostDialogOpen(false);
+      setSelectedPost(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error deleting post",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Update comment approval status
+  const updateCommentApprovalMutation = useMutation({
+    mutationFn: async ({ id, approved }: { id: number, approved: boolean }) => {
+      const response = await apiRequest("PATCH", `/api/admin/blog/comments/${id}`, { approved });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update comment");
+      }
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Comment updated",
+        description: "The comment status has been updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blog/comments"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error updating comment",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Delete comment
+  const deleteCommentMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("DELETE", `/api/admin/blog/comments/${selectedComment}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete comment");
+      }
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Comment deleted",
+        description: "The comment has been deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blog/comments"] });
+      setIsDeleteCommentDialogOpen(false);
+      setSelectedComment(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error deleting comment",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // ===== HANDLERS =====
+  
+  // Handle creating a new category
+  const handleCreateCategory = () => {
+    // Create a URL-friendly slug if none provided
+    let slug = categoryFormData.slug;
+    if (!slug && categoryFormData.name) {
+      slug = categoryFormData.name
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/[\s_-]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    }
+    
+    createCategoryMutation.mutate({
+      ...categoryFormData,
+      slug
+    });
   };
   
-  const generateSlug = (name: string) => {
-    return name.toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+  // Handle deleting a category
+  const handleDeleteCategory = (categoryId: number) => {
+    setSelectedCategory(categoryId);
+    setIsDeleteCategoryDialogOpen(true);
   };
+  
+  // Handle editing a post
+  const handleEditPost = (postId: number) => {
+    setSelectedPost(postId);
+    setIsEditPostDialogOpen(true);
+  };
+  
+  // Handle deleting a post
+  const handleDeletePost = (postId: number) => {
+    setSelectedPost(postId);
+    setIsDeletePostDialogOpen(true);
+  };
+  
+  // Handle adding a tag
+  const handleAddTag = () => {
+    if (newTag && !postFormData.tags.includes(newTag)) {
+      setPostFormData({
+        ...postFormData,
+        tags: [...postFormData.tags, newTag]
+      });
+      setNewTag("");
+    }
+  };
+  
+  // Handle removing a tag
+  const handleRemoveTag = (tag: string) => {
+    setPostFormData({
+      ...postFormData,
+      tags: postFormData.tags.filter(t => t !== tag)
+    });
+  };
+  
+  // Handle creating a new post
+  const handleCreatePost = () => {
+    // Create a URL-friendly slug if none provided
+    let slug = postFormData.slug;
+    if (!slug && postFormData.title) {
+      slug = postFormData.title
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/[\s_-]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    }
+    
+    createPostMutation.mutate({
+      ...postFormData,
+      slug
+    });
+  };
+  
+  // Handle updating a post
+  const handleUpdatePost = () => {
+    // Create a URL-friendly slug if none provided
+    let slug = postFormData.slug;
+    if (!slug && postFormData.title) {
+      slug = postFormData.title
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/[\s_-]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    }
+    
+    updatePostMutation.mutate({
+      ...postFormData,
+      slug
+    });
+  };
+  
+  // Handle toggling comment approval
+  const handleToggleCommentApproval = (id: number, currentStatus: boolean) => {
+    updateCommentApprovalMutation.mutate({
+      id,
+      approved: !currentStatus
+    });
+  };
+  
+  // Handle deleting a comment
+  const handleDeleteComment = (commentId: number) => {
+    setSelectedComment(commentId);
+    setIsDeleteCommentDialogOpen(true);
+  };
+  
+  // ===== FILTERS =====
+  
+  // Filter posts based on search
+  const filteredPosts = posts ? posts.filter((post: BlogPost) => 
+    post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (post.excerpt && post.excerpt.toLowerCase().includes(searchQuery.toLowerCase()))
+  ) : [];
+  
+  // Filter comments based on search
+  const filteredComments = comments ? comments.filter((comment: BlogComment) => 
+    comment.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    comment.post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    comment.user.username.toLowerCase().includes(searchQuery.toLowerCase())
+  ) : [];
+  
+  // ===== EFFECTS =====
+  
+  // Set post form data when editing a post
+  if (selectedPost && postDetail && isEditPostDialogOpen) {
+    const currentPostData = {
+      title: postDetail.title,
+      slug: postDetail.slug,
+      content: postDetail.content,
+      excerpt: postDetail.excerpt || "",
+      featuredImage: postDetail.featuredImage || "",
+      status: postDetail.status,
+      tags: postDetail.tags || [],
+      categories: postDetail.categoryId ? [postDetail.categoryId.toString()] : []
+    };
+    
+    // Only update form data if it's different
+    if (JSON.stringify(currentPostData) !== JSON.stringify(postFormData)) {
+      setPostFormData(currentPostData);
+    }
+  }
+  
+  // ===== LOADING STATES =====
+  
+  if ((activeTab === "categories" && isLoadingCategories) || 
+      (activeTab === "posts" && isLoadingPosts) || 
+      (activeTab === "comments" && isLoadingComments)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
   
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Categories</h2>
-        <Button onClick={() => setIsAddingCategory(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Category
-        </Button>
+    <div className="container mx-auto py-6 px-4 md:px-6">
+      <div className="flex flex-col space-y-4 md:space-y-6">
+        <div className="flex flex-col space-y-2">
+          <h1 className="text-3xl font-bold">Blog Management</h1>
+          <p className="text-muted-foreground">
+            Manage Appmo blog content including posts, categories, and comments
+          </p>
+        </div>
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="grid grid-cols-3 w-full md:w-[500px]">
+            <TabsTrigger value="posts">Posts</TabsTrigger>
+            <TabsTrigger value="categories">Categories</TabsTrigger>
+            <TabsTrigger value="comments">Comments</TabsTrigger>
+          </TabsList>
+          
+          {/* ===== POSTS TAB ===== */}
+          <TabsContent value="posts" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div className="relative w-full max-w-sm">
+                <Search className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search posts..."
+                  className="pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Button onClick={() => setIsAddPostDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Post
+              </Button>
+            </div>
+            
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Author</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPosts.length > 0 ? (
+                      filteredPosts.map((post: BlogPost) => (
+                        <TableRow key={post.id}>
+                          <TableCell>
+                            <div className="font-medium">{post.title}</div>
+                            <div className="text-xs text-muted-foreground">{post.slug}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={post.status === 'published' ? 'default' : 'outline'}>
+                              {post.status === 'published' ? 'Published' : 'Draft'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {post.category ? post.category.name : '—'}
+                          </TableCell>
+                          <TableCell>
+                            {post.author.displayName || post.author.username}
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-xs">
+                              {post.status === 'published' && post.publishedAt
+                                ? `Published: ${format(new Date(post.publishedAt), 'MMM d, yyyy')}`
+                                : `Created: ${format(new Date(post.createdAt), 'MMM d, yyyy')}`
+                              }
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Updated: {format(new Date(post.updatedAt), 'MMM d, yyyy')}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleEditPost(post.id)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleDeletePost(post.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-6">
+                          <div className="text-muted-foreground">No posts found</div>
+                          {searchQuery && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="mt-2"
+                              onClick={() => setSearchQuery('')}
+                            >
+                              Clear search
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* ===== CATEGORIES TAB ===== */}
+          <TabsContent value="categories" className="space-y-4">
+            <div className="flex justify-end">
+              <Button onClick={() => setIsAddCategoryDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Category
+              </Button>
+            </div>
+            
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Slug</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {categories && categories.length > 0 ? (
+                      categories.map((category: BlogCategory) => (
+                        <TableRow key={category.id}>
+                          <TableCell className="font-medium">{category.name}</TableCell>
+                          <TableCell>{category.slug}</TableCell>
+                          <TableCell className="max-w-xs truncate">
+                            {category.description || '—'}
+                          </TableCell>
+                          <TableCell>
+                            {format(new Date(category.createdAt), 'MMM d, yyyy')}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleDeleteCategory(category.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-6">
+                          <div className="text-muted-foreground">No categories found</div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* ===== COMMENTS TAB ===== */}
+          <TabsContent value="comments" className="space-y-4">
+            <div className="relative w-full max-w-sm">
+              <Search className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search comments..."
+                className="pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Comment</TableHead>
+                      <TableHead>Post</TableHead>
+                      <TableHead>User</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredComments && filteredComments.length > 0 ? (
+                      filteredComments.map((comment: BlogComment) => (
+                        <TableRow key={comment.id}>
+                          <TableCell className="max-w-xs truncate">
+                            {comment.content}
+                          </TableCell>
+                          <TableCell>
+                            {comment.post.title}
+                          </TableCell>
+                          <TableCell>
+                            {comment.user.displayName || comment.user.username}
+                          </TableCell>
+                          <TableCell>
+                            {comment.approved ? (
+                              <Badge variant="default" className="bg-green-600">Approved</Badge>
+                            ) : (
+                              <Badge variant="outline">Pending</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {format(new Date(comment.createdAt), 'MMM d, yyyy')}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleToggleCommentApproval(comment.id, comment.approved)}
+                              >
+                                {comment.approved ? (
+                                  <X className="h-4 w-4 text-red-500" />
+                                ) : (
+                                  <Check className="h-4 w-4 text-green-500" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleDeleteComment(comment.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-6">
+                          <div className="text-muted-foreground">No comments found</div>
+                          {searchQuery && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="mt-2"
+                              onClick={() => setSearchQuery('')}
+                            >
+                              Clear search
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
       
-      {isLoading ? (
-        <div className="space-y-2">
-          {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </div>
-      ) : categories?.length === 0 ? (
-        <div className="text-center py-10 text-muted-foreground">
-          No categories yet. Create your first category to organize your blog posts.
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {categories?.map((category: any) => (
-            <Card key={category.id}>
-              <CardHeader className="py-4 px-6">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle className="text-base">{category.name}</CardTitle>
-                    <CardDescription>/{category.slug}</CardDescription>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setCategoryToDelete(category)}
-                  >
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
-                </div>
-              </CardHeader>
-              {category.description && (
-                <CardContent className="py-0 px-6">
-                  <p className="text-sm text-muted-foreground">{category.description}</p>
-                </CardContent>
-              )}
-            </Card>
-          ))}
-        </div>
-      )}
-      
-      {/* Add Category Dialog */}
-      <Dialog open={isAddingCategory} onOpenChange={setIsAddingCategory}>
+      {/* ===== ADD CATEGORY DIALOG ===== */}
+      <Dialog open={isAddCategoryDialogOpen} onOpenChange={setIsAddCategoryDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add New Category</DialogTitle>
             <DialogDescription>
-              Create a new category to organize your blog posts.
+              Create a new category for organizing blog posts
             </DialogDescription>
           </DialogHeader>
-          
-          <form onSubmit={handleCreateCategory} className="space-y-4">
-            <div>
-              <Label htmlFor="categoryName">Name</Label>
-              <Input 
-                id="categoryName" 
-                value={newCategory.name} 
-                onChange={(e) => {
-                  const name = e.target.value;
-                  setNewCategory({
-                    ...newCategory,
-                    name,
-                    slug: generateSlug(name)
-                  });
-                }}
-                required
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Category Name</Label>
+              <Input
+                id="name"
+                value={categoryFormData.name}
+                onChange={(e) => setCategoryFormData({
+                  ...categoryFormData,
+                  name: e.target.value
+                })}
+                placeholder="e.g. Productivity Tips"
               />
             </div>
-            
-            <div>
-              <Label htmlFor="categorySlug">Slug</Label>
-              <Input 
-                id="categorySlug" 
-                value={newCategory.slug} 
-                onChange={(e) => setNewCategory({...newCategory, slug: e.target.value})}
-                required
+            <div className="space-y-2">
+              <Label htmlFor="slug">Slug (URL Path)</Label>
+              <Input
+                id="slug"
+                value={categoryFormData.slug}
+                onChange={(e) => setCategoryFormData({
+                  ...categoryFormData,
+                  slug: e.target.value
+                })}
+                placeholder="e.g. productivity-tips"
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave blank to generate automatically from name
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Textarea
+                id="description"
+                value={categoryFormData.description}
+                onChange={(e) => setCategoryFormData({
+                  ...categoryFormData,
+                  description: e.target.value
+                })}
+                placeholder="Brief description of this category"
               />
             </div>
-            
-            <div>
-              <Label htmlFor="categoryDescription">Description (optional)</Label>
-              <Textarea 
-                id="categoryDescription" 
-                value={newCategory.description} 
-                onChange={(e) => setNewCategory({...newCategory, description: e.target.value})}
-              />
-            </div>
-            
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsAddingCategory(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={createCategoryMutation.isPending}>
-                {createCategoryMutation.isPending ? "Creating..." : "Create Category"}
-              </Button>
-            </DialogFooter>
-          </form>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddCategoryDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateCategory}
+              disabled={!categoryFormData.name || createCategoryMutation.isPending}
+            >
+              {createCategoryMutation.isPending ? "Creating..." : "Create Category"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       
-      {/* Delete Category Confirmation */}
-      <Dialog open={!!categoryToDelete} onOpenChange={(open) => !open && setCategoryToDelete(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Category</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete the category "{categoryToDelete?.name}"? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCategoryToDelete(null)}>
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={() => deleteCategoryMutation.mutate(categoryToDelete.id)}
+      {/* ===== DELETE CATEGORY DIALOG ===== */}
+      <AlertDialog
+        open={isDeleteCategoryDialogOpen}
+        onOpenChange={setIsDeleteCategoryDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Confirm Category Deletion
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this category? This action cannot be undone.
+              Note: You can only delete categories that have no posts associated with them.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => deleteCategoryMutation.mutate()}
               disabled={deleteCategoryMutation.isPending}
             >
               {deleteCategoryMutation.isPending ? "Deleting..." : "Delete Category"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-// Comment management component
-function CommentManagement() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [commentToDelete, setCommentToDelete] = useState<any>(null);
-  
-  const { data: comments, isLoading } = useQuery({
-    queryKey: ['/api/admin/blog/comments'],
-  });
-  
-  const approveCommentMutation = useMutation({
-    mutationFn: async ({ commentId, approved }: { commentId: number, approved: boolean }) => {
-      const res = await apiRequest("PATCH", `/api/admin/blog/comments/${commentId}`, { approved });
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/blog/comments'] });
-      toast({
-        title: "Comment updated",
-        description: "Comment status has been updated."
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Update failed",
-        description: "Failed to update comment status.",
-        variant: "destructive"
-      });
-    }
-  });
-  
-  const deleteCommentMutation = useMutation({
-    mutationFn: async (commentId: number) => {
-      const res = await apiRequest("DELETE", `/api/admin/blog/comments/${commentId}`);
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/blog/comments'] });
-      toast({
-        title: "Comment deleted",
-        description: "Comment has been deleted successfully."
-      });
-      setCommentToDelete(null);
-    },
-    onError: () => {
-      toast({
-        title: "Delete failed",
-        description: "Failed to delete comment.",
-        variant: "destructive"
-      });
-    }
-  });
-  
-  const toggleApproveComment = (comment: any) => {
-    approveCommentMutation.mutate({
-      commentId: comment.id,
-      approved: !comment.approved
-    });
-  };
-  
-  return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Comments</h2>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
-      {isLoading ? (
-        <div className="space-y-4">
-          {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-24 w-full" />
-          ))}
-        </div>
-      ) : comments?.length === 0 ? (
-        <div className="text-center py-10 text-muted-foreground">
-          No comments yet.
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {comments?.map((comment: any) => (
-            <Card key={comment.id}>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-8 w-8">
-                      {comment.user ? (
-                        <>
-                          <AvatarImage src={comment.user.avatarUrl || ""} alt={comment.user.displayName || comment.user.username} />
-                          <AvatarFallback>{(comment.user.displayName || comment.user.username || "User").substring(0, 2).toUpperCase()}</AvatarFallback>
-                        </>
-                      ) : (
-                        <>
-                          <AvatarImage src="" alt={comment.authorName || "Guest"} />
-                          <AvatarFallback>{(comment.authorName || "Guest").substring(0, 2).toUpperCase()}</AvatarFallback>
-                        </>
-                      )}
-                    </Avatar>
-                    <div>
-                      <div className="font-medium">
-                        {comment.user ? (comment.user.displayName || comment.user.username) : (comment.authorName || "Guest")}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        on {new Date(comment.createdAt).toLocaleDateString()} at {new Date(comment.createdAt).toLocaleTimeString()}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <Badge variant={comment.approved ? "default" : "outline"}>
-                      {comment.approved ? "Approved" : "Pending"}
-                    </Badge>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm">{comment.content}</p>
-                {comment.post && (
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    On post: <span className="font-medium">{comment.post.title}</span>
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter className="flex justify-end gap-2 pt-0">
-                <Button 
-                  variant={comment.approved ? "outline" : "default"} 
-                  size="sm"
-                  onClick={() => toggleApproveComment(comment)}
-                  disabled={approveCommentMutation.isPending}
-                >
-                  {comment.approved ? (
-                    <XCircle className="mr-1 h-4 w-4" />
-                  ) : (
-                    <CheckCircle className="mr-1 h-4 w-4" />
-                  )}
-                  {comment.approved ? "Unapprove" : "Approve"}
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setCommentToDelete(comment)}
-                >
-                  <Trash2 className="h-4 w-4 text-red-500" />
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      )}
-      
-      {/* Delete Comment Confirmation */}
-      <Dialog open={!!commentToDelete} onOpenChange={(open) => !open && setCommentToDelete(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Comment</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this comment? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCommentToDelete(null)}>
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={() => deleteCommentMutation.mutate(commentToDelete.id)}
-              disabled={deleteCommentMutation.isPending}
-            >
-              {deleteCommentMutation.isPending ? "Deleting..." : "Delete Comment"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-export default function AdminBlogPage() {
-  const [, navigate] = useLocation();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
-  const [postToDelete, setPostToDelete] = useState<any>(null);
-  const [isAddingPost, setIsAddingPost] = useState(false);
-  const [isEditingPost, setIsEditingPost] = useState<any>(null);
-  
-  // Fetch blog posts
-  const { data: posts, isLoading, error } = useQuery({
-    queryKey: ['/api/admin/blog/posts'],
-  });
-  
-  // Create blog post mutation
-  const createPostMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/admin/blog/posts", data);
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/blog/posts'] });
-      toast({
-        title: "Post created",
-        description: "Blog post has been created successfully."
-      });
-      setIsAddingPost(false);
-    },
-    onError: () => {
-      toast({
-        title: "Creation failed",
-        description: "Failed to create blog post.",
-        variant: "destructive"
-      });
-    }
-  });
-  
-  // Update blog post mutation
-  const updatePostMutation = useMutation({
-    mutationFn: async ({ postId, data }: { postId: number, data: any }) => {
-      const res = await apiRequest("PUT", `/api/admin/blog/posts/${postId}`, data);
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/blog/posts'] });
-      toast({
-        title: "Post updated",
-        description: "Blog post has been updated successfully."
-      });
-      setIsEditingPost(null);
-    },
-    onError: () => {
-      toast({
-        title: "Update failed",
-        description: "Failed to update blog post.",
-        variant: "destructive"
-      });
-    }
-  });
-  
-  // Delete blog post mutation
-  const deletePostMutation = useMutation({
-    mutationFn: async (postId: number) => {
-      const res = await apiRequest("DELETE", `/api/admin/blog/posts/${postId}`);
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/blog/posts'] });
-      toast({
-        title: "Post deleted",
-        description: "Blog post has been deleted successfully."
-      });
-      setPostToDelete(null);
-    },
-    onError: () => {
-      toast({
-        title: "Delete failed",
-        description: "Failed to delete blog post.",
-        variant: "destructive"
-      });
-    }
-  });
-  
-  // Filter blog posts based on search query
-  const filteredPosts = posts?.filter((post: any) => {
-    const searchTerms = searchQuery.toLowerCase().split(' ');
-    const postData = `${post.title} ${post.excerpt || ''} ${post.content || ''}`.toLowerCase();
-    
-    return searchTerms.every(term => postData.includes(term));
-  }) || [];
-  
-  // Handle form submission for creating a blog post
-  const handleCreatePost = (data: any) => {
-    createPostMutation.mutate(data);
-  };
-  
-  // Handle form submission for updating a blog post
-  const handleUpdatePost = (data: any) => {
-    if (isEditingPost) {
-      updatePostMutation.mutate({
-        postId: isEditingPost.id,
-        data
-      });
-    }
-  };
-  
-  // Delete a blog post
-  const handleDeletePost = () => {
-    if (postToDelete) {
-      deletePostMutation.mutate(postToDelete.id);
-    }
-  };
-  
-  return (
-    <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Blog Management</h1>
-          <p className="text-sm text-muted-foreground">Manage blog posts, categories, and comments</p>
-        </div>
-        <Button variant="outline" asChild>
-          <Link href="/admin/dashboard">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
-          </Link>
-        </Button>
-      </div>
-      
-      <Tabs defaultValue="posts">
-        <TabsList className="mb-4 w-full justify-start">
-          <TabsTrigger value="posts">Posts</TabsTrigger>
-          <TabsTrigger value="categories">Categories</TabsTrigger>
-          <TabsTrigger value="comments">Comments</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="posts">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Blog Posts</CardTitle>
-                <div className="flex items-center gap-4">
-                  <div className="relative w-64">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="search"
-                      placeholder="Search posts..."
-                      className="pl-8"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  <Button onClick={() => setIsAddingPost(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    New Post
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="space-y-2">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex items-center space-x-4 py-2">
-                      <Skeleton className="h-12 w-12 rounded" />
-                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-56" />
-                        <Skeleton className="h-4 w-72" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : error ? (
-                <div className="rounded-md bg-red-50 p-4">
-                  <h3 className="text-sm font-medium text-red-800">Error loading blog posts</h3>
-                  <div className="mt-2 text-sm text-red-700">
-                    <p>Failed to load blog posts. Please try refreshing the page.</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Post</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Author</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredPosts.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                            {searchQuery ? "No posts match your search" : "No blog posts found"}
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredPosts.map((post: any) => (
-                          <TableRow key={post.id}>
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded bg-secondary flex items-center justify-center">
-                                  {post.featuredImage ? (
-                                    <img 
-                                      src={post.featuredImage} 
-                                      alt={post.title}
-                                      className="h-full w-full object-cover rounded"
-                                    />
-                                  ) : (
-                                    <FileText className="h-5 w-5 text-muted-foreground" />
-                                  )}
-                                </div>
-                                <div>
-                                  <div className="font-medium">{post.title}</div>
-                                  <div className="text-xs text-muted-foreground">/{post.slug}</div>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={post.status === "published" ? "default" : "outline"}>
-                                {post.status === "published" ? "Published" : "Draft"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Avatar className="h-6 w-6">
-                                  <AvatarImage src={post.author?.avatarUrl || ""} alt={post.author?.displayName || post.author?.username || "Unknown"} />
-                                  <AvatarFallback>{(post.author?.displayName || post.author?.username || "U").substring(0, 1).toUpperCase()}</AvatarFallback>
-                                </Avatar>
-                                <span className="text-sm">{post.author?.displayName || post.author?.username || "Unknown"}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {post.publishedAt ? 
-                                new Date(post.publishedAt).toLocaleDateString() : 
-                                new Date(post.createdAt).toLocaleDateString()
-                              }
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button variant="ghost" size="sm" onClick={() => setIsEditingPost(post)}>
-                                  <Edit2 className="h-4 w-4" />
-                                  <span className="sr-only">Edit</span>
-                                </Button>
-                                <Button variant="ghost" size="sm" onClick={() => setPostToDelete(post)}>
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                  <span className="sr-only">Delete</span>
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <div className="text-sm text-muted-foreground">
-                {filteredPosts.length} {filteredPosts.length === 1 ? 'post' : 'posts'} found
-              </div>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="categories">
-          <CategoryManagement />
-        </TabsContent>
-        
-        <TabsContent value="comments">
-          <CommentManagement />
-        </TabsContent>
-      </Tabs>
-      
-      {/* Create Post Dialog */}
-      <Dialog open={isAddingPost} onOpenChange={(open) => !open && setIsAddingPost(false)}>
-        <DialogContent className="max-w-3xl">
+      {/* ===== ADD POST DIALOG ===== */}
+      <Dialog
+        open={isAddPostDialogOpen}
+        onOpenChange={setIsAddPostDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
             <DialogTitle>Create New Blog Post</DialogTitle>
             <DialogDescription>
-              Fill out the form below to create a new blog post.
+              Add a new post to your blog
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[80vh]">
-            <div className="p-4">
-              <BlogPostForm 
-                onSubmit={handleCreatePost} 
-                onCancel={() => setIsAddingPost(false)}
-                isSubmitting={createPostMutation.isPending}
-              />
-            </div>
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Edit Post Dialog */}
-      <Dialog open={!!isEditingPost} onOpenChange={(open) => !open && setIsEditingPost(null)}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Edit Blog Post</DialogTitle>
-            <DialogDescription>
-              Edit the blog post details below.
-            </DialogDescription>
-          </DialogHeader>
-          <ScrollArea className="max-h-[80vh]">
-            <div className="p-4">
-              {isEditingPost && (
-                <BlogPostForm 
-                  post={isEditingPost}
-                  onSubmit={handleUpdatePost} 
-                  onCancel={() => setIsEditingPost(null)}
-                  isSubmitting={updatePostMutation.isPending}
+          <ScrollArea className="max-h-[70vh]">
+            <div className="space-y-4 py-4 px-1">
+              <div className="space-y-2">
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  value={postFormData.title}
+                  onChange={(e) => setPostFormData({
+                    ...postFormData,
+                    title: e.target.value
+                  })}
+                  placeholder="Post title"
                 />
-              )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="slug">Slug (URL Path)</Label>
+                <Input
+                  id="slug"
+                  value={postFormData.slug}
+                  onChange={(e) => setPostFormData({
+                    ...postFormData,
+                    slug: e.target.value
+                  })}
+                  placeholder="post-url-slug"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Leave blank to generate automatically from title
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="content">Content</Label>
+                <Textarea
+                  id="content"
+                  value={postFormData.content}
+                  onChange={(e) => setPostFormData({
+                    ...postFormData,
+                    content: e.target.value
+                  })}
+                  placeholder="Post content"
+                  rows={10}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="excerpt">Excerpt (Optional)</Label>
+                <Textarea
+                  id="excerpt"
+                  value={postFormData.excerpt}
+                  onChange={(e) => setPostFormData({
+                    ...postFormData,
+                    excerpt: e.target.value
+                  })}
+                  placeholder="Brief summary of the post"
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="featuredImage">Featured Image URL (Optional)</Label>
+                <Input
+                  id="featuredImage"
+                  value={postFormData.featuredImage}
+                  onChange={(e) => setPostFormData({
+                    ...postFormData,
+                    featuredImage: e.target.value
+                  })}
+                  placeholder="https://example.com/image.jpg"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select
+                  value={postFormData.categories[0] || ""}
+                  onValueChange={(value) => setPostFormData({
+                    ...postFormData,
+                    categories: value ? [value] : []
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Categories</SelectLabel>
+                      {categories && categories.map((category: BlogCategory) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Publication Status</Label>
+                <Select
+                  value={postFormData.status}
+                  onValueChange={(value) => setPostFormData({
+                    ...postFormData,
+                    status: value as 'draft' | 'published'
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="published">Published</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Tags</Label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {postFormData.tags.map((tag, index) => (
+                    <Badge
+                      key={index}
+                      variant="secondary"
+                      className="flex items-center gap-1"
+                    >
+                      <Tag className="h-3 w-3" />
+                      {tag}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4 ml-1 rounded-full"
+                        onClick={() => handleRemoveTag(tag)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                    placeholder="Add a tag"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddTag();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddTag}
+                    disabled={!newTag}
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
             </div>
           </ScrollArea>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Delete Post Confirmation */}
-      <Dialog open={!!postToDelete} onOpenChange={(open) => !open && setPostToDelete(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Blog Post</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete the blog post "{postToDelete?.title}"? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPostToDelete(null)}>
+            <Button variant="outline" onClick={() => setIsAddPostDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDeletePost}
-              disabled={deletePostMutation.isPending}
+            <Button
+              onClick={handleCreatePost}
+              disabled={!postFormData.title || !postFormData.content || createPostMutation.isPending}
             >
-              {deletePostMutation.isPending ? "Deleting..." : "Delete Post"}
+              {createPostMutation.isPending ? "Creating..." : "Create Post"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* ===== EDIT POST DIALOG ===== */}
+      <Dialog
+        open={isEditPostDialogOpen}
+        onOpenChange={setIsEditPostDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Edit Blog Post</DialogTitle>
+            <DialogDescription>
+              Make changes to your blog post
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[70vh]">
+            <div className="space-y-4 py-4 px-1">
+              <div className="space-y-2">
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  value={postFormData.title}
+                  onChange={(e) => setPostFormData({
+                    ...postFormData,
+                    title: e.target.value
+                  })}
+                  placeholder="Post title"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="slug">Slug (URL Path)</Label>
+                <Input
+                  id="slug"
+                  value={postFormData.slug}
+                  onChange={(e) => setPostFormData({
+                    ...postFormData,
+                    slug: e.target.value
+                  })}
+                  placeholder="post-url-slug"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="content">Content</Label>
+                <Textarea
+                  id="content"
+                  value={postFormData.content}
+                  onChange={(e) => setPostFormData({
+                    ...postFormData,
+                    content: e.target.value
+                  })}
+                  placeholder="Post content"
+                  rows={10}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="excerpt">Excerpt (Optional)</Label>
+                <Textarea
+                  id="excerpt"
+                  value={postFormData.excerpt}
+                  onChange={(e) => setPostFormData({
+                    ...postFormData,
+                    excerpt: e.target.value
+                  })}
+                  placeholder="Brief summary of the post"
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="featuredImage">Featured Image URL (Optional)</Label>
+                <Input
+                  id="featuredImage"
+                  value={postFormData.featuredImage}
+                  onChange={(e) => setPostFormData({
+                    ...postFormData,
+                    featuredImage: e.target.value
+                  })}
+                  placeholder="https://example.com/image.jpg"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select
+                  value={postFormData.categories[0] || ""}
+                  onValueChange={(value) => setPostFormData({
+                    ...postFormData,
+                    categories: value ? [value] : []
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Categories</SelectLabel>
+                      {categories && categories.map((category: BlogCategory) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Publication Status</Label>
+                <Select
+                  value={postFormData.status}
+                  onValueChange={(value) => setPostFormData({
+                    ...postFormData,
+                    status: value as 'draft' | 'published'
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="published">Published</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Tags</Label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {postFormData.tags.map((tag, index) => (
+                    <Badge
+                      key={index}
+                      variant="secondary"
+                      className="flex items-center gap-1"
+                    >
+                      <Tag className="h-3 w-3" />
+                      {tag}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4 ml-1 rounded-full"
+                        onClick={() => handleRemoveTag(tag)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                    placeholder="Add a tag"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddTag();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddTag}
+                    disabled={!newTag}
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </ScrollArea>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditPostDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdatePost}
+              disabled={!postFormData.title || !postFormData.content || updatePostMutation.isPending}
+            >
+              {updatePostMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* ===== DELETE POST DIALOG ===== */}
+      <AlertDialog open={isDeletePostDialogOpen} onOpenChange={setIsDeletePostDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Confirm Post Deletion
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this blog post? This action cannot be undone.
+              All comments associated with this post will also be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => deletePostMutation.mutate()}
+              disabled={deletePostMutation.isPending}
+            >
+              {deletePostMutation.isPending ? "Deleting..." : "Delete Post"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* ===== DELETE COMMENT DIALOG ===== */}
+      <AlertDialog open={isDeleteCommentDialogOpen} onOpenChange={setIsDeleteCommentDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Confirm Comment Deletion
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this comment? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => deleteCommentMutation.mutate()}
+              disabled={deleteCommentMutation.isPending}
+            >
+              {deleteCommentMutation.isPending ? "Deleting..." : "Delete Comment"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,232 +1,267 @@
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { 
-  BarChart3, Users, CheckSquare, ListTodo, Newspaper, 
-  MessageSquare, Package, Award, FileText, BookOpen 
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  Users,
+  CheckSquare,
+  List,
+  Globe,
+  DollarSign,
+  FileClock,
+  MessageSquare,
+  BookOpen,
 } from "lucide-react";
-import { Link } from "wouter";
-
-// Bar Chart Component
-function StatsChart({ data, title, description }: { 
-  data: { week: string, count: number }[], 
-  title: string, 
-  description: string 
-}) {
-  const maxCount = Math.max(...data.map(d => d.count), 1);
-  
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          {data.map((item, index) => {
-            const percentage = (item.count / maxCount) * 100;
-            const date = new Date(item.week);
-            const formattedDate = `${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-            
-            return (
-              <div key={index} className="flex items-center gap-2">
-                <div className="w-12 text-xs text-muted-foreground">{formattedDate}</div>
-                <div className="relative h-4 w-full overflow-hidden rounded-full bg-secondary">
-                  <div 
-                    className="h-full bg-primary transition-all" 
-                    style={{ width: `${percentage}%` }}
-                  />
-                </div>
-                <div className="w-9 text-xs font-medium">{item.count}</div>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Stat Card Component
-function StatCard({ icon: Icon, title, value, description, href }: {
-  icon: React.ElementType;
-  title: string;
-  value: number | string;
-  description: string;
-  href: string;
-}) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{description}</p>
-        <Button variant="ghost" size="sm" className="mt-2" asChild>
-          <Link href={href}>View Details</Link>
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
+import { format } from "date-fns";
 
 export default function AdminDashboard() {
-  const { data: stats, isLoading, error } = useQuery({
-    queryKey: ['/api/admin/stats'],
-    retry: false
+  const [activeTab, setActiveTab] = useState("overview");
+
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ["/api/admin/stats"],
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
+  // Format data for charts
+  const taskChartData = !isLoading && stats?.tasksByWeek
+    ? stats.tasksByWeek.map((entry: any) => ({
+        name: format(new Date(entry.week), "MMM d"),
+        Tasks: Number(entry.count)
+      }))
+    : [];
+
+  const userChartData = !isLoading && stats?.usersByWeek
+    ? stats.usersByWeek.map((entry: any) => ({
+        name: format(new Date(entry.week), "MMM d"),
+        Users: Number(entry.count)
+      }))
+    : [];
+
   if (isLoading) {
-    return <div className="container mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[...Array(8)].map((_, i) => (
-          <Card key={i}>
-            <CardHeader className="pb-2">
-              <Skeleton className="h-4 w-32" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-10 w-20 mb-2" />
-              <Skeleton className="h-4 w-full mb-4" />
-              <Skeleton className="h-8 w-24" />
-            </CardContent>
-          </Card>
-        ))}
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
       </div>
-    </div>;
+    );
   }
-
-  if (error || !stats) {
-    return <div className="container mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
-      <div className="p-4 mb-4 rounded-md bg-red-100 text-red-600">
-        <p>Error loading dashboard data. Please try again later.</p>
-      </div>
-      <Button variant="secondary" onClick={() => window.location.reload()}>
-        Retry
-      </Button>
-    </div>;
-  }
-
-  const tasksByWeekData = stats.tasksByWeek?.map((item: any) => ({
-    week: item.week,
-    count: parseInt(item.count)
-  })) || [];
-
-  const usersByWeekData = stats.usersByWeek?.map((item: any) => ({
-    week: item.week,
-    count: parseInt(item.count)
-  })) || [];
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-        <div className="space-x-2">
-          <Button variant="outline" asChild>
-            <Link href="/admin/users">Manage Users</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/admin/blog">Manage Blog</Link>
-          </Button>
+    <div className="container mx-auto py-6 px-4 md:px-6">
+      <div className="flex flex-col space-y-4 md:space-y-6">
+        <div className="flex flex-col space-y-2">
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <p className="text-muted-foreground">
+            Monitor and manage Appmo platform data and users
+          </p>
         </div>
-      </div>
 
-      <Tabs defaultValue="overview">
-        <TabsList className="mb-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="overview">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StatCard 
-              icon={Users}
-              title="Total Users"
-              value={stats.users || 0}
-              description="Active platform users"
-              href="/admin/users"
-            />
-            <StatCard 
-              icon={ListTodo}
-              title="Total Tasks"
-              value={stats.tasks || 0}
-              description="Tasks created on the platform"
-              href="/admin/tasks"
-            />
-            <StatCard 
-              icon={CheckSquare}
-              title="Completed Tasks"
-              value={stats.completedTasks || 0}
-              description="Successfully completed tasks"
-              href="/admin/tasks?filter=completed"
-            />
-            <StatCard 
-              icon={FileText}
-              title="Public Tasks"
-              value={stats.publicTasks || 0}
-              description="Publicly available tasks"
-              href="/admin/tasks?filter=public"
-            />
-            <StatCard 
-              icon={Award}
-              title="Task Bids"
-              value={stats.bids || 0}
-              description="Bids placed on tasks"
-              href="/admin/bids"
-            />
-            <StatCard 
-              icon={Package}
-              title="Task Templates"
-              value={stats.templates || 0}
-              description="Available task templates"
-              href="/admin/templates"
-            />
-            <StatCard 
-              icon={MessageSquare}
-              title="Messages"
-              value={stats.messages || 0}
-              description="Messages exchanged"
-              href="/admin/messages"
-            />
-            <StatCard 
-              icon={Newspaper}
-              title="Blog Posts"
-              value={stats.blogPosts || 0}
-              description="Published blog articles"
-              href="/admin/blog"
-            />
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="analytics">
-          <div className="grid gap-4 md:grid-cols-2">
-            <StatsChart 
-              data={tasksByWeekData} 
-              title="Tasks by Week" 
-              description="Number of tasks created per week"
-            />
-            <StatsChart 
-              data={usersByWeekData} 
-              title="Users by Week" 
-              description="Number of users registered per week"
-            />
-          </div>
-        </TabsContent>
-      </Tabs>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:w-[600px]">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="activity">Activity</TabsTrigger>
+            <TabsTrigger value="content">Content</TabsTrigger>
+          </TabsList>
 
-      <div className="mt-8 flex justify-end">
-        <Button variant="outline" size="sm" className="mr-2" asChild>
-          <Link href="/admin/settings">Admin Settings</Link>
-        </Button>
-        <Button variant="default" size="sm" asChild>
-          <Link href="/">Return to App</Link>
-        </Button>
+          <TabsContent value="overview" className="space-y-4">
+            {/* Charts */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Task Creation Trend</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={taskChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="Tasks" fill="#6366F1" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>New User Registrations</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={userChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="Users"
+                        stroke="#6366F1"
+                        strokeWidth={2}
+                        dot={{ stroke: '#6366F1', strokeWidth: 2, r: 4 }}
+                        activeDot={{ stroke: '#6366F1', strokeWidth: 3, r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Stats cards */}
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+              <StatCard 
+                title="Total Users" 
+                value={stats.users} 
+                icon={<Users className="h-5 w-5 text-blue-500" />} 
+              />
+              <StatCard 
+                title="Total Tasks" 
+                value={stats.tasks} 
+                icon={<List className="h-5 w-5 text-indigo-500" />} 
+              />
+              <StatCard 
+                title="Completed Tasks" 
+                value={stats.completedTasks} 
+                icon={<CheckSquare className="h-5 w-5 text-green-500" />} 
+              />
+              <StatCard 
+                title="Public Tasks" 
+                value={stats.publicTasks} 
+                icon={<Globe className="h-5 w-5 text-orange-500" />} 
+              />
+              <StatCard 
+                title="Active Bids" 
+                value={stats.bids} 
+                icon={<DollarSign className="h-5 w-5 text-yellow-500" />} 
+              />
+              <StatCard 
+                title="Task Templates" 
+                value={stats.templates} 
+                icon={<FileClock className="h-5 w-5 text-purple-500" />} 
+              />
+              <StatCard 
+                title="Messages" 
+                value={stats.messages} 
+                icon={<MessageSquare className="h-5 w-5 text-pink-500" />} 
+              />
+              <StatCard 
+                title="Blog Posts" 
+                value={stats.blogPosts} 
+                icon={<BookOpen className="h-5 w-5 text-teal-500" />} 
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="users" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  View detailed user information and manage user accounts on the Users page.
+                </p>
+                <a 
+                  href="/admin/users" 
+                  className="inline-block px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+                >
+                  Go to User Management
+                </a>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="activity" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[300px]">
+                  <div className="space-y-4">
+                    <div className="border-b pb-2">
+                      <p className="font-medium">New user registrations</p>
+                      <p className="text-sm text-muted-foreground">
+                        {stats.users ? `${stats.users} total users on the platform` : 'Loading...'}
+                      </p>
+                    </div>
+                    <div className="border-b pb-2">
+                      <p className="font-medium">Tasks created</p>
+                      <p className="text-sm text-muted-foreground">
+                        {stats.tasks ? `${stats.tasks} total tasks created` : 'Loading...'}
+                      </p>
+                    </div>
+                    <div className="border-b pb-2">
+                      <p className="font-medium">Tasks completed</p>
+                      <p className="text-sm text-muted-foreground">
+                        {stats.completedTasks ? `${stats.completedTasks} tasks completed` : 'Loading...'}
+                      </p>
+                    </div>
+                    <div className="border-b pb-2">
+                      <p className="font-medium">Bids placed</p>
+                      <p className="text-sm text-muted-foreground">
+                        {stats.bids ? `${stats.bids} bids placed on tasks` : 'Loading...'}
+                      </p>
+                    </div>
+                    <div className="border-b pb-2">
+                      <p className="font-medium">Messages sent</p>
+                      <p className="text-sm text-muted-foreground">
+                        {stats.messages ? `${stats.messages} messages exchanged between users` : 'Loading...'}
+                      </p>
+                    </div>
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="content" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Content Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Manage blog posts, categories, and comments on the Blog Management page.
+                </p>
+                <a 
+                  href="/admin/blog" 
+                  className="inline-block px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+                >
+                  Go to Blog Management
+                </a>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
+  );
+}
+
+function StatCard({ title, value, icon }: { title: string; value: number | string; icon: React.ReactNode }) {
+  return (
+    <Card>
+      <CardContent className="p-4 flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-muted-foreground">{title}</span>
+          {icon}
+        </div>
+        <div className="text-2xl font-bold">{value}</div>
+      </CardContent>
+    </Card>
   );
 }

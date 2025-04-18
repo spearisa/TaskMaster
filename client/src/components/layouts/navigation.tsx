@@ -251,6 +251,52 @@ export function SideNavigation() {
                     <span className="text-sm">Profile</span>
                   </div>
                 </Link>
+                
+                {/* Admin Section - only visible to admin users */}
+                {user?.isAdmin && (
+                  <>
+                    <div className="flex gap-2 mt-4 mb-1 px-4 pt-2">
+                      <Settings size={18} className="text-gray-500" />
+                      <span className="font-semibold text-gray-600">Admin</span>
+                    </div>
+                    <Link href="/admin/dashboard">
+                      <div 
+                        className={cn(
+                          "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                          isActive('/admin/dashboard') 
+                            ? "border-l-primary text-primary" 
+                            : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+                        )}
+                      >
+                        <span className="text-sm">Dashboard</span>
+                      </div>
+                    </Link>
+                    <Link href="/admin/users">
+                      <div 
+                        className={cn(
+                          "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                          isActive('/admin/users') 
+                            ? "border-l-primary text-primary" 
+                            : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+                        )}
+                      >
+                        <span className="text-sm">Users</span>
+                      </div>
+                    </Link>
+                    <Link href="/admin/blog">
+                      <div 
+                        className={cn(
+                          "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                          isActive('/admin/blog') 
+                            ? "border-l-primary text-primary" 
+                            : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+                        )}
+                      >
+                        <span className="text-sm">Blog</span>
+                      </div>
+                    </Link>
+                  </>
+                )}
               </>
             ) : (
               // Non-authenticated user navigation - show limited options
@@ -491,6 +537,52 @@ export function SideNavigation() {
               <span className="text-sm">Profile</span>
             </div>
           </Link>
+          
+          {/* Admin Section - only visible to admin users */}
+          {user?.isAdmin && (
+            <>
+              <div className="flex gap-2 mt-4 mb-1 px-4 pt-2">
+                <Settings size={18} className="text-gray-500" />
+                <span className="font-semibold text-gray-600">Admin</span>
+              </div>
+              <Link href="/admin/dashboard">
+                <div 
+                  className={cn(
+                    "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                    isActive('/admin/dashboard') 
+                      ? "border-l-primary text-primary" 
+                      : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+                  )}
+                >
+                  <span className="text-sm">Dashboard</span>
+                </div>
+              </Link>
+              <Link href="/admin/users">
+                <div 
+                  className={cn(
+                    "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                    isActive('/admin/users') 
+                      ? "border-l-primary text-primary" 
+                      : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+                  )}
+                >
+                  <span className="text-sm">Users</span>
+                </div>
+              </Link>
+              <Link href="/admin/blog">
+                <div 
+                  className={cn(
+                    "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                    isActive('/admin/blog') 
+                      ? "border-l-primary text-primary" 
+                      : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+                  )}
+                >
+                  <span className="text-sm">Blog</span>
+                </div>
+              </Link>
+            </>
+          )}
         </>
       ) : (
         // Non-authenticated user sidebar - limited options
