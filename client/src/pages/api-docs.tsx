@@ -106,6 +106,7 @@ export default function ApiDocsPage() {
       try {
         const response = await fetch('/appmo-api-swagger.json');
         const data = await response.json();
+        console.log('Swagger docs loaded:', Object.keys(data.paths).length, 'endpoints');
         setSwaggerDocs(data);
         
         // Extract endpoints from Swagger docs
@@ -118,7 +119,7 @@ export default function ApiDocsPage() {
               summary: details.summary || '',
               description: details.description || '',
               tags: details.tags || [],
-              requiresAuth: details.security && details.security.some((s: any) => s.ApiKeyAuth),
+              requiresAuth: details.security && details.security.length > 0,
               responses: details.responses || {},
             });
           }

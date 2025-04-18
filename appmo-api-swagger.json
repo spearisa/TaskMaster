@@ -2308,6 +2308,130 @@
         }
       }
     },
+    "/api/ai/image": {
+      "post": {
+        "tags": ["AI"],
+        "summary": "Generate image with AI",
+        "description": "Generate an image using DALL-E based on a prompt",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prompt"],
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "example": "A productivity dashboard with colorful task cards"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Image generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "example": "https://oaidalleapiprodscus.blob.core.windows.net/private/images/12345.png"
+                    },
+                    "revisedPrompt": {
+                      "type": "string",
+                      "example": "A detailed productivity dashboard interface with colorful task cards arranged in columns, featuring progress indicators and priority labels"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error or AI service unavailable"
+          }
+        }
+      }
+    },
+    "/api/ai/code": {
+      "post": {
+        "tags": ["AI"],
+        "summary": "Generate code with AI",
+        "description": "Generate code using AI based on a prompt and language",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prompt", "language"],
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "example": "Create a function to calculate Fibonacci sequence"
+                  },
+                  "language": {
+                    "type": "string",
+                    "example": "javascript"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Code generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "example": "function fibonacci(n) {\n  if (n <= 1) return n;\n  return fibonacci(n - 1) + fibonacci(n - 2);\n}"
+                    },
+                    "explanation": {
+                      "type": "string",
+                      "example": "This is a recursive function that calculates the nth number in the Fibonacci sequence."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "500": {
+            "description": "Server error or AI service unavailable"
+          }
+        }
+      }
+    },
     "/api/ai/delegate-task": {
       "post": {
         "tags": ["AI"],
