@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Switch } from '@/components/ui/switch';
-import { AppmoLogo } from '@/components/ui/logo';
+import { Logo } from '@/components/ui/logo';
 
 interface NavItemProps {
   icon: React.ReactNode;

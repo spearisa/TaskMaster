@@ -8,7 +8,7 @@ interface LogoProps {
   onClick?: () => void;
 }
 
-export function AppmoLogo({ 
+export function Logo({ 
   className, 
   size = 'md',
   showText = true, 

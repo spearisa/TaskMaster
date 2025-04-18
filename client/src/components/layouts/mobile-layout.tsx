@@ -9,7 +9,7 @@ import { BottomNavigation } from './bottom-navigation';
 import { SideNavigation } from './navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { AppmoLogo } from '@/components/ui/logo';
+import { Logo } from '@/components/ui/logo';
 
 interface MobileLayoutProps {
   children: ReactNode;

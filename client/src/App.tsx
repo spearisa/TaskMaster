@@ -29,6 +29,7 @@ import ApiDocsPage from "@/pages/api-docs";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminUsersPage from "@/pages/admin/users";
 import AdminBlogPage from "@/pages/admin/blog";
+import AdminLogin from "@/pages/admin/login";
 // Import i18n instance
 import '@/lib/i18n';
 
@@ -55,7 +56,8 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <Route path="/shared-task/:id" component={SharedTaskPage} />
       
-      {/* Admin routes - protected by admin role */}
+      {/* Admin routes */}
+      <Route path="/admin/login" component={AdminLogin} />
       <AdminProtectedRoute path="/admin/dashboard" component={AdminDashboard} />
       <AdminProtectedRoute path="/admin/users" component={AdminUsersPage} />
       <AdminProtectedRoute path="/admin/blog" component={AdminBlogPage} />
