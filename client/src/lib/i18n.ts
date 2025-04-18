@@ -66,10 +66,10 @@ const resources = {
         calendar: 'Calendar',
         messenger: 'Messages',
         aiTools: 'AI Assistant',
+        apiDocs: 'API Docs',
         profile: 'Profile',
         settings: 'Settings',
         help: 'Help',
-        apiDocs: 'API Documentation',
       },
       tasks: {
         task: 'Task',

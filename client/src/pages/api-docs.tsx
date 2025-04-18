@@ -306,6 +306,440 @@ export default function ApiDocsPage() {
               </div>
             </CardContent>
           </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Appmo SDK</CardTitle>
+              <CardDescription>
+                Use our official client libraries to integrate with Appmo quickly
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <Tabs defaultValue="javascript" className="w-full">
+                  <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-3">
+                    <TabsTrigger value="javascript">JavaScript</TabsTrigger>
+                    <TabsTrigger value="python">Python</TabsTrigger>
+                    <TabsTrigger value="java">Java</TabsTrigger>
+                  </TabsList>
+                  
+                  {/* JavaScript SDK */}
+                  <TabsContent value="javascript" className="mt-4">
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">Installation</h3>
+                        <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => {
+                                navigator.clipboard.writeText('npm install @appmo/sdk');
+                                toast({
+                                  title: "Copied to clipboard",
+                                  description: "Installation command copied to clipboard",
+                                });
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <pre>npm install @appmo/sdk</pre>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">Usage</h3>
+                        <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => {
+                                const jsCode = `import { AppmoClient } from '@appmo/sdk';
+
+// Initialize client with your API key
+const appmo = new AppmoClient('YOUR_API_KEY');
+
+// Get all tasks
+async function getTasks() {
+  try {
+    const tasks = await appmo.tasks.list();
+    console.log(tasks);
+    
+    // Create a new task
+    const newTask = await appmo.tasks.create({
+      title: 'Complete documentation',
+      description: 'Finish the API documentation',
+      priority: 'high',
+      category: 'Development',
+      dueDate: '2025-04-25T00:00:00Z'
+    });
+    
+    console.log('New task created:', newTask);
+    
+    // Update a task
+    const updatedTask = await appmo.tasks.update(newTask.id, {
+      completed: true
+    });
+    
+    console.log('Task updated:', updatedTask);
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+getTasks();`;
+                                navigator.clipboard.writeText(jsCode);
+                                toast({
+                                  title: "Copied to clipboard",
+                                  description: "JavaScript example copied to clipboard",
+                                });
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <pre className="whitespace-pre-wrap">
+{`import { AppmoClient } from '@appmo/sdk';
+
+// Initialize client with your API key
+const appmo = new AppmoClient('YOUR_API_KEY');
+
+// Get all tasks
+async function getTasks() {
+  try {
+    const tasks = await appmo.tasks.list();
+    console.log(tasks);
+    
+    // Create a new task
+    const newTask = await appmo.tasks.create({
+      title: 'Complete documentation',
+      description: 'Finish the API documentation',
+      priority: 'high',
+      category: 'Development',
+      dueDate: '2025-04-25T00:00:00Z'
+    });
+    
+    console.log('New task created:', newTask);
+    
+    // Update a task
+    const updatedTask = await appmo.tasks.update(newTask.id, {
+      completed: true
+    });
+    
+    console.log('Task updated:', updatedTask);
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+getTasks();`}
+                          </pre>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  {/* Python SDK */}
+                  <TabsContent value="python" className="mt-4">
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">Installation</h3>
+                        <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => {
+                                navigator.clipboard.writeText('pip install appmo-sdk');
+                                toast({
+                                  title: "Copied to clipboard",
+                                  description: "Installation command copied to clipboard",
+                                });
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <pre>pip install appmo-sdk</pre>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">Usage</h3>
+                        <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => {
+                                const pythonCode = `from appmo import AppmoClient
+from datetime import datetime
+
+# Initialize client with your API key
+client = AppmoClient(api_key="YOUR_API_KEY")
+
+# Get all tasks
+def manage_tasks():
+    try:
+        # List all tasks
+        tasks = client.tasks.list()
+        print(f"Found {len(tasks)} tasks")
+        
+        # Create a new task
+        new_task = client.tasks.create(
+            title="Complete documentation",
+            description="Finish the API documentation",
+            priority="high",
+            category="Development",
+            due_date="2025-04-25T00:00:00Z"
+        )
+        
+        print(f"New task created: {new_task.title} (ID: {new_task.id})")
+        
+        # Update a task
+        updated_task = client.tasks.update(
+            task_id=new_task.id,
+            completed=True
+        )
+        
+        print(f"Task updated: {updated_task.title} (Completed: {updated_task.completed})")
+        
+    except Exception as e:
+        print(f"Error: {e}")
+
+if __name__ == "__main__":
+    manage_tasks()`;
+                                navigator.clipboard.writeText(pythonCode);
+                                toast({
+                                  title: "Copied to clipboard",
+                                  description: "Python example copied to clipboard",
+                                });
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <pre className="whitespace-pre-wrap">
+{`from appmo import AppmoClient
+from datetime import datetime
+
+# Initialize client with your API key
+client = AppmoClient(api_key="YOUR_API_KEY")
+
+# Get all tasks
+def manage_tasks():
+    try:
+        # List all tasks
+        tasks = client.tasks.list()
+        print(f"Found {len(tasks)} tasks")
+        
+        # Create a new task
+        new_task = client.tasks.create(
+            title="Complete documentation",
+            description="Finish the API documentation",
+            priority="high",
+            category="Development",
+            due_date="2025-04-25T00:00:00Z"
+        )
+        
+        print(f"New task created: {new_task.title} (ID: {new_task.id})")
+        
+        # Update a task
+        updated_task = client.tasks.update(
+            task_id=new_task.id,
+            completed=True
+        )
+        
+        print(f"Task updated: {updated_task.title} (Completed: {updated_task.completed})")
+        
+    except Exception as e:
+        print(f"Error: {e}")
+
+if __name__ == "__main__":
+    manage_tasks()`}
+                          </pre>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  {/* Java SDK */}
+                  <TabsContent value="java" className="mt-4">
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">Installation</h3>
+                        <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => {
+                                navigator.clipboard.writeText(`<!-- Maven -->
+<dependency>
+    <groupId>com.appmo</groupId>
+    <artifactId>appmo-sdk</artifactId>
+    <version>1.0.0</version>
+</dependency>
+
+<!-- Gradle -->
+implementation 'com.appmo:appmo-sdk:1.0.0'`);
+                                toast({
+                                  title: "Copied to clipboard",
+                                  description: "Installation commands copied to clipboard",
+                                });
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <pre className="whitespace-pre-wrap">
+{`<!-- Maven -->
+<dependency>
+    <groupId>com.appmo</groupId>
+    <artifactId>appmo-sdk</artifactId>
+    <version>1.0.0</version>
+</dependency>
+
+<!-- Gradle -->
+implementation 'com.appmo:appmo-sdk:1.0.0'`}
+                          </pre>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">Usage</h3>
+                        <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => {
+                                const javaCode = `import com.appmo.AppmoClient;
+import com.appmo.models.Task;
+import com.appmo.models.TaskRequest;
+import com.appmo.exceptions.AppmoException;
+
+import java.time.ZonedDateTime;
+import java.util.List;
+
+public class AppmoExample {
+    public static void main(String[] args) {
+        // Initialize client with your API key
+        AppmoClient client = new AppmoClient("YOUR_API_KEY");
+        
+        try {
+            // List all tasks
+            List<Task> tasks = client.tasks().list();
+            System.out.println("Found " + tasks.size() + " tasks");
+            
+            // Create a new task
+            TaskRequest newTaskRequest = new TaskRequest.Builder()
+                .title("Complete documentation")
+                .description("Finish the API documentation")
+                .priority(Task.Priority.HIGH)
+                .category("Development")
+                .dueDate(ZonedDateTime.parse("2025-04-25T00:00:00Z"))
+                .build();
+                
+            Task newTask = client.tasks().create(newTaskRequest);
+            System.out.println("New task created: " + newTask.getTitle() + " (ID: " + newTask.getId() + ")");
+            
+            // Update a task
+            Task updatedTask = client.tasks().update(newTask.getId(), 
+                new TaskRequest.Builder().completed(true).build());
+                
+            System.out.println("Task updated: " + updatedTask.getTitle() + 
+                " (Completed: " + updatedTask.isCompleted() + ")");
+                
+        } catch (AppmoException e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+    }
+}`;
+                                navigator.clipboard.writeText(javaCode);
+                                toast({
+                                  title: "Copied to clipboard",
+                                  description: "Java example copied to clipboard",
+                                });
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <pre className="whitespace-pre-wrap">
+{`import com.appmo.AppmoClient;
+import com.appmo.models.Task;
+import com.appmo.models.TaskRequest;
+import com.appmo.exceptions.AppmoException;
+
+import java.time.ZonedDateTime;
+import java.util.List;
+
+public class AppmoExample {
+    public static void main(String[] args) {
+        // Initialize client with your API key
+        AppmoClient client = new AppmoClient("YOUR_API_KEY");
+        
+        try {
+            // List all tasks
+            List<Task> tasks = client.tasks().list();
+            System.out.println("Found " + tasks.size() + " tasks");
+            
+            // Create a new task
+            TaskRequest newTaskRequest = new TaskRequest.Builder()
+                .title("Complete documentation")
+                .description("Finish the API documentation")
+                .priority(Task.Priority.HIGH)
+                .category("Development")
+                .dueDate(ZonedDateTime.parse("2025-04-25T00:00:00Z"))
+                .build();
+                
+            Task newTask = client.tasks().create(newTaskRequest);
+            System.out.println("New task created: " + newTask.getTitle() + " (ID: " + newTask.getId() + ")");
+            
+            // Update a task
+            Task updatedTask = client.tasks().update(newTask.getId(), 
+                new TaskRequest.Builder().completed(true).build());
+                
+            System.out.println("Task updated: " + updatedTask.getTitle() + 
+                " (Completed: " + updatedTask.isCompleted() + ")");
+                
+        } catch (AppmoException e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+    }
+}`}
+                          </pre>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+                
+                <div className="pt-2">
+                  <h3 className="text-lg font-medium mb-2">SDK Documentation</h3>
+                  <p className="text-gray-700 dark:text-gray-300 mb-4">
+                    For detailed SDK documentation, examples, and integration guides, visit our developer docs:
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.open('https://docs.appmo.com/sdk', '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    SDK Documentation
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
         
         {/* Endpoints Tab */}
@@ -395,6 +829,234 @@ export default function ApiDocsPage() {
                               </p>
                             </div>
                             
+                            {/* Add schema information */}
+                            <div className="mb-4">
+                              <Tabs defaultValue="request" className="w-full">
+                                <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-2">
+                                  <TabsTrigger value="request">Request Schema</TabsTrigger>
+                                  <TabsTrigger value="response">Response Schema</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="request" className="mt-2">
+                                  {endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH' ? (
+                                    <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
+                                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon"
+                                          className="h-6 w-6"
+                                          onClick={() => {
+                                            let schema = '';
+                                            if (endpoint.path.includes('task')) {
+                                              schema = `{
+  "title": "string",
+  "description": "string",
+  "priority": "high" | "medium" | "low", 
+  "category": "string",
+  "dueDate": "string (ISO 8601)",
+  "estimatedTime": "number (minutes)"
+}`;
+                                            } else if (endpoint.path.includes('user')) {
+                                              schema = `{
+  "username": "string",
+  "displayName": "string",
+  "bio": "string",
+  "interests": "string[]",
+  "skills": "string[]"
+}`;
+                                            } else if (endpoint.path.includes('bid')) {
+                                              schema = `{
+  "taskId": "number",
+  "amount": "number",
+  "proposal": "string",
+  "estimatedTime": "number (minutes)"
+}`;
+                                            } else {
+                                              schema = `{
+  "key": "value"
+}`;
+                                            }
+                                            navigator.clipboard.writeText(schema);
+                                            toast({
+                                              title: "Copied to clipboard",
+                                              description: "Schema copied to clipboard",
+                                            });
+                                          }}
+                                        >
+                                          <Copy className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                      <pre className="whitespace-pre-wrap">
+{endpoint.path.includes('task') ? `{
+  "title": "string",
+  "description": "string",
+  "priority": "high" | "medium" | "low", 
+  "category": "string",
+  "dueDate": "string (ISO 8601)",
+  "estimatedTime": "number (minutes)"
+}` : endpoint.path.includes('user') ? `{
+  "username": "string",
+  "displayName": "string",
+  "bio": "string",
+  "interests": "string[]",
+  "skills": "string[]"
+}` : endpoint.path.includes('bid') ? `{
+  "taskId": "number",
+  "amount": "number",
+  "proposal": "string",
+  "estimatedTime": "number (minutes)"
+}` : `{
+  "key": "value"
+}`}
+                                      </pre>
+                                    </div>
+                                  ) : (
+                                    <p className="text-gray-700 dark:text-gray-300 text-sm p-2">No request body required for {endpoint.method} requests.</p>
+                                  )}
+                                </TabsContent>
+                                <TabsContent value="response" className="mt-2">
+                                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
+                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() => {
+                                          let schema = '';
+                                          if (endpoint.path.includes('task') && !endpoint.path.includes('tasks')) {
+                                            schema = `{
+  "id": "number",
+  "title": "string",
+  "description": "string",
+  "priority": "high" | "medium" | "low",
+  "category": "string",
+  "completed": "boolean",
+  "dueDate": "string (ISO 8601)",
+  "completedAt": "string (ISO 8601) | null",
+  "createdAt": "string (ISO 8601)",
+  "updatedAt": "string (ISO 8601)",
+  "userId": "number",
+  "assignedToUserId": "number | null",
+  "isPublic": "boolean"
+}`;
+                                          } else if (endpoint.path.includes('tasks')) {
+                                            schema = `[
+  {
+    "id": "number",
+    "title": "string",
+    "description": "string",
+    "priority": "high" | "medium" | "low",
+    "category": "string",
+    "completed": "boolean",
+    "dueDate": "string (ISO 8601)",
+    "completedAt": "string (ISO 8601) | null",
+    "createdAt": "string (ISO 8601)",
+    "updatedAt": "string (ISO 8601)",
+    "userId": "number",
+    "assignedToUserId": "number | null",
+    "isPublic": "boolean"
+  },
+  // ...more tasks
+]`;
+                                          } else if (endpoint.path.includes('user')) {
+                                            schema = `{
+  "id": "number",
+  "username": "string",
+  "displayName": "string",
+  "bio": "string",
+  "interests": "string[]",
+  "skills": "string[]",
+  "avatarUrl": "string | null",
+  "createdAt": "string (ISO 8601)"
+}`;
+                                          } else if (endpoint.path.includes('bid')) {
+                                            schema = `{
+  "id": "number",
+  "taskId": "number",
+  "bidderId": "number",
+  "amount": "number",
+  "proposal": "string",
+  "status": "pending" | "accepted" | "rejected" | "completed",
+  "estimatedTime": "number",
+  "createdAt": "string (ISO 8601)",
+  "updatedAt": "string (ISO 8601)"
+}`;
+                                          } else {
+                                            schema = `{
+  "success": "boolean",
+  "data": "object"
+}`;
+                                          }
+                                          navigator.clipboard.writeText(schema);
+                                          toast({
+                                            title: "Copied to clipboard",
+                                            description: "Schema copied to clipboard",
+                                          });
+                                        }}
+                                      >
+                                        <Copy className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                    <pre className="whitespace-pre-wrap">
+{endpoint.path.includes('task') && !endpoint.path.includes('tasks') ? `{
+  "id": "number",
+  "title": "string",
+  "description": "string",
+  "priority": "high" | "medium" | "low",
+  "category": "string",
+  "completed": "boolean",
+  "dueDate": "string (ISO 8601)",
+  "completedAt": "string (ISO 8601) | null",
+  "createdAt": "string (ISO 8601)",
+  "updatedAt": "string (ISO 8601)",
+  "userId": "number",
+  "assignedToUserId": "number | null",
+  "isPublic": "boolean"
+}` : endpoint.path.includes('tasks') ? `[
+  {
+    "id": "number",
+    "title": "string",
+    "description": "string",
+    "priority": "high" | "medium" | "low",
+    "category": "string",
+    "completed": "boolean",
+    "dueDate": "string (ISO 8601)",
+    "completedAt": "string (ISO 8601) | null",
+    "createdAt": "string (ISO 8601)",
+    "updatedAt": "string (ISO 8601)",
+    "userId": "number",
+    "assignedToUserId": "number | null",
+    "isPublic": "boolean"
+  },
+  // ...more tasks
+]` : endpoint.path.includes('user') ? `{
+  "id": "number",
+  "username": "string",
+  "displayName": "string",
+  "bio": "string",
+  "interests": "string[]",
+  "skills": "string[]",
+  "avatarUrl": "string | null",
+  "createdAt": "string (ISO 8601)"
+}` : endpoint.path.includes('bid') ? `{
+  "id": "number",
+  "taskId": "number",
+  "bidderId": "number",
+  "amount": "number",
+  "proposal": "string",
+  "status": "pending" | "accepted" | "rejected" | "completed",
+  "estimatedTime": "number",
+  "createdAt": "string (ISO 8601)",
+  "updatedAt": "string (ISO 8601)"
+}` : `{
+  "success": "boolean",
+  "data": "object"
+}`}
+                                    </pre>
+                                  </div>
+                                </TabsContent>
+                              </Tabs>
+                            </div>
+                            
                             {endpoint.tags && endpoint.tags.length > 0 && (
                               <div className="mb-4">
                                 <h4 className="font-medium mb-1">Tags</h4>
@@ -435,6 +1097,222 @@ export default function ApiDocsPage() {
                                   ))}
                                 </TableBody>
                               </Table>
+                            </div>
+                            
+                            {/* Code Examples */}
+                            <div className="mb-4">
+                              <h4 className="font-medium mb-1">Code Examples</h4>
+                              <Tabs defaultValue="curl" className="w-full">
+                                <TabsList className="grid w-full grid-cols-4">
+                                  <TabsTrigger value="curl">cURL</TabsTrigger>
+                                  <TabsTrigger value="javascript">JavaScript</TabsTrigger>
+                                  <TabsTrigger value="python">Python</TabsTrigger>
+                                  <TabsTrigger value="node">Node.js</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="curl" className="mt-2">
+                                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
+                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() => {
+                                          const curlCommand = `curl -X ${endpoint.method} "https://api.appmo.com${endpoint.path}" \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json"`;
+                                          navigator.clipboard.writeText(curlCommand);
+                                          toast({
+                                            title: "Copied to clipboard",
+                                            description: "cURL command copied to clipboard",
+                                          });
+                                        }}
+                                      >
+                                        <Copy className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                    <pre className="whitespace-pre-wrap">
+{`curl -X ${endpoint.method} "https://api.appmo.com${endpoint.path}" \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json"${endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH' ? ` \\
+  -d '{"key": "value"}'` : ''}`}
+                                    </pre>
+                                  </div>
+                                </TabsContent>
+                                <TabsContent value="javascript" className="mt-2">
+                                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
+                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() => {
+                                          const jsCode = `const fetchData = async () => {
+  const response = await fetch('https://api.appmo.com${endpoint.path}', {
+    method: '${endpoint.method}',
+    headers: {
+      'Authorization': 'Bearer YOUR_API_KEY',
+      'Content-Type': 'application/json'
+    }${endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH' ? `,
+    body: JSON.stringify({
+      key: 'value'
+    })` : ''}
+  });
+  const data = await response.json();
+  console.log(data);
+};
+
+fetchData();`;
+                                          navigator.clipboard.writeText(jsCode);
+                                          toast({
+                                            title: "Copied to clipboard",
+                                            description: "JavaScript code copied to clipboard",
+                                          });
+                                        }}
+                                      >
+                                        <Copy className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                    <pre className="whitespace-pre-wrap">
+{`const fetchData = async () => {
+  const response = await fetch('https://api.appmo.com${endpoint.path}', {
+    method: '${endpoint.method}',
+    headers: {
+      'Authorization': 'Bearer YOUR_API_KEY',
+      'Content-Type': 'application/json'
+    }${endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH' ? `,
+    body: JSON.stringify({
+      key: 'value'
+    })` : ''}
+  });
+  const data = await response.json();
+  console.log(data);
+};
+
+fetchData();`}
+                                    </pre>
+                                  </div>
+                                </TabsContent>
+                                <TabsContent value="python" className="mt-2">
+                                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
+                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() => {
+                                          const pythonCode = `import requests
+
+url = "https://api.appmo.com${endpoint.path}"
+headers = {
+    "Authorization": "Bearer YOUR_API_KEY",
+    "Content-Type": "application/json"
+}${endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH' ? `
+payload = {
+    "key": "value"
+}
+
+response = requests.${endpoint.method.toLowerCase()}(url, json=payload, headers=headers)` : `
+
+response = requests.${endpoint.method.toLowerCase()}(url, headers=headers)`}
+data = response.json()
+print(data)`;
+                                          navigator.clipboard.writeText(pythonCode);
+                                          toast({
+                                            title: "Copied to clipboard",
+                                            description: "Python code copied to clipboard",
+                                          });
+                                        }}
+                                      >
+                                        <Copy className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                    <pre className="whitespace-pre-wrap">
+{`import requests
+
+url = "https://api.appmo.com${endpoint.path}"
+headers = {
+    "Authorization": "Bearer YOUR_API_KEY",
+    "Content-Type": "application/json"
+}${endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH' ? `
+payload = {
+    "key": "value"
+}
+
+response = requests.${endpoint.method.toLowerCase()}(url, json=payload, headers=headers)` : `
+
+response = requests.${endpoint.method.toLowerCase()}(url, headers=headers)`}
+data = response.json()
+print(data)`}
+                                    </pre>
+                                  </div>
+                                </TabsContent>
+                                <TabsContent value="node" className="mt-2">
+                                  <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm relative group">
+                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() => {
+                                          const nodeCode = `const axios = require('axios');
+
+const fetchData = async () => {
+  try {
+    const response = await axios({
+      method: '${endpoint.method}',
+      url: 'https://api.appmo.com${endpoint.path}',
+      headers: {
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Content-Type': 'application/json'
+      }${endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH' ? `,
+      data: {
+        key: 'value'
+      }` : ''}
+    });
+    console.log(response.data);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+fetchData();`;
+                                          navigator.clipboard.writeText(nodeCode);
+                                          toast({
+                                            title: "Copied to clipboard",
+                                            description: "Node.js code copied to clipboard",
+                                          });
+                                        }}
+                                      >
+                                        <Copy className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                    <pre className="whitespace-pre-wrap">
+{`const axios = require('axios');
+
+const fetchData = async () => {
+  try {
+    const response = await axios({
+      method: '${endpoint.method}',
+      url: 'https://api.appmo.com${endpoint.path}',
+      headers: {
+        'Authorization': 'Bearer YOUR_API_KEY',
+        'Content-Type': 'application/json'
+      }${endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH' ? `,
+      data: {
+        key: 'value'
+      }` : ''}
+    });
+    console.log(response.data);
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+  }
+};
+
+fetchData();`}
+                                    </pre>
+                                  </div>
+                                </TabsContent>
+                              </Tabs>
                             </div>
                           </div>
                         </AccordionContent>

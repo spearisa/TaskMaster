@@ -115,36 +115,29 @@ app.use((req, res, next) => {
 
   // Start server with port fallback for Replit compatibility
   const startServer = async () => {
-    // Expanded range of ports to try
-    const availablePorts = [5000, 5001, 5002, 5003, 5004, 5005, 5006, 5007, 5008, 5009, 5010, 3000, 3001, 3002, 8000, 8001, 8080, 8081];
+    // Generate a broader range of ports to try
+    const generatePortRange = (start: number, count: number) => {
+      return Array.from({ length: count }, (_, i) => start + i);
+    };
     
-    // Try to get a previous port from storage to avoid the same port
-    let lastPortUsed = Number(process.env.LAST_PORT_USED || '0');
+    // Create a larger array of ports to try in different ranges
+    // For Replit, start with port 5000 as it's what the Replit workflow expects
+    const availablePorts = [
+      5000,                       // First try Replit's preferred port
+      ...generatePortRange(3000, 5),  // Then try 3000-3004
+      ...generatePortRange(8080, 5),  // Then try 8080-8084
+      ...generatePortRange(4000, 5),  // Then try 4000-4004
+      ...generatePortRange(8000, 5),  // Then try 8000-8004
+      ...generatePortRange(9000, 5),  // Then try 9000-9004
+      ...generatePortRange(5001, 9)   // Finally try 5001-5009
+    ];
     
-    // Also check for a saved port file from previous runs
-    try {
-      const fs = require('fs');
-      if (fs.existsSync('.port.txt')) {
-        const savedPort = Number(fs.readFileSync('.port.txt', 'utf8').trim());
-        if (savedPort > 0) {
-          lastPortUsed = savedPort;
-          log(`Found previously used port ${lastPortUsed} in .port.txt`);
-        }
-      }
-    } catch (e) {
-      // Non-critical if this fails
-    }
-    if (lastPortUsed > 0) {
-      // Move the last used port to the end of the array to try other ports first
-      const index = availablePorts.indexOf(lastPortUsed);
-      if (index !== -1) {
-        availablePorts.splice(index, 1);
-        availablePorts.push(lastPortUsed);
-      }
-    }
-    
+    let serverStarted = false;
+    // Do not try to reuse the last port - start fresh
     for (const port of availablePorts) {
       try {
+        log(`Attempting to start server on port ${port}...`);
+        
         await new Promise<void>((resolve, reject) => {
           // Set a timeout to avoid hanging if connection takes too long
           const timeout = setTimeout(() => {
@@ -152,7 +145,7 @@ app.use((req, res, next) => {
             server.removeAllListeners('listening');
             server.removeAllListeners('error');
             resolve(); // Continue to next port
-          }, 1000);
+          }, 3000); // Extended timeout
           
           server.once('error', (err: any) => {
             clearTimeout(timeout);
@@ -168,22 +161,13 @@ app.use((req, res, next) => {
           
           server.once('listening', () => {
             clearTimeout(timeout);
-            // Save the current port to process.env so we can avoid it next time
-            process.env.LAST_PORT_USED = String(port);
             log(`Server successfully started on port ${port}`);
+            serverStarted = true;
             
-            // Let the user know which port we're using
-            console.log(`\n\n--------------------------------------------`);
-            console.log(`🚀 Appmo server running on port: ${port}`);
-            console.log(`--------------------------------------------\n\n`);
-            
-            // Save to a file for persistence across restarts
-            try {
-              const fs = require('fs');
-              fs.writeFileSync('.port.txt', String(port));
-            } catch (e) {
-              // Non-critical if this fails
-            }
+            // Let the user know which port we're using - make it very visible
+            console.log(`\n\n==================================================`);
+            console.log(`🚀 Appmo server running successfully on port: ${port}`);
+            console.log(`==================================================\n\n`);
             
             resolve();
           });
@@ -193,15 +177,22 @@ app.use((req, res, next) => {
         });
         
         // If we reach here without moving to the next port, server started successfully
-        break;
+        if (serverStarted) {
+          break;
+        }
       } catch (err: any) {
         log(`Error starting server: ${err.message}`);
         if (port === availablePorts[availablePorts.length - 1]) {
           // If we've tried all ports and still failed, exit
-          console.error(`\n❌ Failed to start server after trying all ports. Please restart the application.\n`);
+          console.error(`\n❌ Failed to start server after trying all ports (${availablePorts.length} ports tried). Please restart the application.\n`);
           process.exit(1);
         }
       }
+    }
+    
+    if (!serverStarted) {
+      console.error(`\n❌ Could not find an available port. Please restart the application or check system resources.\n`);
+      process.exit(1);
     }
   };
   

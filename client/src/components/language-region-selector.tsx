@@ -23,7 +23,11 @@ async function detectUserCountry(): Promise<string> {
   }
 }
 
-export function LanguageRegionSelector() {
+interface LanguageRegionSelectorProps {
+  variant?: 'default' | 'minimal';
+}
+
+export function LanguageRegionSelector({ variant = 'default' }: LanguageRegionSelectorProps) {
   const { 
     t, 
     i18n, 
@@ -80,7 +84,11 @@ export function LanguageRegionSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" className="rounded-full">
+        <Button 
+          variant={variant === 'minimal' ? "ghost" : "outline"} 
+          size="icon" 
+          className={variant === 'minimal' ? "rounded-full h-8 w-8 p-0" : "rounded-full"}
+        >
           <Globe className="h-4 w-4" />
           <span className="sr-only">{t('common.language')}</span>
         </Button>

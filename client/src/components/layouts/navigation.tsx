@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Switch } from '@/components/ui/switch';
+import { AppmoLogo } from '@/components/ui/logo';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -300,6 +301,26 @@ export function SideNavigation() {
   // For desktop, show a sidebar with content based on authentication status
   return (
     <div className="hidden md:flex flex-col w-56 border-r border-gray-200 min-h-screen fixed pt-4 z-30">
+      {/* Logo at the top of sidebar */}
+      <div className="px-4 mb-6">
+        <Link href="/">
+          <div className="flex items-center gap-2">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              viewBox="0 0 100 100" 
+              className="h-8 w-8 fill-[#5271ff]"
+            >
+              <path d="M70,12h-6c0-3.31-2.69-6-6-6H42c-3.31,0-6,2.69-6,6h-6c-7.73,0-14,6.27-14,14v54c0,7.73,6.27,14,14,14h40c7.73,0,14-6.27,14-14V26C84,18.27,77.73,12,70,12z M42,12h16v4H42V12z M70,86H30c-3.31,0-6-2.69-6-6V26c0-3.31,2.69-6,6-6h6v4c0,2.21,1.79,4,4,4h20c2.21,0,4-1.79,4-4v-4h6c3.31,0,6,2.69,6,6v54C76,83.31,73.31,86,70,86z"/>
+              <circle cx="39" cy="41" r="4"/>
+              <circle cx="39" cy="61" r="4"/>
+              <rect x="49" y="39" width="20" height="4" rx="2"/>
+              <rect x="49" y="59" width="20" height="4" rx="2"/>
+            </svg>
+            <span className="font-bold text-lg">Appmo</span>
+          </div>
+        </Link>
+      </div>
+      
       {user ? (
         // Authenticated user sidebar
         <>

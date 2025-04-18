@@ -99,9 +99,9 @@ export default function HomePage() {
   };
 
   return (
-    <div className="px-5 pt-4 pb-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">To-Do List</h1>
+    <div className="px-4 pt-2 pb-6">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-xl font-bold">To-Do List</h1>
         <div className="flex items-center">
           <Button
             variant="ghost"

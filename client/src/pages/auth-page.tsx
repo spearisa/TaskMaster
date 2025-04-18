@@ -8,10 +8,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ClipboardList, MailWarning, AlertCircle } from "lucide-react";
+import { MailWarning, AlertCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { auth as firebaseAuth } from "@/lib/firebase";
+import { AppmoLogo } from "@/components/ui/logo";
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
@@ -60,7 +61,18 @@ export default function AuthPage() {
       {/* Right side - Hero section */}
       <div className="hidden md:flex flex-1 bg-primary/10 items-center justify-center p-8">
         <div className="max-w-md text-center">
-          <ClipboardList className="h-24 w-24 mx-auto mb-6 text-primary" />
+          {/* SVG version of the clipboard logo matching the screenshot */}
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 100 100" 
+            className="h-24 w-24 mx-auto mb-6 fill-[#5271ff]"
+          >
+            <path d="M70,12h-6c0-3.31-2.69-6-6-6H42c-3.31,0-6,2.69-6,6h-6c-7.73,0-14,6.27-14,14v54c0,7.73,6.27,14,14,14h40c7.73,0,14-6.27,14-14V26C84,18.27,77.73,12,70,12z M42,12h16v4H42V12z M70,86H30c-3.31,0-6-2.69-6-6V26c0-3.31,2.69-6,6-6h6v4c0,2.21,1.79,4,4,4h20c2.21,0,4-1.79,4-4v-4h6c3.31,0,6,2.69,6,6v54C76,83.31,73.31,86,70,86z"/>
+            <circle cx="39" cy="41" r="4"/>
+            <circle cx="39" cy="61" r="4"/>
+            <rect x="49" y="39" width="20" height="4" rx="2"/>
+            <rect x="49" y="59" width="20" height="4" rx="2"/>
+          </svg>
           <h1 className="text-3xl font-bold mb-3">Appmo</h1>
           <p className="text-lg mb-6">
             Your intelligent task management platform with AI-powered features

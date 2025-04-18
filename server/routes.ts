@@ -2127,12 +2127,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.redirect('/api-docs');
   });
 
+  // Create HTTP server but don't actually start it yet - that happens in index.ts
   const httpServer = createServer(app);
   
   // Set up WebSocket server
   const wss = new WebSocketServer({ 
     server: httpServer,
-    path: '/ws'
+    path: '/ws' 
   });
   
   // Track connected users

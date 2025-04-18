@@ -9,6 +9,7 @@ import { BottomNavigation } from './bottom-navigation';
 import { SideNavigation } from './navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { AppmoLogo } from '@/components/ui/logo';
 
 interface MobileLayoutProps {
   children: ReactNode;
@@ -119,7 +120,26 @@ export function MobileLayout({
                 <Menu size={16} />
               </Button>
           )}
-          <h1 className="text-base font-semibold">{currentPageTitle}</h1>
+          {location === '/' ? (
+            <Link href="/">
+              <div className="flex items-center gap-2 cursor-pointer">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  viewBox="0 0 100 100" 
+                  className="h-6 w-6 fill-[#5271ff]"
+                >
+                  <path d="M70,12h-6c0-3.31-2.69-6-6-6H42c-3.31,0-6,2.69-6,6h-6c-7.73,0-14,6.27-14,14v54c0,7.73,6.27,14,14,14h40c7.73,0,14-6.27,14-14V26C84,18.27,77.73,12,70,12z M42,12h16v4H42V12z M70,86H30c-3.31,0-6-2.69-6-6V26c0-3.31,2.69-6,6-6h6v4c0,2.21,1.79,4,4,4h20c2.21,0,4-1.79,4-4v-4h6c3.31,0,6,2.69,6,6v54C76,83.31,73.31,86,70,86z"/>
+                  <circle cx="39" cy="41" r="4"/>
+                  <circle cx="39" cy="61" r="4"/>
+                  <rect x="49" y="39" width="20" height="4" rx="2"/>
+                  <rect x="49" y="59" width="20" height="4" rx="2"/>
+                </svg>
+                <span className="font-bold text-sm">Appmo</span>
+              </div>
+            </Link>
+          ) : (
+            <h1 className="text-base font-semibold">{currentPageTitle}</h1>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -155,7 +175,20 @@ export function MobileLayout({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center p-4 border-b">
-              <h2 className="font-semibold">{t('common.appMenu')}</h2>
+              <div className="flex items-center gap-2">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  viewBox="0 0 100 100" 
+                  className="h-6 w-6 fill-[#5271ff]"
+                >
+                  <path d="M70,12h-6c0-3.31-2.69-6-6-6H42c-3.31,0-6,2.69-6,6h-6c-7.73,0-14,6.27-14,14v54c0,7.73,6.27,14,14,14h40c7.73,0,14-6.27,14-14V26C84,18.27,77.73,12,70,12z M42,12h16v4H42V12z M70,86H30c-3.31,0-6-2.69-6-6V26c0-3.31,2.69-6,6-6h6v4c0,2.21,1.79,4,4,4h20c2.21,0,4-1.79,4-4v-4h6c3.31,0,6,2.69,6,6v54C76,83.31,73.31,86,70,86z"/>
+                  <circle cx="39" cy="41" r="4"/>
+                  <circle cx="39" cy="61" r="4"/>
+                  <rect x="49" y="39" width="20" height="4" rx="2"/>
+                  <rect x="49" y="59" width="20" height="4" rx="2"/>
+                </svg>
+                <span className="font-bold text-sm">Appmo</span>
+              </div>
               <Button variant="ghost" size="sm" onClick={() => setMenuOpen(false)}>
                 <X size={20} />
               </Button>
@@ -215,14 +248,14 @@ export function MobileLayout({
       </div>
 
       {/* Main content area - flex-grow to fill all available space */}
-      <main className="flex-grow md:ml-56 px-4 pt-4 pb-16 md:pb-4 overflow-y-auto"> {/*Adjusted padding for content*/}
+      <main className="flex-grow md:ml-56 px-3 pt-2 pb-16 md:px-4 md:pt-4 md:pb-4 overflow-y-auto">
         <div className="flex flex-col h-full max-w-screen-lg mx-auto">
           {children}
         </div>
       </main>
 
       {/* Bottom navigation - fixed positioning and z-index for overlap prevention */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white"> {/*Added z-50 and bg-white*/}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-sm">
         <BottomNavigation />
       </div>
     </div>

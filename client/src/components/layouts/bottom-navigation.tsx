@@ -5,7 +5,8 @@ import {
   Calendar, 
   MessageSquare, 
   User,
-  Globe
+  Globe,
+  BookOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
@@ -43,11 +44,13 @@ export function BottomNavigation() {
         { path: '/calendar', labelKey: 'navigation.calendar', icon: Calendar },
         { path: '/public-tasks', labelKey: 'navigation.publicTasks', icon: Globe },
         { path: '/messenger', labelKey: 'messages.messages', icon: MessageSquare },
+        { path: '/api-docs', labelKey: 'navigation.apiDocs', icon: BookOpen },
       ];
     } else {
       return [
         // Non-authenticated user navigation - limited options
         { path: '/public-tasks', labelKey: 'navigation.publicTasks', icon: Globe },
+        { path: '/api-docs', labelKey: 'navigation.apiDocs', icon: BookOpen },
         { path: '/auth', labelKey: 'auth.signIn', icon: User },
       ];
     }
@@ -56,13 +59,13 @@ export function BottomNavigation() {
   const navItems = getNavItems();
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 py-0 h-14 z-40 shadow-lg md:hidden">
-      <div className="flex justify-around items-center w-full max-w-lg mx-auto px-2 h-full">
+    <div className="py-0 h-12 md:hidden">
+      <div className="flex justify-around items-center w-full max-w-lg mx-auto px-1 h-full">
         {navItems.map((item) => (
           <Link
             key={item.path}
             href={item.path}
-            className="flex flex-col items-center justify-center w-1/4 h-full"
+            className="flex flex-col items-center justify-center w-1/5 h-full"
           >
             <div className="flex flex-col items-center justify-center">
               <div className={cn(
@@ -72,7 +75,7 @@ export function BottomNavigation() {
                 <item.icon size={16} />
               </div>
               <span className={cn(
-                "text-[9px] font-medium",
+                "text-[9px] font-medium mt-0.5",
                 isActive(item.path) ? "text-primary" : "text-gray-400"
               )}>
                 {t(item.labelKey)}

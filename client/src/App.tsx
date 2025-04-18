@@ -74,9 +74,9 @@ function AppContent() {
       </MobileLayout>
       {user && <FloatingAIButton />}
       
-      {/* Language and Region Selector (positioned in bottom-right) */}
-      <div className="fixed bottom-4 left-4 z-50 md:bottom-8 md:left-8">
-        <LanguageRegionSelector />
+      {/* Language and Region Selector positioned appropriately for both mobile and desktop */}
+      <div className="fixed bottom-20 left-4 z-50 md:bottom-8 md:left-8">
+        <LanguageRegionSelector variant="minimal" />
       </div>
       
       <Toaster />
