@@ -87,19 +87,32 @@ export function registerAdminRoutes(app: Express) {
    */
   app.get("/api/admin/users", requireAdmin, async (req: Request, res: Response) => {
     try {
-      // Get all users with task counts
-      const users = await db.execute(sql`
-        SELECT 
-          u.*,
-          COUNT(DISTINCT t.id) as task_count,
-          COUNT(DISTINCT CASE WHEN t.completed = true THEN t.id END) as completed_task_count
-        FROM users u
-        LEFT JOIN tasks t ON t.user_id = u.id
-        GROUP BY u.id
-        ORDER BY u.created_at DESC
-      `);
+      // Get all users first
+      const allUsers = await db.select().from(users);
       
-      res.json(users);
+      // Then get task counts for each user
+      const usersWithTaskCounts = await Promise.all(
+        allUsers.map(async (user) => {
+          const userTasks = await db.select().from(tasks).where(eq(tasks.userId, user.id));
+          const completedTasks = userTasks.filter(task => task.completed);
+          
+          return {
+            ...user,
+            task_count: userTasks.length,
+            completed_task_count: completedTasks.length
+          };
+        })
+      );
+      
+      // Sort by created_at if available, otherwise by id
+      const sortedUsers = [...usersWithTaskCounts].sort((a, b) => {
+        if (a.createdAt && b.createdAt) {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+        return b.id - a.id;
+      });
+      
+      res.json(sortedUsers);
     } catch (error) {
       console.error("Error getting users:", error);
       res.status(500).json({ message: "Error getting users" });
