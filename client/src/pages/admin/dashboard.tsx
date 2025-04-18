@@ -26,28 +26,78 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 
+// Define the stats interface for type safety
+interface AdminStats {
+  users: number;
+  tasks: number;
+  templates: number;
+  completedTasks: number;
+  publicTasks: number;
+  bids: number;
+  messages: number;
+  blogPosts: number;
+  tasksByWeek: { week: string; count: number }[];
+  usersByWeek: { week: string; count: number }[];
+}
+
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
 
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading, error } = useQuery<AdminStats>({
     queryKey: ["/api/admin/stats"],
     refetchInterval: 30000, // Refresh every 30 seconds
+    retry: 1, // Only retry once to avoid endless loading on serious errors
+    refetchOnWindowFocus: false // Avoid refetching when window gets focus
   });
 
-  // Format data for charts
-  const taskChartData = !isLoading && stats?.tasksByWeek
-    ? stats.tasksByWeek.map((entry: any) => ({
+  // Log errors for debugging
+  useEffect(() => {
+    if (error) {
+      console.error("Error fetching admin stats:", error);
+    }
+  }, [error]);
+
+  // Default admin stats when data is not loaded yet
+  const defaultStats: AdminStats = {
+    users: 0,
+    tasks: 0,
+    templates: 0,
+    completedTasks: 0,
+    publicTasks: 0,
+    bids: 0,
+    messages: 0,
+    blogPosts: 0,
+    tasksByWeek: [],
+    usersByWeek: []
+  };
+  
+  // Prepare safe default values with proper type
+  const safeStats: AdminStats = stats || defaultStats;
+
+  // Format data for charts with fallback empty arrays
+  const taskChartData = safeStats.tasksByWeek.length > 0
+    ? safeStats.tasksByWeek.map((entry: any) => ({
         name: format(new Date(entry.week), "MMM d"),
         Tasks: Number(entry.count)
       }))
-    : [];
+    : [
+        { name: 'Week 1', Tasks: 0 },
+        { name: 'Week 2', Tasks: 0 },
+        { name: 'Week 3', Tasks: 0 },
+        { name: 'Week 4', Tasks: 0 }
+      ];
 
-  const userChartData = !isLoading && stats?.usersByWeek
-    ? stats.usersByWeek.map((entry: any) => ({
+  const userChartData = safeStats.usersByWeek.length > 0
+    ? safeStats.usersByWeek.map((entry: any) => ({
         name: format(new Date(entry.week), "MMM d"),
         Users: Number(entry.count)
       }))
-    : [];
+    : [
+        { name: 'Week 1', Users: 0 },
+        { name: 'Week 2', Users: 0 },
+        { name: 'Week 3', Users: 0 },
+        { name: 'Week 4', Users: 0 }
+      ];
 
   if (isLoading) {
     return (
@@ -124,42 +174,42 @@ export default function AdminDashboard() {
             <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
               <StatCard 
                 title="Total Users" 
-                value={stats.users} 
+                value={safeStats.users} 
                 icon={<Users className="h-5 w-5 text-blue-500" />} 
               />
               <StatCard 
                 title="Total Tasks" 
-                value={stats.tasks} 
+                value={safeStats.tasks} 
                 icon={<List className="h-5 w-5 text-indigo-500" />} 
               />
               <StatCard 
                 title="Completed Tasks" 
-                value={stats.completedTasks} 
+                value={safeStats.completedTasks} 
                 icon={<CheckSquare className="h-5 w-5 text-green-500" />} 
               />
               <StatCard 
                 title="Public Tasks" 
-                value={stats.publicTasks} 
+                value={safeStats.publicTasks} 
                 icon={<Globe className="h-5 w-5 text-orange-500" />} 
               />
               <StatCard 
                 title="Active Bids" 
-                value={stats.bids} 
+                value={safeStats.bids} 
                 icon={<DollarSign className="h-5 w-5 text-yellow-500" />} 
               />
               <StatCard 
                 title="Task Templates" 
-                value={stats.templates} 
+                value={safeStats.templates} 
                 icon={<FileClock className="h-5 w-5 text-purple-500" />} 
               />
               <StatCard 
                 title="Messages" 
-                value={stats.messages} 
+                value={safeStats.messages} 
                 icon={<MessageSquare className="h-5 w-5 text-pink-500" />} 
               />
               <StatCard 
                 title="Blog Posts" 
-                value={stats.blogPosts} 
+                value={safeStats.blogPosts} 
                 icon={<BookOpen className="h-5 w-5 text-teal-500" />} 
               />
             </div>
@@ -195,31 +245,31 @@ export default function AdminDashboard() {
                     <div className="border-b pb-2">
                       <p className="font-medium">New user registrations</p>
                       <p className="text-sm text-muted-foreground">
-                        {stats.users ? `${stats.users} total users on the platform` : 'Loading...'}
+                        {`${safeStats.users} total users on the platform`}
                       </p>
                     </div>
                     <div className="border-b pb-2">
                       <p className="font-medium">Tasks created</p>
                       <p className="text-sm text-muted-foreground">
-                        {stats.tasks ? `${stats.tasks} total tasks created` : 'Loading...'}
+                        {`${safeStats.tasks} total tasks created`}
                       </p>
                     </div>
                     <div className="border-b pb-2">
                       <p className="font-medium">Tasks completed</p>
                       <p className="text-sm text-muted-foreground">
-                        {stats.completedTasks ? `${stats.completedTasks} tasks completed` : 'Loading...'}
+                        {`${safeStats.completedTasks} tasks completed`}
                       </p>
                     </div>
                     <div className="border-b pb-2">
                       <p className="font-medium">Bids placed</p>
                       <p className="text-sm text-muted-foreground">
-                        {stats.bids ? `${stats.bids} bids placed on tasks` : 'Loading...'}
+                        {`${safeStats.bids} bids placed on tasks`}
                       </p>
                     </div>
                     <div className="border-b pb-2">
                       <p className="font-medium">Messages sent</p>
                       <p className="text-sm text-muted-foreground">
-                        {stats.messages ? `${stats.messages} messages exchanged between users` : 'Loading...'}
+                        {`${safeStats.messages} messages exchanged between users`}
                       </p>
                     </div>
                   </div>
