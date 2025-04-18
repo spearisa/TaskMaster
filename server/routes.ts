@@ -2150,8 +2150,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve the Swagger JSON file
   app.get('/api/swagger.json', (req, res) => {
     // Read the Swagger JSON file and send it
-    const swaggerJson = require('../appmo-api-swagger.json');
-    res.json(swaggerJson);
+    import('fs').then(fs => {
+      import('path').then(path => {
+        try {
+          const swaggerPath = path.join(process.cwd(), 'appmo-api-swagger.json');
+          const swaggerJson = JSON.parse(fs.readFileSync(swaggerPath, 'utf8'));
+          res.json(swaggerJson);
+        } catch (error) {
+          console.error('Error reading Swagger file:', error);
+          res.status(500).json({ error: 'Failed to load API documentation' });
+        }
+      }).catch(error => {
+        console.error('Error importing path module:', error);
+        res.status(500).json({ error: 'Server configuration error' });
+      });
+    }).catch(error => {
+      console.error('Error importing fs module:', error);
+      res.status(500).json({ error: 'Server configuration error' });
+    });
   });
 
   // Create HTTP server but don't actually start it yet - that happens in index.ts
