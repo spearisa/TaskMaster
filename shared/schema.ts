@@ -11,6 +11,7 @@ export const users = pgTable("users", {
   interests: text("interests").array(),
   skills: text("skills").array(),
   avatarUrl: text("avatar_url"),
+  isAdmin: boolean("is_admin").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -254,3 +255,131 @@ export type TaskTemplateWithStringDates = z.infer<typeof taskTemplateSchema>;
 export type InsertTaskBid = z.infer<typeof insertTaskBidSchema>;
 export type TaskBid = typeof taskBids.$inferSelect;
 export type TaskBidWithStringDates = z.infer<typeof taskBidSchema>;
+
+// Blog post table
+export const blogPosts = pgTable("blog_posts", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  content: text("content").notNull(),
+  excerpt: text("excerpt"),
+  featuredImage: text("featured_image"),
+  authorId: integer("author_id").references(() => users.id).notNull(),
+  status: text("status").notNull().default("draft"), // draft, published
+  publishedAt: timestamp("published_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  tags: text("tags").array(),
+  viewCount: integer("view_count").default(0),
+});
+
+// Blog categories table
+export const blogCategories = pgTable("blog_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  parentId: integer("parent_id").references(() => blogCategories.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Blog post categories relationship table
+export const blogPostCategories = pgTable("blog_post_categories", {
+  postId: integer("post_id").references(() => blogPosts.id).notNull(),
+  categoryId: integer("category_id").references(() => blogCategories.id).notNull(),
+});
+
+// Blog comments table
+export const blogComments = pgTable("blog_comments", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").references(() => blogPosts.id).notNull(),
+  userId: integer("user_id").references(() => users.id),
+  parentId: integer("parent_id").references(() => blogComments.id),
+  content: text("content").notNull(),
+  authorName: text("author_name"), // For guest comments
+  authorEmail: text("author_email"), // For guest comments
+  approved: boolean("approved").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Blog schema definitions
+export const insertBlogPostSchema = z.object({
+  title: z.string().min(1, { message: "Title is required" }),
+  slug: z.string().min(1, { message: "Slug is required" }),
+  content: z.string().min(1, { message: "Content is required" }),
+  excerpt: z.string().optional().nullable(),
+  featuredImage: z.string().optional().nullable(),
+  authorId: z.number(),
+  status: z.enum(["draft", "published"]),
+  publishedAt: z.date().optional().nullable(),
+  tags: z.array(z.string()).optional().default([]),
+  categories: z.array(z.number()).optional().default([]),
+});
+
+export const blogPostSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  slug: z.string(),
+  content: z.string(),
+  excerpt: z.string().optional().nullable(),
+  featuredImage: z.string().optional().nullable(),
+  authorId: z.number(),
+  status: z.enum(["draft", "published"]),
+  publishedAt: z.string().optional().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  tags: z.array(z.string()).optional().nullable(),
+  viewCount: z.number(),
+  categories: z.array(z.number()).optional(),
+  author: userProfileSchema.optional(),
+});
+
+export const insertBlogCategorySchema = z.object({
+  name: z.string().min(1, { message: "Name is required" }),
+  slug: z.string().min(1, { message: "Slug is required" }),
+  description: z.string().optional().nullable(),
+  parentId: z.number().optional().nullable(),
+});
+
+export const blogCategorySchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  description: z.string().optional().nullable(),
+  parentId: z.number().optional().nullable(),
+  createdAt: z.string(),
+});
+
+export const insertBlogCommentSchema = z.object({
+  postId: z.number(),
+  userId: z.number().optional().nullable(),
+  parentId: z.number().optional().nullable(),
+  content: z.string().min(1, { message: "Content is required" }),
+  authorName: z.string().optional().nullable(),
+  authorEmail: z.string().email().optional().nullable(),
+});
+
+export const blogCommentSchema = z.object({
+  id: z.number(),
+  postId: z.number(),
+  userId: z.number().optional().nullable(),
+  parentId: z.number().optional().nullable(),
+  content: z.string(),
+  authorName: z.string().optional().nullable(),
+  authorEmail: z.string().optional().nullable(),
+  approved: z.boolean(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  user: userProfileSchema.optional(),
+});
+
+export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+export type BlogPost = typeof blogPosts.$inferSelect;
+export type BlogPostWithStringDates = z.infer<typeof blogPostSchema>;
+export type InsertBlogCategory = z.infer<typeof insertBlogCategorySchema>;
+export type BlogCategory = typeof blogCategories.$inferSelect;
+export type BlogCategoryWithStringDates = z.infer<typeof blogCategorySchema>;
+export type InsertBlogComment = z.infer<typeof insertBlogCommentSchema>;
+export type BlogComment = typeof blogComments.$inferSelect;
+export type BlogCommentWithStringDates = z.infer<typeof blogCommentSchema>;
