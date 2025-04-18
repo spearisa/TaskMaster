@@ -299,7 +299,7 @@ export function SideNavigation() {
   
   // For desktop, show a sidebar with content based on authentication status
   return (
-    <div className="hidden md:flex flex-col w-56 border-r border-gray-200 min-h-screen fixed pt-4">
+    <div className="hidden md:flex flex-col w-56 border-r border-gray-200 min-h-screen fixed pt-4 z-30">
       {user ? (
         // Authenticated user sidebar
         <>

@@ -98,7 +98,7 @@ export function MobileLayout({
   return (
     <div className="bg-white min-h-screen flex flex-col">
       {/* Header with title and menu button - minimized height */}
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-100 px-4 h-10 flex justify-between items-center shadow-sm">
+      <header className="sticky top-0 z-40 bg-white border-b border-gray-100 px-4 h-12 flex justify-between items-center shadow-sm">
         <div className="flex items-center">
           {showBackButton ? (
             <Button 
@@ -210,12 +210,12 @@ export function MobileLayout({
       )}
 
       {/* Left sidebar - only visible on desktop */}
-      <div className="hidden md:block fixed left-0 top-0 h-full">
+      <div className="hidden md:block fixed left-0 top-0 h-full z-30">
         <SideNavigation />
       </div>
 
       {/* Main content area - flex-grow to fill all available space */}
-      <main className="flex-grow md:ml-56 px-4 pt-3 pb-16 md:pb-4 overflow-y-auto"> {/*Added overflow-y-auto*/}
+      <main className="flex-grow md:ml-56 px-4 pt-4 pb-16 md:pb-4 overflow-y-auto"> {/*Adjusted padding for content*/}
         <div className="flex flex-col h-full max-w-screen-lg mx-auto">
           {children}
         </div>
