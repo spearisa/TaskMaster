@@ -31,7 +31,7 @@ export function FloatingAIButton() {
       icon: <MessageSquare className="h-5 w-5" />,
       label: 'AI Chat',
       description: 'Ask questions and get assistance from AI',
-      color: 'bg-blue-500',
+      color: 'from-blue-500 to-blue-700',
       path: '/ai-tools?tab=chat'
     },
     {
@@ -39,7 +39,7 @@ export function FloatingAIButton() {
       icon: <Image className="h-5 w-5" />,
       label: 'Image Generator',
       description: 'Create images from text descriptions',
-      color: 'bg-purple-500',
+      color: 'from-purple-500 to-pink-600',
       path: '/ai-tools?tab=image'
     },
     {
@@ -47,7 +47,7 @@ export function FloatingAIButton() {
       icon: <Code className="h-5 w-5" />,
       label: 'Code Assistant',
       description: 'Get help with programming',
-      color: 'bg-green-500',
+      color: 'from-emerald-500 to-teal-700',
       path: '/ai-tools?tab=code'
     },
     {
@@ -55,7 +55,7 @@ export function FloatingAIButton() {
       icon: <BrainCircuit className="h-5 w-5" />,
       label: 'Smart Assistant',
       description: 'Delegate tasks to AI assistant',
-      color: 'bg-amber-500',
+      color: 'from-amber-500 to-orange-600',
       path: '/ai-assistant'
     }
   ];
@@ -78,9 +78,12 @@ export function FloatingAIButton() {
         <Button
           onClick={() => setMenuOpen(true)}
           size="lg"
-          className="h-14 w-14 rounded-full bg-primary shadow-lg hover:bg-primary/90 hover:shadow-xl"
+          className="h-14 w-14 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)] hover:shadow-[0_0_20px_rgba(99,102,241,0.7)] border-2 border-white/80"
         >
-          <Sparkles className="h-6 w-6 text-white" />
+          <div className="relative flex items-center justify-center">
+            <Sparkles className="h-6 w-6 text-white absolute opacity-75 animate-pulse" />
+            <BrainCircuit className="h-6 w-6 text-white animate-[spin_3s_linear_infinite]" />
+          </div>
         </Button>
       </div>
 
@@ -91,16 +94,19 @@ export function FloatingAIButton() {
           !menuOpen ? "scale-0 opacity-0" : "scale-100 opacity-100"
         )}
       >
-        <div className="bg-white rounded-xl shadow-lg p-2 pb-3 border border-gray-200 w-64">
-          <div className="flex justify-between items-center mb-2 px-2">
-            <h3 className="font-medium text-sm text-gray-700">AI Tools</h3>
+        <div className="bg-white rounded-xl shadow-lg p-2 pb-3 border border-indigo-100 w-64 overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-600 to-indigo-500 -mt-2 -mx-2 px-4 py-3 mb-2 flex justify-between items-center">
+            <div className="flex items-center">
+              <BrainCircuit className="h-5 w-5 text-white mr-2" />
+              <h3 className="font-medium text-sm text-white">AI Tools</h3>
+            </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setMenuOpen(false)}
-              className="h-7 w-7 rounded-full"
+              className="h-7 w-7 rounded-full bg-white/20 hover:bg-white/30"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4 text-white" />
             </Button>
           </div>
           
@@ -111,8 +117,8 @@ export function FloatingAIButton() {
                   onClick={() => setMenuOpen(false)}
                   className="w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 rounded-lg transition-colors"
                 >
-                  <div className={cn("p-2 rounded-full", tool.color)}>
-                    {tool.icon}
+                  <div className={cn("p-2 rounded-full bg-gradient-to-br", tool.color)}>
+                    <div className="text-white">{tool.icon}</div>
                   </div>
                   <div className="text-left">
                     <div className="font-medium text-sm">{tool.label}</div>
@@ -128,7 +134,7 @@ export function FloatingAIButton() {
       {/* Backdrop overlay when menu is open */}
       {menuOpen && (
         <div 
-          className="fixed inset-0 bg-black/10 z-20"
+          className="fixed inset-0 bg-indigo-900/10 backdrop-blur-sm z-20"
           onClick={() => setMenuOpen(false)}
         />
       )}
