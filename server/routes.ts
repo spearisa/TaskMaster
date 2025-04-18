@@ -2147,6 +2147,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.redirect('/api-docs');
   });
 
+  // Serve the Swagger JSON file
+  app.get('/api/swagger.json', (req, res) => {
+    // Read the Swagger JSON file and send it
+    const swaggerJson = require('../appmo-api-swagger.json');
+    res.json(swaggerJson);
+  });
+
   // Create HTTP server but don't actually start it yet - that happens in index.ts
   const httpServer = createServer(app);
   
