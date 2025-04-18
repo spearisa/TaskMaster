@@ -88,9 +88,10 @@ export function TaskList({ filter = 'all', title }: TaskListProps) {
   }
 
   return (
-    <div className="px-5 mb-4">
-      {title && <h2 className="text-lg font-semibold mb-3">{title}</h2>}
-      {filteredTasks.map(task => (
+    <div className="px-5 mb-4 mt-2">
+      {title && <h2 className="text-lg font-semibold mb-4">{title}</h2>}
+      <div className="space-y-3">
+        {filteredTasks.map(task => (
         <TaskItem 
           key={task.id} 
           task={task} 

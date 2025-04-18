@@ -29,7 +29,7 @@ export function MobileLayout({
   const [isScrolled, setIsScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const isMobile = useIsMobile();
-  
+
   // Handle scroll for header shadow effect - always register this effect
   useEffect(() => {
     // Only add scroll listener if we're authenticated and not on auth page
@@ -37,12 +37,12 @@ export function MobileLayout({
       const handleScroll = () => {
         setIsScrolled(window.scrollY > 10);
       };
-      
+
       window.addEventListener('scroll', handleScroll);
       return () => window.removeEventListener('scroll', handleScroll);
     }
   }, [location, user]);
-  
+
   // Skip layout only if on auth page
   if (location === '/auth') {
     return <>{children}</>;
@@ -71,7 +71,7 @@ export function MobileLayout({
   if (location.startsWith('/messenger/')) {
     pageTitles[location] = t('messages.directMessage');
   }
-  
+
   // Determine current page title
   const currentPageTitle = pageTitle || pageTitles[location] || t('common.appName');
 
@@ -121,10 +121,10 @@ export function MobileLayout({
           )}
           <h1 className="text-base font-semibold">{currentPageTitle}</h1>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <LanguageRegionSelector />
-          
+
           {user ? (
             <Button 
               variant="ghost" 
@@ -182,7 +182,7 @@ export function MobileLayout({
                   </div>
                 </Link>
               ))}
-              
+
               {/* Only show profile link for authenticated users */}
               {user && (
                 <Link 
@@ -213,19 +213,18 @@ export function MobileLayout({
       <div className="hidden md:block fixed left-0 top-0 h-full">
         <SideNavigation />
       </div>
-      
+
       {/* Main content area - flex-grow to fill all available space */}
-      <main className="flex-grow md:ml-56 px-4 pt-3 pb-16 md:pb-4">
+      <main className="flex-grow md:ml-56 px-4 pt-3 pb-16 md:pb-4 overflow-y-auto"> {/*Added overflow-y-auto*/}
         <div className="flex flex-col h-full max-w-screen-lg mx-auto">
           {children}
         </div>
       </main>
-      
-      {/* Always show bottom navigation - hide only on very large screens */}
-      <div className="h-12 md:hidden">
-        {/* Spacer for bottom navigation */}
+
+      {/* Bottom navigation - fixed positioning and z-index for overlap prevention */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white"> {/*Added z-50 and bg-white*/}
+        <BottomNavigation />
       </div>
-      <BottomNavigation />
     </div>
   );
 }
