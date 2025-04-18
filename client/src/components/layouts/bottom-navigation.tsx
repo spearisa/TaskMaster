@@ -6,7 +6,8 @@ import {
   MessageSquare, 
   User,
   Globe,
-  BookOpen
+  BookOpen,
+  ShieldAlert
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
@@ -52,6 +53,7 @@ export function BottomNavigation() {
         { path: '/public-tasks', labelKey: 'navigation.publicTasks', icon: Globe },
         { path: '/api-docs', labelKey: 'navigation.apiDocs', icon: BookOpen },
         { path: '/auth', labelKey: 'auth.signIn', icon: User },
+        { path: '/admin/login', labelKey: 'admin.login', icon: ShieldAlert },
       ];
     }
   };

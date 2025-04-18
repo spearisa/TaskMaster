@@ -59,6 +59,16 @@ const resources = {
           github: 'GitHub',
         }
       },
+      admin: {
+        login: 'Admin Login',
+        dashboard: 'Admin Dashboard',
+        userManagement: 'User Management',
+        blogManagement: 'Blog Management',
+        statistics: 'Statistics',
+        siteSettings: 'Site Settings',
+        accessDenied: 'Access Denied',
+        adminArea: 'Admin Area',
+      },
       navigation: {
         tasks: 'My Tasks',
         assignedTasks: 'Assigned Tasks',
@@ -299,6 +309,16 @@ const resources = {
           github: 'GitHub',
         }
       },
+      admin: {
+        login: 'Acceso Admin',
+        dashboard: 'Panel de Admin',
+        userManagement: 'Gestión de Usuarios',
+        blogManagement: 'Gestión del Blog',
+        statistics: 'Estadísticas',
+        siteSettings: 'Configuración del Sitio',
+        accessDenied: 'Acceso Denegado',
+        adminArea: 'Área de Admin',
+      },
       navigation: {
         tasks: 'Mis Tareas',
         assignedTasks: 'Tareas Asignadas',
@@ -538,6 +558,16 @@ const resources = {
           twitter: 'Twitter',
           github: 'GitHub',
         }
+      },
+      admin: {
+        login: 'Connexion Admin',
+        dashboard: 'Tableau de Bord Admin',
+        userManagement: 'Gestion des Utilisateurs',
+        blogManagement: 'Gestion du Blog',
+        statistics: 'Statistiques',
+        siteSettings: 'Paramètres du Site',
+        accessDenied: 'Accès Refusé',
+        adminArea: 'Espace Admin',
       },
       navigation: {
         tasks: 'Mes Tâches',

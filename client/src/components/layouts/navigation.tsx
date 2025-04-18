@@ -625,6 +625,20 @@ export function SideNavigation() {
               <span className="text-sm">Sign In</span>
             </div>
           </Link>
+          
+          <Link href="/admin/login">
+            <div 
+              className={cn(
+                "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                isActive('/admin/login') 
+                  ? "border-l-amber-600 text-amber-600" 
+                  : "border-l-transparent text-gray-600 hover:text-amber-600 hover:border-l-amber-200"
+              )}
+            >
+              <ShieldAlert className="h-4 w-4 mr-1 text-amber-600" />
+              <span className="text-sm">Admin Login</span>
+            </div>
+          </Link>
         </>
       )}
     </div>

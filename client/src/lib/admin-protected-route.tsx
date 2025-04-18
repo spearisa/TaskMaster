@@ -28,7 +28,7 @@ export function AdminProtectedRoute({
   if (!user) {
     return (
       <Route path={path}>
-        <Redirect to="/auth" />
+        <Redirect to="/admin/login" />
       </Route>
     );
   }
@@ -36,17 +36,25 @@ export function AdminProtectedRoute({
   if (!user.isAdmin) {
     return (
       <Route path={path}>
-        <div className="flex flex-col items-center justify-center min-h-screen p-4">
-          <h1 className="text-2xl font-bold mb-2 text-red-600">Access Denied</h1>
+        <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-amber-50">
+          <h1 className="text-2xl font-bold mb-2 text-amber-700">Admin Access Denied</h1>
           <p className="text-center text-gray-600 mb-6">
-            You don't have the necessary admin privileges to access this page.
+            You don't have the necessary administrator privileges to access this page.
           </p>
-          <a 
-            href="/" 
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
-          >
-            Go to Homepage
-          </a>
+          <div className="flex gap-4">
+            <a 
+              href="/admin/login" 
+              className="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors"
+            >
+              Login as Admin
+            </a>
+            <a 
+              href="/" 
+              className="px-4 py-2 bg-gray-100 text-gray-800 rounded hover:bg-gray-200 transition-colors"
+            >
+              Return to Homepage
+            </a>
+          </div>
         </div>
       </Route>
     );
