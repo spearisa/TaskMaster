@@ -153,16 +153,34 @@ export function TaskTemplateForm({ onSuccess, defaultValues }: TaskTemplateFormP
   // AI Delegation mutation
   const aiDelegateMutation = useMutation({
     mutationFn: async (context: string) => {
-      const templateDetails = {
-        title: form.getValues('title'),
-        description: form.getValues('description'),
-        category: form.getValues('category'),
-        context: context
-      };
-      const res = await apiRequest('POST', '/api/ai/delegate-template', templateDetails);
-      return await res.json();
+      try {
+        const templateDetails = {
+          title: form.getValues('title'),
+          description: form.getValues('description'),
+          category: form.getValues('category'),
+          context: context
+        };
+        
+        console.log("Sending AI delegate template request:", templateDetails);
+        
+        const res = await apiRequest('POST', '/api/ai/delegate-template', templateDetails);
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          console.error("AI delegation API error:", errorData);
+          throw new Error(errorData.message || "Failed to delegate to AI");
+        }
+        
+        const data = await res.json();
+        console.log("AI delegation response:", data);
+        return data;
+      } catch (err) {
+        console.error("Error in AI delegation:", err);
+        throw err;
+      }
     },
     onSuccess: (data) => {
+      console.log("AI delegation successful - setting result:", data);
       setAiResult(data);
       
       // Update form with AI generated content
@@ -175,7 +193,11 @@ export function TaskTemplateForm({ onSuccess, defaultValues }: TaskTemplateFormP
       }
       
       if (data.estimatedTime) {
-        form.setValue('estimatedTime', data.estimatedTime);
+        const estimatedTime = typeof data.estimatedTime === 'string' 
+          ? parseInt(data.estimatedTime) 
+          : data.estimatedTime;
+        
+        form.setValue('estimatedTime', estimatedTime);
       }
       
       if (data.tags && Array.isArray(data.tags)) {
@@ -187,10 +209,12 @@ export function TaskTemplateForm({ onSuccess, defaultValues }: TaskTemplateFormP
         description: 'Template details have been generated and applied to the form',
       });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      console.error("AI delegation mutation error:", error);
+      
       toast({
         title: 'AI Delegation Failed',
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
         variant: 'destructive',
       });
     }
