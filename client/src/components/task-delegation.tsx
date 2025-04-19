@@ -255,13 +255,59 @@ export function TaskDelegation({ task, onDone }: TaskDelegationProps) {
             </div>
           </CardContent>
           
-          <CardFooter className="flex justify-between bg-gray-50 border-t">
+          <CardFooter className="flex justify-between gap-2 bg-gray-50 border-t">
             <Button variant="outline" onClick={() => setResult(null)}>
               Back
             </Button>
-            <Button onClick={onDone}>
-              Mark as Completed
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                className="bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
+                onClick={async () => {
+                  try {
+                    // Prepare data to save
+                    const stepsToSave = result.completionSteps.map(step => step.description);
+                    
+                    const saveResponse = await apiRequest(
+                      "POST",
+                      `/api/tasks/${task.id}/save-ai-content`,
+                      {
+                        description: result.analysisAndContext,
+                        steps: stepsToSave,
+                        estimatedTime: result.totalEstimatedTime
+                      }
+                    );
+                    
+                    const data = await saveResponse.json();
+                    
+                    if (data.success) {
+                      toast({
+                        title: "Content saved",
+                        description: "AI suggestions have been saved to the task",
+                      });
+                      
+                      if (onDone) {
+                        onDone();
+                      }
+                    } else {
+                      throw new Error(data.message || "Failed to save content");
+                    }
+                  } catch (error) {
+                    console.error("Error saving AI content:", error);
+                    toast({
+                      title: "Error",
+                      description: error.message || "Failed to save AI content to task",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+              >
+                Save to Task
+              </Button>
+              <Button onClick={onDone}>
+                Mark as Completed
+              </Button>
+            </div>
           </CardFooter>
         </Card>
       )}

@@ -1438,6 +1438,68 @@ app.get("/api/profile/share/:userId", async (req, res) => {
       return res.status(500).json({ message: "Failed to delegate task to AI", error: error.message });
     }
   });
+  
+  // Save AI-generated content to a task
+  app.post("/api/tasks/:id/save-ai-content", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const taskId = parseInt(req.params.id);
+      if (isNaN(taskId)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
+      
+      // Get the task
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Check if this task belongs to the current user
+      const userId = req.user!.id;
+      if (task.userId !== userId && task.assignedToUserId !== userId) {
+        return res.status(403).json({ message: "You do not have permission to update this task" });
+      }
+      
+      // Extract content to save from request body
+      const { description, steps, estimatedTime } = req.body;
+      
+      if (!description && !steps && !estimatedTime) {
+        return res.status(400).json({ message: "No content provided to save" });
+      }
+      
+      // Build update object with only the provided fields
+      const updateData: any = {};
+      
+      if (description) {
+        updateData.description = description;
+      }
+      
+      if (estimatedTime) {
+        updateData.estimatedTime = parseInt(estimatedTime);
+      }
+      
+      // Add steps to description if provided
+      if (steps && Array.isArray(steps) && steps.length > 0) {
+        if (updateData.description) {
+          updateData.description += "\n\nSteps:\n" + steps.map((step, index) => `${index + 1}. ${step}`).join("\n");
+        } else {
+          updateData.description = "Steps:\n" + steps.map((step, index) => `${index + 1}. ${step}`).join("\n");
+        }
+      }
+      
+      // Update the task
+      const updatedTask = await storage.updateTask(taskId, updateData);
+      
+      return res.json({ success: true, task: updatedTask });
+    } catch (error) {
+      console.error("Error saving AI content to task:", error);
+      return res.status(500).json({ message: "Failed to save AI content", error: error.message });
+    }
+  });
 
   // Generate content with AI (Legacy API)
   app.post("/api/ai/generate", async (req, res) => {
