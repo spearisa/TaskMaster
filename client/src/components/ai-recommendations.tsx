@@ -41,15 +41,18 @@ export function AIRecommendations({ taskId }: { taskId: number }) {
 
   // Fetch recommendations for this task
   const { data, isLoading, error } = useQuery<AIRecommendationsResponse>({
-    queryKey: ['/api/ai-recommendations/task', taskId],
-    queryFn: getQueryFn({ on401: "throw" }),
+    queryKey: ['/api/ai-recommendations', taskId],
+    queryFn: async () => {
+      const response = await apiRequest('POST', '/api/ai-recommendations', { taskId });
+      return await response.json();
+    },
     enabled: !!taskId && !!user,
   });
 
   // Handle referral tracking when a user clicks on an AI tool
   const trackReferral = async (toolId: string) => {
     try {
-      await apiRequest('POST', '/api/ai-tools/track-referral', {
+      await apiRequest('POST', '/api/ai-referral/track', {
         toolId,
         taskId
       });
@@ -76,16 +79,53 @@ export function AIRecommendations({ taskId }: { taskId: number }) {
   };
 
   // Handle when a user signs up for a premium tier
-  const handleSignup = () => {
+  const handleSignup = async () => {
     if (!selectedApp || !selectedTier) return;
     
-    trackReferral(`${selectedApp.id}:${selectedTier}`);
-    window.open(selectedApp.url, '_blank');
-    
-    toast({
-      title: 'Redirecting to provider',
-      description: `You're being redirected to sign up for ${selectedApp.name}`,
-    });
+    try {
+      // First track the click
+      const referralResponse = await apiRequest('POST', '/api/ai-referral/track', {
+        toolId: `${selectedApp.id}:${selectedTier}`,
+        taskId
+      });
+      
+      const referralData = await referralResponse.json();
+      
+      // Get the pricing tier info
+      const selectedPricingTier = selectedApp.pricingTiers?.find(tier => tier.name === selectedTier);
+      
+      if (selectedPricingTier && selectedPricingTier.price > 0) {
+        // If this is a paid tier, simulate tracking the conversion with commission
+        // In a real implementation, this would be called by a webhook from the AI tool provider
+        setTimeout(async () => {
+          try {
+            await apiRequest('POST', '/api/ai-referral/convert', {
+              referralId: referralData.referral.id,
+              commission: (selectedPricingTier.price * selectedPricingTier.referralCommission / 100).toFixed(2)
+            });
+            
+            console.log('Conversion tracked successfully');
+          } catch (err) {
+            console.error('Failed to track conversion:', err);
+          }
+        }, 3000);
+      }
+      
+      // Open the app website
+      window.open(selectedApp.url, '_blank');
+      
+      toast({
+        title: 'Redirecting to provider',
+        description: `You're being redirected to sign up for ${selectedApp.name}`,
+      });
+    } catch (err) {
+      console.error('Error in signup process:', err);
+      toast({
+        title: 'Error',
+        description: 'There was an error processing your request. Please try again.',
+        variant: 'destructive'
+      });
+    }
   };
 
   if (isLoading) {
