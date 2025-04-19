@@ -4,7 +4,8 @@ import {
   directMessages, type DirectMessage, type InsertDirectMessage,
   conversations, type Conversation,
   taskTemplates, type TaskTemplate, type InsertTaskTemplate,
-  taskBids, type TaskBid, type InsertTaskBid
+  taskBids, type TaskBid, type InsertTaskBid,
+  aiToolReferrals, type AiToolReferral, type InsertAiToolReferral
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, ilike, asc, sql, not } from "drizzle-orm";
@@ -38,6 +39,11 @@ export interface IStorage {
   completeTask(id: number): Promise<Task | undefined>;
   assignTaskToUser(taskId: number, assignedToUserId: number): Promise<Task | undefined>;
   setTaskPublic(taskId: number, isPublic: boolean): Promise<Task | undefined>;
+  
+  // AI Tool Referral methods
+  trackAIToolReferral(referral: InsertAiToolReferral): Promise<AiToolReferral>;
+  updateReferralConversion(id: number, converted: boolean, commission?: number): Promise<AiToolReferral | undefined>;
+  getReferralsByUserId(userId: number): Promise<AiToolReferral[]>;
   
   // Task template methods
   getTaskTemplates(): Promise<TaskTemplate[]>;
