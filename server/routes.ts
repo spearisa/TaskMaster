@@ -1035,13 +1035,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get the user ID
       const userId = req.user!.id;
       
-      if (!userId) {
-        console.error("User ID is missing in authenticated session");
-        return res.status(500).json({ message: "Internal server error: User ID is missing" });
+      if (!userId || typeof userId !== 'number') {
+        console.error("User ID is missing or invalid in authenticated session:", userId);
+        return res.status(400).json({ message: "Invalid user ID" });
       }
       
+      // Get task statistics
       try {
-        // Get task statistics
         const statistics = await storage.getUserTaskStatistics(userId);
         return res.json(statistics);
       } catch (statsError) {

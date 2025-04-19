@@ -11,9 +11,8 @@ import {
   User, LogOut, CalendarClock, CheckCircle, Clock, Bell, Moon, Sun,
   Settings, ChevronRight, Shield, PieChart, BellRing, Sparkles,
   Globe, Link, Instagram, Twitter, Facebook, Check, Edit, Github,
-  AlertCircle
+  AlertCircle, Linkedin
 } from "lucide-react";
-import { Linkedin } from "lucide-react";
 import { format } from "date-fns";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -229,6 +228,11 @@ export default function ProfilePage() {
     queryKey: ['/api/profile/statistics'],
     enabled: !!user, // Only run if user is logged in
     retry: 1, // Only retry once if there's an error
+    onError: (error) => {
+      console.error("Error fetching profile statistics:", error);
+      // Don't show a toast for stats errors, as it's not critical to the user experience
+      // and we'll show fallback/default values
+    }
   });
   
   // Handle logout

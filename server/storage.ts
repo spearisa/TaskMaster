@@ -348,6 +348,16 @@ export class DatabaseStorage implements IStorage {
    * Get a user's task statistics
    */
   async getUserTaskStatistics(userId: number): Promise<TaskStatistics> {
+    if (!userId || typeof userId !== 'number') {
+      console.error("Invalid user ID passed to getUserTaskStatistics:", userId);
+      return {
+        totalCount: 0,
+        completedCount: 0,
+        pendingCount: 0,
+        completionRate: 0
+      };
+    }
+    
     try {
       // Get the counts from tasks table
       const totalTasksResult = await db.select({ count: sql`count(*)` })
