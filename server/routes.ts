@@ -30,6 +30,7 @@ import {
 } from "./api-keys";
 import { registerAdminRoutes } from "./admin-routes";
 import { z } from "zod";
+import { addUserProfileColumns } from "./add-user-profile-columns";
 
 // Extend Express Request type to include API user
 declare global {
@@ -43,6 +44,15 @@ declare global {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Add missing columns to the users table for profile feature
+  try {
+    console.log("[Server] Adding user profile columns to the database...");
+    await addUserProfileColumns();
+    console.log("[Server] User profile columns added successfully.");
+  } catch (error) {
+    console.error("[Server] Error adding user profile columns:", error);
+    // Continue even if there's an error, as the columns might already exist
+  }
   // Serve SEO-related static files from public directory
   app.get('/robots.txt', (req, res) => {
     const robotsPath = path.join(process.cwd(), 'public', 'robots.txt');
@@ -264,6 +274,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error tracking AI tool conversion:", error);
       return res.status(500).json({ message: "Failed to track AI tool conversion" });
+    }
+  });
+  
+  // Get user profile (for currently authenticated user)
+  app.get("/api/profile", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const userId = req.user!.id;
+      
+      // Update user's last active timestamp
+      await storage.updateUserLastActive(userId);
+      
+      // Get user profile
+      const profile = await storage.getUserProfile(userId);
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+      
+      return res.json(profile);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      return res.status(500).json({ message: "Failed to retrieve user profile" });
+    }
+  });
+  
+  // Get user profile by ID (public profiles only)
+  app.get("/api/profile/:id", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // Check if the requested profile is the current user's
+      const isOwnProfile = req.isAuthenticated() && req.user && req.user.id === userId;
+      
+      if (isOwnProfile) {
+        // Get full profile for the user's own profile
+        const profile = await storage.getUserProfile(userId);
+        if (!profile) {
+          return res.status(404).json({ message: "Profile not found" });
+        }
+        return res.json(profile);
+      } else {
+        // Get public profile for other users
+        const profile = await storage.getPublicUserProfile(userId);
+        if (!profile) {
+          return res.status(404).json({ message: "Profile not found or not public" });
+        }
+        return res.json(profile);
+      }
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      return res.status(500).json({ message: "Failed to retrieve user profile" });
+    }
+  });
+  
+  // Get all public user profiles
+  app.get("/api/profiles/public", async (req, res) => {
+    try {
+      const profiles = await storage.getPublicUserProfiles();
+      return res.json(profiles);
+    } catch (error) {
+      console.error("Error fetching public profiles:", error);
+      return res.status(500).json({ message: "Failed to retrieve public profiles" });
+    }
+  });
+  
+  // Update user profile
+  app.patch("/api/profile", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const userId = req.user!.id;
+      
+      // Validate and sanitize profile data
+      const { displayName, bio, interests, skills, location, website, socialLinks, isPublic } = req.body;
+      
+      // Build the update object with only provided fields
+      const updateData: any = {};
+      if (displayName !== undefined) updateData.displayName = displayName;
+      if (bio !== undefined) updateData.bio = bio;
+      if (interests !== undefined) updateData.interests = interests;
+      if (skills !== undefined) updateData.skills = skills;
+      if (location !== undefined) updateData.location = location;
+      if (website !== undefined) updateData.website = website;
+      if (socialLinks !== undefined) updateData.socialLinks = socialLinks;
+      if (isPublic !== undefined) updateData.isPublic = Boolean(isPublic);
+      
+      // Update user profile
+      const updatedUser = await storage.updateUserProfile(userId, updateData);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Update user's task statistics
+      await storage.updateUserTaskStats(userId);
+      
+      // Get the updated profile
+      const profile = await storage.getUserProfile(userId);
+      
+      return res.json(profile);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      return res.status(500).json({ message: "Failed to update user profile" });
+    }
+  });
+  
+  // Set profile visibility (public/private)
+  app.post("/api/profile/visibility", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const userId = req.user!.id;
+      const { isPublic } = req.body;
+      
+      if (typeof isPublic !== 'boolean') {
+        return res.status(400).json({ message: "isPublic must be a boolean value" });
+      }
+      
+      // Set profile visibility
+      const updatedUser = await storage.setUserProfilePublic(userId, isPublic);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      return res.json({ 
+        success: true, 
+        isPublic, 
+        message: `Profile is now ${isPublic ? 'public' : 'private'}`
+      });
+    } catch (error) {
+      console.error("Error setting profile visibility:", error);
+      return res.status(500).json({ message: "Failed to update profile visibility" });
     }
   });
   

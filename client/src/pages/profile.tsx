@@ -1,16 +1,18 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
-import { TaskWithStringDates } from "@shared/schema";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { TaskWithStringDates, UserProfile } from "@shared/schema";
 import { MobileLayout } from "@/components/layouts/mobile-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
   User, LogOut, CalendarClock, CheckCircle, Clock, Bell, Moon, Sun,
-  Settings, ChevronRight, Shield, PieChart, BellRing, Sparkles
+  Settings, ChevronRight, Shield, PieChart, BellRing, Sparkles,
+  Globe, Link, Instagram, Twitter, Facebook, Check, Edit, Github
 } from "lucide-react";
+import { Linkedin } from "lucide-react";
 import { format } from "date-fns";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,6 +27,21 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Badge } from "@/components/ui/badge";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from "@/components/ui/alert-dialog";
 
 // User settings interface
 interface UserSettings {
@@ -46,11 +63,42 @@ const defaultSettings: UserSettings = {
   defaultPriority: 'medium'
 };
 
+// Interface for profile form data
+interface ProfileFormData {
+  displayName: string;
+  bio: string;
+  interests: string[];
+  skills: string[];
+  location: string;
+  website: string;
+  socialLinks: {
+    twitter?: string;
+    linkedin?: string;
+    github?: string;
+    instagram?: string;
+    facebook?: string;
+  };
+  isPublic: boolean;
+}
+
 export default function ProfilePage() {
   const { user, logoutMutation } = useAuth();
   const [_, navigate] = useLocation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('profile');
+  const [isEditing, setIsEditing] = useState(false);
+  
+  // Initialize profile form data from user
+  const [profileForm, setProfileForm] = useState<ProfileFormData>({
+    displayName: user?.displayName || '',
+    bio: user?.bio || '',
+    interests: user?.interests || [],
+    skills: user?.skills || [],
+    location: user?.location || '',
+    website: user?.website || '',
+    socialLinks: user?.socialLinks || {},
+    isPublic: user?.isPublic || false
+  });
   
   // Initialize settings from localStorage or defaults
   const [settings, setSettings] = useState<UserSettings>(() => {
@@ -66,6 +114,73 @@ export default function ProfilePage() {
   useEffect(() => {
     localStorage.setItem('taskManager_settings', JSON.stringify(settings));
   }, [settings]);
+  
+  // Update profile form when user data changes
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        displayName: user.displayName || '',
+        bio: user.bio || '',
+        interests: user.interests || [],
+        skills: user.skills || [],
+        location: user.location || '',
+        website: user.website || '',
+        socialLinks: user.socialLinks || {},
+        isPublic: user.isPublic || false
+      });
+    }
+  }, [user]);
+  
+  // Fetch profile data from API
+  const { data: profileData, isLoading: profileLoading } = useQuery<UserProfile>({
+    queryKey: ['/api/profile'],
+    enabled: !!user, // Only run if user is logged in
+  });
+  
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: Partial<ProfileFormData>) => {
+      const response = await apiRequest('PATCH', '/api/profile', data);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully.",
+      });
+      setIsEditing(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Update Failed",
+        description: `Failed to update profile: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Toggle profile visibility mutation
+  const toggleVisibilityMutation = useMutation({
+    mutationFn: async (isPublic: boolean) => {
+      const response = await apiRequest('POST', '/api/profile/visibility', { isPublic });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Visibility Updated",
+        description: `Your profile is now ${data.isPublic ? 'public' : 'private'}.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Update Failed",
+        description: `Failed to update profile visibility: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
   
   // Fetch tasks for statistics
   const { data: tasks } = useQuery<TaskWithStringDates[]>({
@@ -156,13 +271,19 @@ export default function ProfilePage() {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <CardTitle className="text-xl">{user?.username}</CardTitle>
+                  <CardTitle className="text-xl">{profileForm.displayName || user?.username}</CardTitle>
                   <CardDescription>
-                    Account ID: {user?.id}
+                    @{user?.username}
                   </CardDescription>
                 </div>
               </CardHeader>
               <CardContent>
+                <div className="flex items-center space-x-2 mb-4">
+                  <Badge variant={profileForm.isPublic ? "default" : "outline"} className="cursor-pointer" onClick={() => !updateProfileMutation.isPending && toggleVisibilityMutation.mutate(!profileForm.isPublic)}>
+                    {profileForm.isPublic ? "Public Profile" : "Private Profile"}
+                  </Badge>
+                  <Badge variant="secondary">Joined {user?.createdAt ? format(new Date(user.createdAt), 'MMM yyyy') : '...'}</Badge>
+                </div>
                 <Button 
                   variant="outline" 
                   className="w-full mt-2" 
@@ -175,6 +296,316 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
             
+            {/* Profile Details and Edit */}
+            {!isEditing ? (
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-lg">Profile Information</CardTitle>
+                    <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Bio */}
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 mb-1">Bio</h3>
+                    <p className="text-sm">{profileForm.bio || "No bio provided"}</p>
+                  </div>
+                  
+                  {/* Interests & Skills */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 mb-1">Interests</h3>
+                      <div className="flex flex-wrap gap-1">
+                        {profileForm.interests && profileForm.interests.length > 0 ? 
+                          profileForm.interests.map((interest, i) => (
+                            <Badge key={i} variant="secondary">{interest}</Badge>
+                          )) : 
+                          <span className="text-sm text-gray-400">None specified</span>
+                        }
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 mb-1">Skills</h3>
+                      <div className="flex flex-wrap gap-1">
+                        {profileForm.skills && profileForm.skills.length > 0 ? 
+                          profileForm.skills.map((skill, i) => (
+                            <Badge key={i} variant="secondary">{skill}</Badge>
+                          )) : 
+                          <span className="text-sm text-gray-400">None specified</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Location & Website */}
+                  <div className="grid grid-cols-1 gap-2">
+                    {profileForm.location && (
+                      <div className="flex items-center">
+                        <Globe className="h-4 w-4 mr-2 text-gray-500" />
+                        <span className="text-sm">{profileForm.location}</span>
+                      </div>
+                    )}
+                    
+                    {profileForm.website && (
+                      <div className="flex items-center">
+                        <Link className="h-4 w-4 mr-2 text-gray-500" />
+                        <a 
+                          href={profileForm.website.startsWith('http') ? profileForm.website : `https://${profileForm.website}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline"
+                        >
+                          {profileForm.website}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Social Links */}
+                  {profileForm.socialLinks && Object.keys(profileForm.socialLinks).length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 mb-1">Social Media</h3>
+                      <div className="flex space-x-2">
+                        {profileForm.socialLinks.twitter && (
+                          <a 
+                            href={`https://twitter.com/${profileForm.socialLinks.twitter}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-500"
+                          >
+                            <Twitter className="h-5 w-5" />
+                          </a>
+                        )}
+                        {profileForm.socialLinks.linkedin && (
+                          <a 
+                            href={`https://linkedin.com/in/${profileForm.socialLinks.linkedin}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-700 hover:text-blue-800"
+                          >
+                            <LinkedIn className="h-5 w-5" />
+                          </a>
+                        )}
+                        {profileForm.socialLinks.github && (
+                          <a 
+                            href={`https://github.com/${profileForm.socialLinks.github}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-gray-800 hover:text-black"
+                          >
+                            <Github className="h-5 w-5" />
+                          </a>
+                        )}
+                        {profileForm.socialLinks.instagram && (
+                          <a 
+                            href={`https://instagram.com/${profileForm.socialLinks.instagram}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-pink-500 hover:text-pink-600"
+                          >
+                            <Instagram className="h-5 w-5" />
+                          </a>
+                        )}
+                        {profileForm.socialLinks.facebook && (
+                          <a 
+                            href={`https://facebook.com/${profileForm.socialLinks.facebook}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-700"
+                          >
+                            <Facebook className="h-5 w-5" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              // Edit Profile Form
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-lg">Edit Profile</CardTitle>
+                    <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="displayName">Display Name</Label>
+                    <Input 
+                      id="displayName" 
+                      value={profileForm.displayName} 
+                      onChange={(e) => setProfileForm({...profileForm, displayName: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="bio">Bio</Label>
+                    <Textarea 
+                      id="bio" 
+                      value={profileForm.bio} 
+                      onChange={(e) => setProfileForm({...profileForm, bio: e.target.value})}
+                      placeholder="Tell us about yourself"
+                      rows={3}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="interests">
+                        Interests <span className="text-gray-400 text-xs">(comma separated)</span>
+                      </Label>
+                      <Input 
+                        id="interests" 
+                        value={profileForm.interests.join(', ')} 
+                        onChange={(e) => setProfileForm({...profileForm, interests: e.target.value.split(',').map(i => i.trim()).filter(Boolean)})}
+                        placeholder="productivity, cooking, travel"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="skills">
+                        Skills <span className="text-gray-400 text-xs">(comma separated)</span>
+                      </Label>
+                      <Input 
+                        id="skills" 
+                        value={profileForm.skills.join(', ')} 
+                        onChange={(e) => setProfileForm({...profileForm, skills: e.target.value.split(',').map(s => s.trim()).filter(Boolean)})}
+                        placeholder="organization, writing, design"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Location</Label>
+                      <Input 
+                        id="location" 
+                        value={profileForm.location} 
+                        onChange={(e) => setProfileForm({...profileForm, location: e.target.value})}
+                        placeholder="City, Country"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="website">Website</Label>
+                      <Input 
+                        id="website" 
+                        value={profileForm.website} 
+                        onChange={(e) => setProfileForm({...profileForm, website: e.target.value})}
+                        placeholder="yourwebsite.com"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Social Media Links</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Twitter className="h-4 w-4 text-blue-400" />
+                          <Label htmlFor="twitter">Twitter</Label>
+                        </div>
+                        <Input 
+                          id="twitter" 
+                          value={profileForm.socialLinks.twitter || ''} 
+                          onChange={(e) => setProfileForm({
+                            ...profileForm, 
+                            socialLinks: {...profileForm.socialLinks, twitter: e.target.value}
+                          })}
+                          placeholder="username"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <LinkedIn className="h-4 w-4 text-blue-700" />
+                          <Label htmlFor="linkedin">LinkedIn</Label>
+                        </div>
+                        <Input 
+                          id="linkedin" 
+                          value={profileForm.socialLinks.linkedin || ''} 
+                          onChange={(e) => setProfileForm({
+                            ...profileForm, 
+                            socialLinks: {...profileForm.socialLinks, linkedin: e.target.value}
+                          })}
+                          placeholder="username"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Github className="h-4 w-4 text-gray-800" />
+                          <Label htmlFor="github">GitHub</Label>
+                        </div>
+                        <Input 
+                          id="github" 
+                          value={profileForm.socialLinks.github || ''} 
+                          onChange={(e) => setProfileForm({
+                            ...profileForm, 
+                            socialLinks: {...profileForm.socialLinks, github: e.target.value}
+                          })}
+                          placeholder="username"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Instagram className="h-4 w-4 text-pink-500" />
+                          <Label htmlFor="instagram">Instagram</Label>
+                        </div>
+                        <Input 
+                          id="instagram" 
+                          value={profileForm.socialLinks.instagram || ''} 
+                          onChange={(e) => setProfileForm({
+                            ...profileForm, 
+                            socialLinks: {...profileForm.socialLinks, instagram: e.target.value}
+                          })}
+                          placeholder="username"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 pt-2">
+                    <Label htmlFor="public-profile" className="flex-1">Make my profile public</Label>
+                    <Switch
+                      id="public-profile"
+                      checked={profileForm.isPublic}
+                      onCheckedChange={(checked) => setProfileForm({...profileForm, isPublic: checked})}
+                    />
+                  </div>
+                  
+                  <div className="pt-2 flex justify-end">
+                    <Button 
+                      onClick={() => updateProfileMutation.mutate(profileForm)}
+                      disabled={updateProfileMutation.isPending}
+                      className="w-full sm:w-auto"
+                    >
+                      {updateProfileMutation.isPending ? (
+                        <>
+                          <span className="animate-spin mr-2">⟳</span>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Save Changes
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
             {/* Task Statistics */}
             <h2 className="text-lg font-semibold">Task Statistics</h2>
             <div className="grid grid-cols-2 gap-4">
@@ -186,7 +617,9 @@ export default function ProfilePage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold">{completedTasks}</p>
+                  <p className="text-2xl font-bold">
+                    {profileData?.completedTaskCount || completedTasks}
+                  </p>
                 </CardContent>
               </Card>
               
@@ -194,11 +627,13 @@ export default function ProfilePage() {
                 <CardHeader className="py-3">
                   <CardTitle className="text-sm font-medium flex items-center">
                     <Clock className="mr-2 h-4 w-4 text-amber-500" />
-                    Pending
+                    Total
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold">{pendingTasks}</p>
+                  <p className="text-2xl font-bold">
+                    {profileData?.totalTaskCount || totalTasks}
+                  </p>
                 </CardContent>
               </Card>
               
@@ -208,13 +643,34 @@ export default function ProfilePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center">
-                    <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2">
-                      <div 
-                        className="bg-primary h-2.5 rounded-full" 
-                        style={{ width: `${completionRate}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-sm font-bold">{completionRate}%</span>
+                    {profileData ? (
+                      <>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2">
+                          <div 
+                            className="bg-primary h-2.5 rounded-full" 
+                            style={{ width: profileData.totalTaskCount > 0
+                              ? `${(profileData.completedTaskCount / profileData.totalTaskCount * 100)}%`
+                              : '0%'
+                            }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-bold">
+                          {profileData.totalTaskCount > 0
+                            ? Math.round(profileData.completedTaskCount / profileData.totalTaskCount * 100)
+                            : 0}%
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2">
+                          <div 
+                            className="bg-primary h-2.5 rounded-full" 
+                            style={{ width: `${completionRate}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-bold">{completionRate}%</span>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>

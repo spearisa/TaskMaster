@@ -25,6 +25,11 @@ export interface IStorage {
   updateUserProfile(userId: number, profile: UpdateProfile): Promise<User | undefined>;
   searchUsers(query: string, currentUserId: number): Promise<UserProfile[]>;
   getUserProfile(userId: number): Promise<UserProfile | undefined>;
+  getPublicUserProfile(userId: number): Promise<UserProfile | undefined>;
+  getPublicUserProfiles(): Promise<UserProfile[]>;
+  setUserProfilePublic(userId: number, isPublic: boolean): Promise<User | undefined>;
+  updateUserTaskStats(userId: number): Promise<User | undefined>;
+  updateUserLastActive(userId: number): Promise<User | undefined>;
   
   // Task methods
   getTasks(): Promise<Task[]>;
@@ -201,7 +206,14 @@ export class DatabaseStorage implements IStorage {
       interests: users.interests,
       skills: users.skills,
       avatarUrl: users.avatarUrl,
+      isPublic: users.isPublic,
+      location: users.location,
+      website: users.website,
+      socialLinks: users.socialLinks,
+      completedTaskCount: users.completedTaskCount,
+      totalTaskCount: users.totalTaskCount,
       createdAt: users.createdAt,
+      lastActive: users.lastActive
     })
     .from(users)
     .where(eq(users.id, userId));
@@ -211,8 +223,229 @@ export class DatabaseStorage implements IStorage {
     // Convert Date to ISO string to match our schema
     return {
       ...profile,
-      createdAt: profile.createdAt ? profile.createdAt.toISOString() : null
+      createdAt: profile.createdAt ? profile.createdAt.toISOString() : null,
+      lastActive: profile.lastActive ? profile.lastActive.toISOString() : null,
+      joinedAt: profile.createdAt ? profile.createdAt.toISOString() : null,
     };
+  }
+  
+  /**
+   * Get a user's public profile
+   * Only returns the profile if the user has set their profile to public
+   */
+  async getPublicUserProfile(userId: number): Promise<UserProfile | undefined> {
+    const [profile] = await db.select({
+      id: users.id,
+      username: users.username,
+      displayName: users.displayName,
+      bio: users.bio,
+      interests: users.interests,
+      skills: users.skills,
+      avatarUrl: users.avatarUrl,
+      isPublic: users.isPublic,
+      location: users.location,
+      website: users.website,
+      socialLinks: users.socialLinks,
+      completedTaskCount: users.completedTaskCount,
+      totalTaskCount: users.totalTaskCount,
+      createdAt: users.createdAt,
+      lastActive: users.lastActive
+    })
+    .from(users)
+    .where(and(
+      eq(users.id, userId),
+      eq(users.isPublic, true)
+    ));
+    
+    if (!profile) return undefined;
+    
+    // Convert Date to ISO string to match our schema
+    return {
+      ...profile,
+      createdAt: profile.createdAt ? profile.createdAt.toISOString() : null,
+      lastActive: profile.lastActive ? profile.lastActive.toISOString() : null,
+      joinedAt: profile.createdAt ? profile.createdAt.toISOString() : null,
+    };
+  }
+  
+  /**
+   * Get all public user profiles
+   */
+  async getPublicUserProfiles(): Promise<UserProfile[]> {
+    const profiles = await db.select({
+      id: users.id,
+      username: users.username,
+      displayName: users.displayName,
+      bio: users.bio,
+      interests: users.interests,
+      skills: users.skills,
+      avatarUrl: users.avatarUrl,
+      isPublic: users.isPublic,
+      location: users.location,
+      website: users.website,
+      socialLinks: users.socialLinks,
+      completedTaskCount: users.completedTaskCount,
+      totalTaskCount: users.totalTaskCount,
+      createdAt: users.createdAt,
+      lastActive: users.lastActive
+    })
+    .from(users)
+    .where(eq(users.isPublic, true))
+    .orderBy(desc(users.lastActive));
+    
+    // Convert Date to ISO string to match our schema
+    return profiles.map(profile => ({
+      ...profile,
+      createdAt: profile.createdAt ? profile.createdAt.toISOString() : null,
+      lastActive: profile.lastActive ? profile.lastActive.toISOString() : null,
+      joinedAt: profile.createdAt ? profile.createdAt.toISOString() : null,
+    }));
+  }
+  
+  /**
+   * Set a user's profile to public or private
+   */
+  async setUserProfilePublic(userId: number, isPublic: boolean): Promise<User | undefined> {
+    try {
+      const [user] = await db.update(users)
+        .set({ isPublic })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      return user;
+    } catch (error) {
+      console.error("Error setting user profile public status:", error);
+      // Try to add the column if it doesn't exist
+      try {
+        const pool = await import("./db").then(m => m.pool);
+        await pool.query(
+          `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false`
+        );
+        
+        // Try again
+        const [user] = await db.update(users)
+          .set({ isPublic })
+          .where(eq(users.id, userId))
+          .returning();
+        
+        return user;
+      } catch (fallbackError) {
+        console.error("Failed to set user profile public status:", fallbackError);
+        return undefined;
+      }
+    }
+  }
+  
+  /**
+   * Update a user's task statistics
+   */
+  async updateUserTaskStats(userId: number): Promise<User | undefined> {
+    try {
+      // Get the count of total and completed tasks for this user
+      const totalTasksResult = await db.select({ count: sql`count(*)` })
+        .from(tasks)
+        .where(eq(tasks.userId, userId));
+      
+      const completedTasksResult = await db.select({ count: sql`count(*)` })
+        .from(tasks)
+        .where(and(
+          eq(tasks.userId, userId),
+          eq(tasks.completed, true)
+        ));
+      
+      const totalTaskCount = Number(totalTasksResult[0]?.count || 0);
+      const completedTaskCount = Number(completedTasksResult[0]?.count || 0);
+      
+      // Update the user record
+      const [user] = await db.update(users)
+        .set({ 
+          totalTaskCount,
+          completedTaskCount 
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      return user;
+    } catch (error) {
+      console.error("Error updating user task stats:", error);
+      
+      // Try to add the columns if they don't exist
+      try {
+        const pool = await import("./db").then(m => m.pool);
+        await pool.query(
+          `ALTER TABLE users ADD COLUMN IF NOT EXISTS total_task_count INTEGER DEFAULT 0`
+        );
+        await pool.query(
+          `ALTER TABLE users ADD COLUMN IF NOT EXISTS completed_task_count INTEGER DEFAULT 0`
+        );
+        
+        // Get the counts again (retry)
+        const totalTasksResult = await db.select({ count: sql`count(*)` })
+          .from(tasks)
+          .where(eq(tasks.userId, userId));
+        
+        const completedTasksResult = await db.select({ count: sql`count(*)` })
+          .from(tasks)
+          .where(and(
+            eq(tasks.userId, userId),
+            eq(tasks.completed, true)
+          ));
+        
+        const totalTaskCount = Number(totalTasksResult[0]?.count || 0);
+        const completedTaskCount = Number(completedTasksResult[0]?.count || 0);
+        
+        // Update the user record
+        const [user] = await db.update(users)
+          .set({ 
+            totalTaskCount,
+            completedTaskCount 
+          })
+          .where(eq(users.id, userId))
+          .returning();
+        
+        return user;
+      } catch (fallbackError) {
+        console.error("Failed to update user task stats:", fallbackError);
+        return undefined;
+      }
+    }
+  }
+  
+  /**
+   * Update a user's last active timestamp
+   */
+  async updateUserLastActive(userId: number): Promise<User | undefined> {
+    try {
+      const now = new Date();
+      const [user] = await db.update(users)
+        .set({ lastActive: now })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      return user;
+    } catch (error) {
+      console.error("Error updating user last active timestamp:", error);
+      
+      // Try to add the column if it doesn't exist
+      try {
+        const pool = await import("./db").then(m => m.pool);
+        await pool.query(
+          `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active TIMESTAMP`
+        );
+        
+        // Try again
+        const now = new Date();
+        const [user] = await db.update(users)
+          .set({ lastActive: now })
+          .where(eq(users.id, userId))
+          .returning();
+        
+        return user;
+      } catch (fallbackError) {
+        console.error("Failed to update user last active timestamp:", fallbackError);
+        return undefined;
+      }
+    }
   }
 
   async getTasks(): Promise<Task[]> {
