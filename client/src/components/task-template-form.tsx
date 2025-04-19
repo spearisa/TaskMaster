@@ -195,37 +195,53 @@ export function TaskTemplateForm({ onSuccess, defaultValues }: TaskTemplateFormP
       console.log("AI delegation successful - setting result:", data);
       setAiResult(data);
       
-      // Update form with AI generated content
+      // Consolidate all AI-generated content into a formatted description
+      let formattedDescription = '';
+      
+      // Add the original AI description
       if (data.description) {
-        form.setValue('description', data.description);
+        formattedDescription += data.description + '\n\n';
       }
       
-      if (data.steps && Array.isArray(data.steps)) {
-        form.setValue('steps', data.steps);
-      }
-      
+      // Add priority if available
+      const validPriority = data.priority && ['low', 'medium', 'high'].includes(data.priority)
+        ? data.priority
+        : 'medium';
+      formattedDescription += `Priority: ${validPriority}\n\n`;
+        
+      // Add estimated time if available
       if (data.estimatedTime !== undefined && data.estimatedTime !== null) {
         const estimatedTime = typeof data.estimatedTime === 'string' 
           ? parseInt(data.estimatedTime) 
           : data.estimatedTime;
         
-        form.setValue('estimatedTime', isNaN(estimatedTime) ? 30 : estimatedTime);
+        const timeValue = isNaN(estimatedTime) ? 30 : estimatedTime;
+        formattedDescription += `Estimated Time: ${timeValue} minutes\n\n`;
       }
       
-      if (data.tags && Array.isArray(data.tags)) {
-        form.setValue('tags', data.tags);
+      // Add steps if available
+      if (data.steps && Array.isArray(data.steps) && data.steps.length > 0) {
+        formattedDescription += 'Steps:\n';
+        data.steps.forEach((step, index) => {
+          formattedDescription += `${index + 1}. ${step}\n`;
+        });
+        formattedDescription += '\n';
       }
       
-      // Ensure priority is valid
-      const validPriority = data.priority && ['low', 'medium', 'high'].includes(data.priority)
-        ? data.priority as 'low' | 'medium' | 'high'
-        : 'medium';
-        
-      form.setValue('priority', validPriority);
+      // Add tags if available
+      if (data.tags && Array.isArray(data.tags) && data.tags.length > 0) {
+        formattedDescription += 'Tags: ' + data.tags.join(', ') + '\n';
+      }
+      
+      // Set the consolidated description to the form
+      form.setValue('description', formattedDescription.trim());
+      
+      // Set a valid priority
+      form.setValue('priority', validPriority as 'low' | 'medium' | 'high');
       
       toast({
         title: 'AI Delegation Complete',
-        description: 'Template details have been generated and applied to the form',
+        description: 'Template details have been generated and saved to the description field',
       });
     },
     onError: (error: any) => {
