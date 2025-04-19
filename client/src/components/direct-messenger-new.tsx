@@ -428,7 +428,7 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
               {isLoadingProfile ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                recipient?.username?.substring(0, 2).toUpperCase() || '??'
+                recipient?.username?.substring(0, 1).toUpperCase() || 'U'
               )}
             </AvatarFallback>
           </Avatar>
