@@ -17,6 +17,13 @@ import { pool } from "./db";
 
 const scryptAsync = promisify(scrypt);
 
+export interface TaskStatistics {
+  totalCount: number;
+  completedCount: number;
+  pendingCount: number;
+  completionRate: number;
+}
+
 export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
@@ -29,6 +36,7 @@ export interface IStorage {
   getPublicUserProfiles(): Promise<UserProfile[]>;
   setUserProfilePublic(userId: number, isPublic: boolean): Promise<User | undefined>;
   updateUserTaskStats(userId: number): Promise<User | undefined>;
+  getUserTaskStatistics(userId: number): Promise<TaskStatistics>;
   updateUserLastActive(userId: number): Promise<User | undefined>;
   
   // Task methods

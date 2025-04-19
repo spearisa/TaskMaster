@@ -132,9 +132,11 @@ export default function ProfilePage() {
   }, [user]);
   
   // Fetch profile data from API
-  const { data: profileData, isLoading: profileLoading } = useQuery<UserProfile>({
+  // Fetch profile data from API
+  const { data: profileData, isLoading: profileLoading, error: profileError } = useQuery<UserProfile>({
     queryKey: ['/api/profile'],
     enabled: !!user, // Only run if user is logged in
+    retry: 1, // Only retry once if there's an error
   });
   
   // Update profile mutation

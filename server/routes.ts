@@ -937,7 +937,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get current user profile
+  app.get("/api/profile", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the user profile
+      const userId = req.user!.id;
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Get user statistics
+      const stats = await storage.getUserTaskStatistics(userId);
+      
+      // Return user profile with statistics
+      return res.json({
+        ...user,
+        completedTaskCount: stats.completedCount,
+        totalTaskCount: stats.totalCount
+      });
+    } catch (error) {
+      console.error("Error getting user profile:", error);
+      return res.status(500).json({ message: "Failed to get user profile" });
+    }
+  });
+  
   // Update user profile
+  app.patch("/api/profile", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Validate request body against the schema
+      const result = updateProfileSchema.safeParse(req.body);
+      if (!result.success) {
+        const errorMessage = fromZodError(result.error).message;
+        return res.status(400).json({ message: errorMessage });
+      }
+      
+      // Update the user profile
+      const userId = req.user!.id;
+      const updatedUser = await storage.updateUserProfile(userId, result.data);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found after update attempt" });
+      }
+      
+      return res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      return res.status(500).json({ message: "Failed to update user profile" });
+    }
+  });
+  
+  // Toggle profile visibility
+  app.post("/api/profile/visibility", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the isPublic parameter
+      const { isPublic } = req.body;
+      if (typeof isPublic !== 'boolean') {
+        return res.status(400).json({ message: "isPublic parameter must be a boolean" });
+      }
+      
+      // Update the user profile visibility
+      const userId = req.user!.id;
+      const updatedUser = await storage.updateUserProfile(userId, { isPublic });
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found after update attempt" });
+      }
+      
+      return res.json({ isPublic: updatedUser.isPublic });
+    } catch (error) {
+      console.error("Error updating profile visibility:", error);
+      return res.status(500).json({ message: "Failed to update profile visibility" });
+    }
+  });
+  
+  // Keep the legacy endpoint for backward compatibility
   app.put("/api/users/profile", async (req, res) => {
     try {
       // Check if user is authenticated
