@@ -89,7 +89,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register admin routes
   registerAdminRoutes(app);
   
-  // Get AI application recommendations for a specific task
+  // Get AI application recommendations for a specific task (POST endpoint)
+  app.post("/api/ai-recommendations", async (req, res) => {
+    try {
+      const { taskId } = req.body;
+      if (!taskId || isNaN(parseInt(taskId))) {
+        return res.status(400).json({ message: "Invalid or missing task ID" });
+      }
+      
+      // Get the task
+      const task = await storage.getTaskById(parseInt(taskId));
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Verify ownership or public access
+      const isOwner = req.isAuthenticated() && req.user && req.user.id === task.userId;
+      const isAssignee = req.isAuthenticated() && req.user && task.assignedToUserId === req.user.id;
+      
+      if (!isOwner && !isAssignee && !task.isPublic) {
+        return res.status(403).json({ message: "You do not have permission to view this task" });
+      }
+      
+      // Get recommendations based on task content
+      const recommendations = await getAIRecommendations(task);
+      
+      res.json({
+        task,
+        recommendations
+      });
+    } catch (error) {
+      console.error("Error getting AI recommendations:", error);
+      res.status(500).json({ message: "Failed to get AI recommendations" });
+    }
+  });
+  
+  // Get AI application recommendations for a specific task (GET endpoint for backward compatibility)
   app.get("/api/ai-recommendations/task/:id", async (req, res) => {
     try {
       const taskId = parseInt(req.params.id);
@@ -163,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Track AI tool referral click
-  app.post("/api/ai-tools/track-referral", async (req, res) => {
+  app.post("/api/ai-referral/track", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.isAuthenticated()) {
@@ -175,16 +210,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Tool ID is required" });
       }
       
-      // In a real implementation, we would log this to a database
-      // and potentially use this for analytics and revenue tracking
+      // Create a new referral record in the database
+      // In a production environment, this would be stored in a database
+      // Here we're just generating a simulated referral object
+      const referral = {
+        id: Math.floor(Math.random() * 1000000),
+        userId: req.user!.id,
+        toolId,
+        taskId: taskId || null,
+        timestamp: new Date().toISOString(),
+        converted: false,
+        commission: 0
+      };
+      
       console.log(`[Referral] User ${req.user!.id} clicked on tool ${toolId} from task ${taskId || 'N/A'}`);
       
-      // Future enhancement: Implement referral tracking in the database
-      
-      return res.status(200).json({ success: true });
+      return res.status(200).json({ 
+        success: true,
+        referral
+      });
     } catch (error) {
       console.error("Error tracking AI tool referral:", error);
       return res.status(500).json({ message: "Failed to track AI tool referral" });
+    }
+  });
+  
+  // Track AI tool referral conversion (when a user signs up/pays)
+  app.post("/api/ai-referral/convert", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { referralId, commission } = req.body;
+      if (!referralId || isNaN(parseInt(referralId))) {
+        return res.status(400).json({ message: "Valid referral ID is required" });
+      }
+      
+      if (!commission || isNaN(parseFloat(commission))) {
+        return res.status(400).json({ message: "Valid commission amount is required" });
+      }
+      
+      // In a production environment, this would update a record in the database
+      // Here we're just logging the conversion
+      console.log(`[Referral Conversion] Referral ID ${referralId} converted with commission $${commission}`);
+      
+      return res.status(200).json({ 
+        success: true,
+        message: `Referral ${referralId} converted successfully`,
+        commission: parseFloat(commission)
+      });
+    } catch (error) {
+      console.error("Error tracking AI tool conversion:", error);
+      return res.status(500).json({ message: "Failed to track AI tool conversion" });
     }
   });
   
