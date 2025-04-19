@@ -216,7 +216,7 @@ export function TaskDelegation({ task, onDone }: TaskDelegationProps) {
                 <Label htmlFor="priority">Priority</Label>
                 <Select
                   value={editedTask.priority}
-                  onValueChange={(value) => setEditedTask({...editedTask, priority: value})}
+                  onValueChange={(value: "high" | "medium" | "low") => setEditedTask({...editedTask, priority: value})}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select priority" />
@@ -445,7 +445,7 @@ export function TaskDelegation({ task, onDone }: TaskDelegationProps) {
                     } else {
                       throw new Error(data.message || "Failed to save content");
                     }
-                  } catch (error) {
+                  } catch (error: any) {
                     console.error("Error saving AI content:", error);
                     toast({
                       title: "Error",
@@ -466,7 +466,7 @@ export function TaskDelegation({ task, onDone }: TaskDelegationProps) {
                     title: task.title,
                     description: task.description || "",
                     estimatedTime: task.estimatedTime || 0,
-                    priority: task.priority,
+                    priority: task.priority as "high" | "medium" | "low",
                     category: task.category
                   });
                   setIsEditDialogOpen(true);
