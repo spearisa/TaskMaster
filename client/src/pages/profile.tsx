@@ -333,17 +333,48 @@ export default function ProfilePage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center flex-wrap gap-2 mb-4">
-                  <Badge variant={profileForm.isPublic ? "default" : "outline"} className="cursor-pointer" onClick={() => !updateProfileMutation.isPending && toggleVisibilityMutation.mutate(!profileForm.isPublic)}>
-                    {profileForm.isPublic ? "Public Profile" : "Private Profile"}
-                  </Badge>
-                  <Badge variant="secondary">Joined {user?.createdAt ? format(new Date(user.createdAt), 'MMM yyyy') : '...'}</Badge>
+                <div className="flex flex-col gap-4 mb-4">
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary">Joined {user?.createdAt ? format(new Date(user.createdAt), 'MMM yyyy') : '...'}</Badge>
+                  </div>
+                  
+                  {/* Profile Visibility Toggle */}
+                  <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/40">
+                    <div className="flex flex-col">
+                      <div className="flex items-center">
+                        <Globe className="h-4 w-4 mr-2 text-primary" />
+                        <span className="font-medium">Profile Visibility</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {profileForm.isPublic 
+                          ? "Your profile is public and can be shared" 
+                          : "Your profile is private and only visible to you"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="profile-visibility-toggle" className="text-xs font-normal">
+                        {profileForm.isPublic ? "Public" : "Private"}
+                      </Label>
+                      <Switch 
+                        id="profile-visibility-toggle"
+                        checked={profileForm.isPublic}
+                        onCheckedChange={(checked) => {
+                          toggleVisibilityMutation.mutate(checked);
+                        }}
+                        disabled={toggleVisibilityMutation.isPending}
+                      />
+                    </div>
+                  </div>
                 </div>
                 
                 <div className="flex flex-col space-y-2">
                   {/* Only show share button if profile is public */}
                   {profileForm.isPublic && user?.id && (
-                    <ProfileShare userId={user.id} username={user.username} />
+                    <ProfileShare 
+                      userId={user.id} 
+                      username={user.username} 
+                      displayName={profileForm.displayName}
+                    />
                   )}
                   
                   <Button 
