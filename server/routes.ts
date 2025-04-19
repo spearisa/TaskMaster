@@ -1554,6 +1554,65 @@ app.get("/api/profile/share/:userId", async (req, res) => {
       return res.status(500).json({ message: "Failed to generate code", error: error.message });
     }
   });
+  
+  // AI Delegation for task templates
+  app.post("/api/ai/delegate-template", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { title, description, category, context } = req.body;
+      
+      if (!title) {
+        return res.status(400).json({ message: "Title is required" });
+      }
+      
+      // Build the prompt for OpenAI
+      const prompt = `You are a task template assistant. Create a detailed task template for "${title}" in the category "${category || 'general'}".
+      
+      ${description ? `Description provided by user: ${description}` : ''}
+      ${context ? `Additional context: ${context}` : ''}
+      
+      Generate the following:
+      1. A detailed description of the task (3-5 sentences)
+      2. A list of 3-7 ordered steps to complete the task
+      3. An estimated time to complete (in minutes)
+      4. Suggested tags (2-4 tags)
+      
+      Format your response as a JSON object with the following structure:
+      {
+        "description": "detailed description here",
+        "steps": ["step 1", "step 2", "step 3"],
+        "estimatedTime": 30,
+        "tags": ["tag1", "tag2", "tag3"]
+      }`;
+      
+      try {
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" }
+        });
+        
+        // Extract and parse the JSON response
+        const content = response.choices[0].message.content;
+        const parsedContent = JSON.parse(content);
+        
+        return res.json(parsedContent);
+      } catch (aiError) {
+        console.error("OpenAI error:", aiError);
+        return res.status(500).json({ 
+          message: "AI service error", 
+          error: aiError.message
+        });
+      }
+    } catch (error) {
+      console.error("Error in AI template delegation:", error);
+      return res.status(500).json({ message: "Failed to process AI delegation request" });
+    }
+  });
 
   // Direct messaging routes
   
