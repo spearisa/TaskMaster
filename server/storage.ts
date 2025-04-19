@@ -345,6 +345,46 @@ export class DatabaseStorage implements IStorage {
   }
   
   /**
+   * Get a user's task statistics
+   */
+  async getUserTaskStatistics(userId: number): Promise<TaskStatistics> {
+    try {
+      // Get the counts from tasks table
+      const totalTasksResult = await db.select({ count: sql`count(*)` })
+        .from(tasks)
+        .where(eq(tasks.userId, userId));
+      
+      const completedTasksResult = await db.select({ count: sql`count(*)` })
+        .from(tasks)
+        .where(and(
+          eq(tasks.userId, userId),
+          eq(tasks.completed, true)
+        ));
+      
+      const totalCount = Number(totalTasksResult[0]?.count || 0);
+      const completedCount = Number(completedTasksResult[0]?.count || 0);
+      const pendingCount = totalCount - completedCount;
+      const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+      
+      return {
+        totalCount,
+        completedCount,
+        pendingCount,
+        completionRate
+      };
+    } catch (error) {
+      console.error("Error getting user task statistics:", error);
+      // Return default values if there's an error
+      return {
+        totalCount: 0,
+        completedCount: 0,
+        pendingCount: 0,
+        completionRate: 0
+      };
+    }
+  }
+  
+  /**
    * Update a user's task statistics
    */
   async updateUserTaskStats(userId: number): Promise<User | undefined> {
