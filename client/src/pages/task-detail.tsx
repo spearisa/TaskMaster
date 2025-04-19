@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { MobileLayout } from "@/components/layouts/mobile-layout";
-import { ChevronLeft, AlertCircle, Sparkles, Calendar, Clock, UserPlus, Bell, Globe, DollarSign } from "lucide-react";
+import { ChevronLeft, AlertCircle, Sparkles, Calendar, Clock, UserPlus, Bell, Globe, DollarSign, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
@@ -19,6 +19,7 @@ import { TaskWithStringDates } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { AIRecommendations } from "@/components/ai-recommendations";
 
 export default function TaskDetailPage() {
   const [, params] = useRoute("/task/:id");

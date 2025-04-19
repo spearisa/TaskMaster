@@ -14,6 +14,9 @@ import {
   getTaskSuggestions, generateTaskReminder, generateDailySchedule, delegateTaskToAI,
   generateChatCompletion, generateImage, generateCode
 } from "./openai-service";
+import {
+  getTopAIApplicationsForTask, getAllAITools, getAIToolsCategories, getAIToolsByCategory
+} from "./ai-recommendation-service";
 import { setupAuth } from "./auth";
 import { WebSocketServer, WebSocket } from "ws";
 import { 
@@ -84,6 +87,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register admin routes
   registerAdminRoutes(app);
+  
+  // Get AI application recommendations for a specific task
+  app.get("/api/ai-recommendations/task/:id", async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.id);
+      if (isNaN(taskId)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
+      
+      // Get the task
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Convert dates for AI processing
+      const taskWithFormattedDates = {
+        ...task,
+        dueDate: task.dueDate ? task.dueDate.toISOString() : null,
+        completedAt: task.completedAt ? task.completedAt.toISOString() : null,
+      };
+      
+      // Get AI application recommendations
+      const recommendations = await getTopAIApplicationsForTask(taskWithFormattedDates, 5);
+      
+      return res.json({ 
+        task: taskWithFormattedDates, 
+        recommendations 
+      });
+    } catch (error) {
+      console.error("Error getting AI recommendations:", error);
+      return res.status(500).json({ message: "Failed to get AI recommendations" });
+    }
+  });
+  
+  // Get all AI tool categories
+  app.get("/api/ai-tools/categories", (req, res) => {
+    try {
+      const categories = getAIToolsCategories();
+      return res.json(categories);
+    } catch (error) {
+      console.error("Error getting AI tool categories:", error);
+      return res.status(500).json({ message: "Failed to get AI tool categories" });
+    }
+  });
+  
+  // Get all AI tools
+  app.get("/api/ai-tools", (req, res) => {
+    try {
+      const tools = getAllAITools();
+      return res.json(tools);
+    } catch (error) {
+      console.error("Error getting AI tools:", error);
+      return res.status(500).json({ message: "Failed to get AI tools" });
+    }
+  });
+  
+  // Get AI tools by category
+  app.get("/api/ai-tools/category/:id", (req, res) => {
+    try {
+      const categoryId = req.params.id;
+      const category = getAIToolsByCategory(categoryId);
+      
+      if (!category) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+      
+      return res.json(category);
+    } catch (error) {
+      console.error("Error getting AI tools by category:", error);
+      return res.status(500).json({ message: "Failed to get AI tools by category" });
+    }
+  });
+  
+  // Track AI tool referral click
+  app.post("/api/ai-tools/track-referral", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { toolId, taskId } = req.body;
+      if (!toolId) {
+        return res.status(400).json({ message: "Tool ID is required" });
+      }
+      
+      // In a real implementation, we would log this to a database
+      // and potentially use this for analytics and revenue tracking
+      console.log(`[Referral] User ${req.user!.id} clicked on tool ${toolId} from task ${taskId || 'N/A'}`);
+      
+      // Future enhancement: Implement referral tracking in the database
+      
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Error tracking AI tool referral:", error);
+      return res.status(500).json({ message: "Failed to track AI tool referral" });
+    }
+  });
   
   // Reset demo data (developer route - would be removed in production)
   app.post("/api/dev/reset-demo-data", async (req, res) => {
