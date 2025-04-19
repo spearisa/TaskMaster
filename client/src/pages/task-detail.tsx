@@ -258,6 +258,15 @@ export default function TaskDetailPage() {
               </div>
             </div>
           )}
+          
+          {/* AI Recommendations Section */}
+          <div className="mt-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="h-5 w-5 text-amber-500" />
+              <h2 className="text-base font-medium">AI App Recommendations</h2>
+            </div>
+            <AIRecommendations taskId={task.id} />
+          </div>
 
           {!task.completed && (
             <div className="mt-8">

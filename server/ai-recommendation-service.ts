@@ -287,7 +287,7 @@ function extractKeywords(task: TaskWithStringDates): string[] {
     !['this', 'that', 'then', 'than', 'with', 'from', 'have', 'will'].includes(word)
   );
   
-  return [...new Set(words)]; // Remove duplicates
+  return Array.from(new Set(words)); // Remove duplicates
 }
 
 // Find matching applications based on task keywords
@@ -320,6 +320,9 @@ function getAppById(appId: string) {
 }
 
 // Top AI applications using keyword matching
+// Update the import to include the type
+import { generateChatCompletion } from "./openai-service";
+
 export async function getTopAIApplicationsForTask(task: TaskWithStringDates, limit: number = 3): Promise<any[]> {
   // Extract keywords from task
   const keywords = extractKeywords(task);
@@ -328,7 +331,7 @@ export async function getTopAIApplicationsForTask(task: TaskWithStringDates, lim
   const appScores = findMatchingApps(keywords);
   
   // Sort by score (descending)
-  const sortedAppIds = [...appScores.entries()]
+  const sortedAppIds = Array.from(appScores.entries())
     .sort((a, b) => b[1] - a[1])
     .map(entry => entry[0]);
   
@@ -384,26 +387,44 @@ Format your response as a JSON array of strings with just the app names.
     const aiResponse = await generateChatCompletion(prompt);
     
     try {
-      // Parse the JSON response (assuming the AI returned a valid JSON array)
-      const recommendedAppNames = JSON.parse(aiResponse);
-      
-      if (Array.isArray(recommendedAppNames)) {
-        // Find the apps by name
-        return recommendedAppNames
-          .map(name => allApps.find(app => app.name.toLowerCase() === name.toLowerCase()))
-          .filter(app => app !== undefined)
-          .slice(0, limit);
+      // Parse the JSON response (accounting for the response format from OpenAI/Anthropic)
+      let responseContent = '';
+      if (typeof aiResponse === 'string') {
+        responseContent = aiResponse;
+      } else if (aiResponse && typeof aiResponse === 'object' && aiResponse.content) {
+        responseContent = aiResponse.content as string;
       }
-    } catch (e) {
-      // If JSON parsing fails, try to extract app names manually
-      const appNamesRegex = /"([^"]+)"/g;
-      const matches = [...aiResponse.matchAll(appNamesRegex)];
-      const names = matches.map(match => match[1]);
       
-      return names
-        .map(name => allApps.find(app => app.name.toLowerCase() === name.toLowerCase()))
-        .filter(app => app !== undefined)
-        .slice(0, limit);
+      // Try to parse as JSON
+      if (responseContent) {
+        try {
+          const recommendedAppNames = JSON.parse(responseContent);
+          
+          if (Array.isArray(recommendedAppNames)) {
+            // Find the apps by name
+            return recommendedAppNames
+              .map(name => allApps.find(app => app.name.toLowerCase() === String(name).toLowerCase()))
+              .filter(app => app !== undefined)
+              .slice(0, limit);
+          }
+        } catch (parseError) {
+          // If JSON parsing fails, try to extract app names manually
+          const appNamesRegex = /"([^"]+)"/g;
+          const matches = Array.from(responseContent.matchAll(appNamesRegex));
+          const names = matches.map(match => match[1]);
+          
+          return names
+            .map(name => allApps.find(app => app.name.toLowerCase() === name.toLowerCase()))
+            .filter(app => app !== undefined)
+            .slice(0, limit);
+        }
+      }
+      
+      // Return empty array if we couldn't parse any recommendations
+      return [];
+    } catch (e) {
+      console.error("Error processing AI recommendations:", e);
+      return [];
     }
     
     return [];
