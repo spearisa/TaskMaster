@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { TaskWithStringDates, UserProfile } from "@shared/schema";
+import { TaskWithStringDates, UserProfile, updateProfileSchema } from "@shared/schema";
 import { MobileLayout } from "@/components/layouts/mobile-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -10,7 +10,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
   User, LogOut, CalendarClock, CheckCircle, Clock, Bell, Moon, Sun,
   Settings, ChevronRight, Shield, PieChart, BellRing, Sparkles,
-  Globe, Link, Instagram, Twitter, Facebook, Check, Edit, Github
+  Globe, Link, Instagram, Twitter, Facebook, Check, Edit, Github,
+  AlertCircle
 } from "lucide-react";
 import { Linkedin } from "lucide-react";
 import { format } from "date-fns";
@@ -31,6 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -139,9 +141,47 @@ export default function ProfilePage() {
     retry: 1, // Only retry once if there's an error
   });
   
+  // Validate profile form data before submission
+  const validateProfileForm = (data: ProfileFormData) => {
+    try {
+      // Basic validation before even attempting schema validation
+      if (!data.displayName.trim()) {
+        return { success: false, error: "Display name cannot be empty" };
+      }
+      
+      if (data.bio && data.bio.length > 500) {
+        return { success: false, error: "Bio cannot exceed 500 characters" };
+      }
+      
+      if (data.website && !/^(https?:\/\/)?([\w.-]+)\.([a-z]{2,})(\/\S*)?$/i.test(data.website)) {
+        return { success: false, error: "Website URL is not valid" };
+      }
+      
+      // For social media links, check if they're valid when provided
+      const socialLinks = data.socialLinks;
+      for (const [platform, username] of Object.entries(socialLinks)) {
+        if (username && typeof username === 'string' && username.includes('/')) {
+          return { success: false, error: `${platform} should only be a username, not a full URL` };
+        }
+      }
+      
+      return { success: true, data };
+    } catch (error) {
+      console.error("Profile validation error:", error);
+      return { success: false, error: "Invalid profile data" };
+    }
+  };
+
   // Update profile mutation
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: Partial<ProfileFormData>) => {
+    mutationFn: async (data: ProfileFormData) => {
+      // Validate form data before submission
+      const validation = validateProfileForm(data);
+      
+      if (!validation.success) {
+        throw new Error(validation.error);
+      }
+      
       const response = await apiRequest('PATCH', '/api/profile', data);
       return response.json();
     },
@@ -447,6 +487,15 @@ export default function ProfilePage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {updateProfileMutation.isError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Error</AlertTitle>
+                      <AlertDescription>
+                        {updateProfileMutation.error?.message}
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="displayName">Display Name</Label>
                     <Input 
