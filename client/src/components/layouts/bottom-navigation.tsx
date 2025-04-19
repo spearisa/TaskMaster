@@ -61,19 +61,23 @@ export function BottomNavigation() {
   const navItems = getNavItems();
 
   return (
-    <div className="py-0 h-12 md:hidden">
+    <div className="py-0 h-12 md:hidden" role="navigation" aria-label={t('navigation.bottomNavigation')}>
       <div className="flex justify-around items-center w-full max-w-lg mx-auto px-1 h-full">
         {navItems.map((item) => (
           <Link
             key={item.path}
             href={item.path}
             className="flex flex-col items-center justify-center w-1/5 h-full"
+            aria-label={t(item.labelKey)}
+            aria-current={isActive(item.path) ? "page" : undefined}
           >
             <div className="flex flex-col items-center justify-center">
               <div className={cn(
                 "p-0 mb-0",
                 isActive(item.path) ? "text-primary" : "text-gray-400"
-              )}>
+              )} 
+                aria-hidden="true"
+              >
                 <item.icon size={16} />
               </div>
               <span className={cn(
