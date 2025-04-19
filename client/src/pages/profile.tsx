@@ -7,6 +7,7 @@ import { MobileLayout } from "@/components/layouts/mobile-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ProfileShare } from "@/components/profile-share";
 import { 
   User, LogOut, CalendarClock, CheckCircle, Clock, Bell, Moon, Sun,
   Settings, ChevronRight, Shield, PieChart, BellRing, Sparkles,
@@ -332,21 +333,28 @@ export default function ProfilePage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center space-x-2 mb-4">
+                <div className="flex items-center flex-wrap gap-2 mb-4">
                   <Badge variant={profileForm.isPublic ? "default" : "outline"} className="cursor-pointer" onClick={() => !updateProfileMutation.isPending && toggleVisibilityMutation.mutate(!profileForm.isPublic)}>
                     {profileForm.isPublic ? "Public Profile" : "Private Profile"}
                   </Badge>
                   <Badge variant="secondary">Joined {user?.createdAt ? format(new Date(user.createdAt), 'MMM yyyy') : '...'}</Badge>
                 </div>
-                <Button 
-                  variant="outline" 
-                  className="w-full mt-2" 
-                  onClick={handleLogout}
-                  disabled={logoutMutation.isPending}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  {logoutMutation.isPending ? "Logging out..." : "Logout"}
-                </Button>
+                
+                <div className="flex flex-col space-y-2">
+                  {/* Only show share button if profile is public */}
+                  {profileForm.isPublic && user?.id && (
+                    <ProfileShare userId={user.id} username={user.username} />
+                  )}
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={handleLogout}
+                    disabled={logoutMutation.isPending}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    {logoutMutation.isPending ? "Logging out..." : "Logout"}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
             

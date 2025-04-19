@@ -20,6 +20,7 @@ import PublicTasksPage from "@/pages/public-tasks";
 import TaskTemplatesPage from "@/pages/task-templates";
 import NewTaskTemplatePage from "@/pages/new-task-template";
 import SharedTaskPage from "@/pages/shared-task";
+import SharedProfilePage from "@/pages/shared-profile";
 import AuthPage from "@/pages/auth-page";
 import ProfilePage from "@/pages/profile";
 import MessengerPage from "@/pages/messenger";
@@ -55,6 +56,7 @@ function Router() {
       <Route path="/api-docs" component={ApiDocsPage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/shared-task/:id" component={SharedTaskPage} />
+      <Route path="/profile/:id" component={SharedProfilePage} />
       
       {/* Admin routes */}
       <Route path="/admin/login" component={AdminLogin} />
