@@ -81,19 +81,25 @@ function AppContent() {
   const { user } = useAuth();
   
   return (
-    <div className="app-container">
+    <main className="app-container" role="main" aria-label="Appmo Task Management Application">
+      {/* Skip to content link for accessibility */}
+      <a href="#main-content" className="sr-only focus:not-sr-only">Skip to main content</a>
+      
       <MobileLayout>
-        <Router />
+        <div id="main-content">
+          <Router />
+        </div>
       </MobileLayout>
+      
       {user && <FloatingAIButton />}
       
       {/* Language and Region Selector positioned appropriately for both mobile and desktop */}
-      <div className="fixed bottom-20 left-4 z-50 md:bottom-8 md:left-8">
+      <div className="fixed bottom-20 left-4 z-50 md:bottom-8 md:left-8" aria-label="Language selection">
         <LanguageRegionSelector variant="minimal" />
       </div>
       
       <Toaster />
-    </div>
+    </main>
   );
 }
 

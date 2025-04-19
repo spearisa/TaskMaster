@@ -97,9 +97,9 @@ export function MobileLayout({
   };
 
   return (
-    <div className="bg-white min-h-screen flex flex-col">
+    <div className="bg-white min-h-screen flex flex-col" role="document">
       {/* Header with title and menu button - minimized height */}
-      <header className="sticky top-0 z-40 bg-white border-b border-gray-100 px-4 h-12 flex justify-between items-center shadow-sm">
+      <header className="sticky top-0 z-40 bg-white border-b border-gray-100 px-4 h-12 flex justify-between items-center shadow-sm" role="banner">
         <div className="flex items-center">
           {showBackButton ? (
             <Button 
@@ -107,27 +107,36 @@ export function MobileLayout({
               size="icon" 
               onClick={() => navigate(backButtonPath)}
               className="mr-2 h-6 w-6 p-0"
+              aria-label={t('navigation.back')}
             >
               <ChevronLeft className="h-4 w-4" />
+              <span className="sr-only">{t('navigation.back')}</span>
             </Button>
           ) : (
             <Button 
-                variant="ghost" 
-                size="icon" 
-                className="mr-2 md:hidden h-6 w-6 p-0"
-                onClick={() => setMenuOpen(true)}
-              >
-                <Menu size={16} />
-              </Button>
+              variant="ghost" 
+              size="icon" 
+              className="mr-2 md:hidden h-6 w-6 p-0"
+              onClick={() => setMenuOpen(true)}
+              aria-label={t('navigation.openMenu')}
+              aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
+            >
+              <Menu size={16} />
+              <span className="sr-only">{t('navigation.openMenu')}</span>
+            </Button>
           )}
           {location === '/' ? (
             <Link href="/">
-              <div className="flex items-center gap-2 cursor-pointer">
+              <div className="flex items-center gap-2 cursor-pointer" aria-label="Appmo Home">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
                   viewBox="0 0 100 100" 
                   className="h-6 w-6 fill-[#5271ff]"
+                  aria-hidden="true"
+                  role="img"
                 >
+                  <title>Appmo Logo</title>
                   <path d="M70,12h-6c0-3.31-2.69-6-6-6H42c-3.31,0-6,2.69-6,6h-6c-7.73,0-14,6.27-14,14v54c0,7.73,6.27,14,14,14h40c7.73,0,14-6.27,14-14V26C84,18.27,77.73,12,70,12z M42,12h16v4H42V12z M70,86H30c-3.31,0-6-2.69-6-6V26c0-3.31,2.69-6,6-6h6v4c0,2.21,1.79,4,4,4h20c2.21,0,4-1.79,4-4v-4h6c3.31,0,6,2.69,6,6v54C76,83.31,73.31,86,70,86z"/>
                   <circle cx="39" cy="41" r="4"/>
                   <circle cx="39" cy="61" r="4"/>
@@ -151,8 +160,10 @@ export function MobileLayout({
               size="icon" 
               onClick={() => navigate('/profile')}
               className="rounded-full h-6 w-6 p-0" 
+              aria-label={t('navigation.profile')}
             >
               <User className="h-4 w-4" />
+              <span className="sr-only">{t('navigation.profile')}</span>
             </Button>
           ) : (
             <Button 
@@ -169,10 +180,19 @@ export function MobileLayout({
 
       {/* Mobile menu overlay */}
       {menuOpen && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-40" onClick={() => setMenuOpen(false)}>
-          <div 
+        <div 
+          className="fixed inset-0 z-50 bg-black bg-opacity-40" 
+          onClick={() => setMenuOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('navigation.menu')}
+        >
+          <nav 
+            id="mobile-menu"
             className="fixed top-0 left-0 bottom-0 w-64 bg-white shadow-lg z-10" 
             onClick={(e) => e.stopPropagation()}
+            role="navigation"
+            aria-label={t('navigation.mainNavigation')}
           >
             <div className="flex justify-between items-center p-4 border-b">
               <div className="flex items-center gap-2">
@@ -180,7 +200,10 @@ export function MobileLayout({
                   xmlns="http://www.w3.org/2000/svg" 
                   viewBox="0 0 100 100" 
                   className="h-6 w-6 fill-[#5271ff]"
+                  aria-hidden="true"
+                  role="img"
                 >
+                  <title>Appmo Logo</title>
                   <path d="M70,12h-6c0-3.31-2.69-6-6-6H42c-3.31,0-6,2.69-6,6h-6c-7.73,0-14,6.27-14,14v54c0,7.73,6.27,14,14,14h40c7.73,0,14-6.27,14-14V26C84,18.27,77.73,12,70,12z M42,12h16v4H42V12z M70,86H30c-3.31,0-6-2.69-6-6V26c0-3.31,2.69-6,6-6h6v4c0,2.21,1.79,4,4,4h20c2.21,0,4-1.79,4-4v-4h6c3.31,0,6,2.69,6,6v54C76,83.31,73.31,86,70,86z"/>
                   <circle cx="39" cy="41" r="4"/>
                   <circle cx="39" cy="61" r="4"/>
@@ -189,75 +212,98 @@ export function MobileLayout({
                 </svg>
                 <span className="font-bold text-sm">Appmo</span>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setMenuOpen(false)}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setMenuOpen(false)}
+                aria-label={t('navigation.closeMenu')}
+              >
                 <X size={20} />
+                <span className="sr-only">{t('navigation.closeMenu')}</span>
               </Button>
             </div>
-            <div className="p-2">
+            <ul className="p-2 list-none m-0">
               {menuItems.map((item) => (
-                <Link 
-                  key={item.path} 
-                  href={item.path}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <div 
-                    className={cn(
-                      "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4 my-1 rounded-r-md",
-                      isActive(item.path) 
-                        ? "border-l-primary text-primary bg-primary/5" 
-                        : "border-l-transparent text-gray-700 hover:bg-gray-50"
-                    )}
+                <li key={item.path}>
+                  <Link 
+                    href={item.path}
+                    onClick={() => setMenuOpen(false)}
+                    aria-current={isActive(item.path) ? "page" : undefined}
                   >
-                    <div className="flex items-center justify-center w-6 h-6">
-                      {item.icon}
+                    <div 
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4 my-1 rounded-r-md",
+                        isActive(item.path) 
+                          ? "border-l-primary text-primary bg-primary/5" 
+                          : "border-l-transparent text-gray-700 hover:bg-gray-50"
+                      )}
+                    >
+                      <div className="flex items-center justify-center w-6 h-6" aria-hidden="true">
+                        {item.icon}
+                      </div>
+                      <span className="font-medium">{item.label}</span>
                     </div>
-                    <span className="font-medium">{item.label}</span>
-                  </div>
-                </Link>
+                  </Link>
+                </li>
               ))}
 
               {/* Only show profile link for authenticated users */}
               {user && (
-                <Link 
-                  href="/profile"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <div 
-                    className={cn(
-                      "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4 my-1 rounded-r-md",
-                      isActive('/profile') 
-                        ? "border-l-primary text-primary bg-primary/5" 
-                        : "border-l-transparent text-gray-700 hover:bg-gray-50"
-                    )}
+                <li>
+                  <Link 
+                    href="/profile"
+                    onClick={() => setMenuOpen(false)}
+                    aria-current={isActive('/profile') ? "page" : undefined}
                   >
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <User size={18} />
+                    <div 
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-3 transition-colors cursor-pointer border-l-4 my-1 rounded-r-md",
+                        isActive('/profile') 
+                          ? "border-l-primary text-primary bg-primary/5" 
+                          : "border-l-transparent text-gray-700 hover:bg-gray-50"
+                      )}
+                    >
+                      <div className="flex items-center justify-center w-6 h-6" aria-hidden="true">
+                        <User size={18} />
+                      </div>
+                      <span className="font-medium">{t('navigation.profile')}</span>
                     </div>
-                    <span className="font-medium">{t('navigation.profile')}</span>
-                  </div>
-                </Link>
+                  </Link>
+                </li>
               )}
-            </div>
-          </div>
+            </ul>
+          </nav>
         </div>
       )}
 
       {/* Left sidebar - only visible on desktop */}
-      <div className="hidden md:block fixed left-0 top-0 h-full z-30">
+      <nav 
+        className="hidden md:block fixed left-0 top-0 h-full z-30"
+        role="navigation"
+        aria-label={t('navigation.sideNavigation')}
+      >
         <SideNavigation />
-      </div>
+      </nav>
 
       {/* Main content area - flex-grow to fill all available space */}
-      <main className="flex-grow md:ml-56 px-3 pt-2 pb-16 md:px-4 md:pt-4 md:pb-4 overflow-y-auto">
+      <main 
+        className="flex-grow md:ml-56 px-3 pt-2 pb-16 md:px-4 md:pt-4 md:pb-4 overflow-y-auto"
+        role="main"
+        id="main-content"
+      >
         <div className="flex flex-col h-full max-w-screen-lg mx-auto">
           {children}
         </div>
       </main>
 
       {/* Bottom navigation - fixed positioning and z-index for overlap prevention */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-sm">
+      <nav 
+        className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-sm"
+        role="navigation"
+        aria-label={t('navigation.bottomNavigation')}
+      >
         <BottomNavigation />
-      </div>
+      </nav>
     </div>
   );
 }
