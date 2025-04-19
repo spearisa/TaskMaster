@@ -1035,12 +1035,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get the user ID
       const userId = req.user!.id;
       
-      // Get task statistics
-      const statistics = await storage.getUserTaskStatistics(userId);
+      if (!userId) {
+        console.error("User ID is missing in authenticated session");
+        return res.status(500).json({ message: "Internal server error: User ID is missing" });
+      }
       
-      return res.json(statistics);
+      try {
+        // Get task statistics
+        const statistics = await storage.getUserTaskStatistics(userId);
+        return res.json(statistics);
+      } catch (statsError) {
+        console.error("Error retrieving task statistics:", statsError);
+        return res.status(500).json({ message: "Failed to retrieve task statistics" });
+      }
     } catch (error) {
-      console.error("Error getting user task statistics:", error);
+      console.error("Error in profile statistics endpoint:", error);
       return res.status(500).json({ message: "Failed to retrieve user task statistics" });
     }
   });
