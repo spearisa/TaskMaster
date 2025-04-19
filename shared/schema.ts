@@ -12,6 +12,14 @@ export const users = pgTable("users", {
   skills: text("skills").array(),
   avatarUrl: text("avatar_url"),
   isAdmin: boolean("is_admin").default(false).notNull(),
+  isPublic: boolean("is_public").default(false).notNull(), // Whether the profile is public
+  location: text("location"), // User's location
+  website: text("website"), // User's personal website
+  socialLinks: json("social_links").default('{}'), // JSON object with social media links
+  completedTaskCount: integer("completed_task_count").default(0), // Number of completed tasks
+  totalTaskCount: integer("total_task_count").default(0), // Total number of tasks created
+  joinedAt: timestamp("joined_at").defaultNow(), // Different from createdAt for display purposes
+  lastActive: timestamp("last_active"), // Last activity timestamp
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -53,6 +61,10 @@ export const updateProfileSchema = createInsertSchema(users).pick({
   interests: true,
   skills: true,
   avatarUrl: true,
+  isPublic: true,
+  location: true,
+  website: true,
+  socialLinks: true,
 });
 
 export const userProfileSchema = z.object({
@@ -63,6 +75,14 @@ export const userProfileSchema = z.object({
   interests: z.array(z.string()).optional().nullable(),
   skills: z.array(z.string()).optional().nullable(),
   avatarUrl: z.string().optional().nullable(),
+  isPublic: z.boolean().optional().default(false),
+  location: z.string().optional().nullable(),
+  website: z.string().optional().nullable(),
+  socialLinks: z.record(z.string(), z.string()).optional().nullable(),
+  completedTaskCount: z.number().optional().default(0),
+  totalTaskCount: z.number().optional().default(0),
+  joinedAt: z.string().optional().nullable(),
+  lastActive: z.string().optional().nullable(),
   createdAt: z.string().optional().nullable(),
 });
 
