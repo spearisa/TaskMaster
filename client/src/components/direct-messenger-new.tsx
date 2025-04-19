@@ -37,13 +37,13 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
   const wsService = useWebSocket(user?.id);
   
   // Get recipient profile
-  const { data: recipient } = useQuery<UserProfile>({
+  const { data: recipient, isLoading: isLoadingProfile } = useQuery<UserProfile>({
     queryKey: [`/api/profile/${recipientId}`],
     enabled: !!user,
   });
 
   // Get messages
-  const { data: messages = [], isLoading } = useQuery<DirectMessage[]>({
+  const { data: messages = [], isLoading: isLoadingMessages } = useQuery<DirectMessage[]>({
     queryKey: [`/api/messages/${recipientId}`],
     enabled: !!user,
     onSuccess: (data) => {
@@ -728,6 +728,13 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
             })}
           </div>
         ))}
+        
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center h-full text-gray-500">
+            <Loader2 className="h-12 w-12 mb-2 opacity-50 animate-spin" />
+            <p>Loading messages...</p>
+          </div>
+        )}
         
         {messages.length === 0 && !isLoading && (
           <div className="flex flex-col items-center justify-center h-full text-gray-500">
