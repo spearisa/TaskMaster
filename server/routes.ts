@@ -1024,22 +1024,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get user task statistics
-  app.get("/api/profile/statistics", async (req, res) => {
+  // Get shareable link for a profile
+  app.get("/api/profile/share", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.isAuthenticated()) {
         return res.status(401).json({ message: "Not authenticated" });
       }
       
-      // Get the user ID
-      const userId = req.user?.id;  // Use optional chaining for safety
+      const userId = req.user!.id;
+      
+      // Check if profile exists and is public
+      const profile = await storage.getUser(userId);
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+      
+      if (!profile.isPublic) {
+        return res.status(403).json({ 
+          message: "Cannot generate share link for private profile",
+          isPublic: false
+        });
+      }
+      
+      // Generate a clean username for URL
+      const cleanUsername = profile.username.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+      
+      // Return both user-friendly and direct links
+      return res.json({
+        profileId: profile.id,
+        displayName: profile.displayName,
+        username: profile.username,
+        isPublic: true,
+        directLink: `/profile/${userId}`,
+        friendlyLink: `/profile/${userId}-${cleanUsername}`,
+        shareMessage: `Check out ${profile.displayName}'s profile on Appmo!`
+      });
+    } catch (error) {
+      console.error("Error generating share link:", error);
+      return res.status(500).json({ message: "Failed to generate share link" });
+    }
+  });
+  
+  // Get user task statistics
+  app.get("/api/profile/statistics/:userId?", async (req, res) => {
+    try {
+      // Get user ID either from route params or authenticated user
+      let userId;
+      
+      if (req.params.userId) {
+        // Get from route params for shared profiles
+        userId = parseInt(req.params.userId);
+        
+        // Check if user exists and profile is public
+        const userProfile = await storage.getPublicUserProfile(userId);
+        if (!userProfile) {
+          return res.status(404).json({ 
+            message: "User not found or profile is not public",
+            fallback: {
+              completedCount: 0,
+              pendingCount: 0,
+              totalCount: 0,
+              completionRate: 0
+            }
+          });
+        }
+      } else {
+        // Get from authenticated user
+        if (!req.isAuthenticated()) {
+          return res.status(401).json({ message: "Not authenticated" });
+        }
+        
+        userId = req.user?.id;
+      }
       
       if (!userId || typeof userId !== 'number' || isNaN(userId)) {
-        console.error("User ID is missing or invalid in authenticated session:", userId);
+        console.error("User ID is missing or invalid:", userId);
         return res.status(400).json({ 
           message: "Invalid user ID",
-          // Return minimal default stats to avoid UI crashes
           fallback: {
             completedCount: 0,
             pendingCount: 0,
@@ -1049,13 +1111,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // First check if user exists
+      // Check if user exists
       const userExists = await storage.getUser(userId);
       if (!userExists) {
         console.error("User does not exist for ID:", userId);
         return res.status(404).json({ 
           message: "User not found",
-          // Return minimal default stats to avoid UI crashes
           fallback: {
             completedCount: 0,
             pendingCount: 0,
