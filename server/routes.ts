@@ -14,6 +14,7 @@ import {
   getTaskSuggestions, generateTaskReminder, generateDailySchedule, delegateTaskToAI,
   generateChatCompletion, generateImage, generateCode
 } from "./openai-service";
+import OpenAI from "openai";
 import {
   getTopAIApplicationsForTask, getAllAITools, getAIToolsCategories, getAIToolsByCategory,
   getAIRecommendations
@@ -42,6 +43,11 @@ declare global {
     }
   }
 }
+
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add missing columns to the users table for profile feature
