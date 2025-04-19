@@ -1643,7 +1643,7 @@ app.get("/api/profile/share/:userId", async (req, res) => {
       3. An estimated time to complete (in minutes)
       4. Suggested tags (2-4 tags)
       
-      Format your response as a JSON object with the following structure:
+      You MUST respond with JSON in EXACTLY this format (no variations allowed):
       {
         "description": "detailed description here",
         "steps": ["step 1", "step 2", "step 3"],
@@ -1658,16 +1658,50 @@ app.get("/api/profile/share/:userId", async (req, res) => {
           response_format: { type: "json_object" }
         });
         
-        // Extract and parse the JSON response
-        const content = response.choices[0].message.content;
-        const parsedContent = JSON.parse(content);
+        // Default response in case of parsing error
+        const defaultResponse = {
+          description: `Task template for ${title}. This is a template in the ${category || 'general'} category.`,
+          steps: ["Step 1: Plan the task", "Step 2: Execute the task", "Step 3: Review the completed task"],
+          estimatedTime: 30,
+          tags: ["template", category || "general"]
+        };
         
-        return res.json(parsedContent);
+        // Check if we have content from the API
+        if (!response.choices[0].message.content) {
+          console.warn("No content returned from AI API, using default template response");
+          return res.json(defaultResponse);
+        }
+        
+        try {
+          // Extract and parse the JSON response
+          const content = response.choices[0].message.content.trim();
+          const parsedContent = JSON.parse(content);
+          
+          // Validate the response structure
+          if (!parsedContent.description || 
+              !Array.isArray(parsedContent.steps) || 
+              parsedContent.steps.length === 0 ||
+              typeof parsedContent.estimatedTime !== 'number' ||
+              !Array.isArray(parsedContent.tags)) {
+            
+            console.warn("AI response missing required fields, using default template");
+            return res.json(defaultResponse);
+          }
+          
+          return res.json(parsedContent);
+        } catch (parseError) {
+          console.error("Error parsing AI template response:", parseError);
+          console.error("Raw template AI response:", response.choices[0].message.content);
+          return res.json(defaultResponse);
+        }
       } catch (aiError) {
         console.error("OpenAI error:", aiError);
-        return res.status(500).json({ 
-          message: "AI service error", 
-          error: aiError.message
+        // Return a default template instead of an error
+        return res.json({
+          description: `Task template for ${title}. This is a template in the ${category || 'general'} category.`,
+          steps: ["Step 1: Plan the task", "Step 2: Execute the task", "Step 3: Review the completed task"],
+          estimatedTime: 30,
+          tags: ["template", category || "general"]
         });
       }
     } catch (error) {
