@@ -346,7 +346,7 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
   }, {} as MessageGroups);
 
   // Check if we have profile of the recipient
-  const recipientName = recipient ? (recipient.displayName || recipient.username) : 'Loading...';
+  const recipientName = isLoadingProfile ? 'Loading...' : (recipient ? (recipient.displayName || recipient.username) : 'Unknown user');
 
   // Check for unread messages
   const hasUnreadMessages = messages.some(msg => 
@@ -424,7 +424,13 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
         <div className="flex items-center flex-1">
           <Avatar className="h-10 w-10 mr-3">
             <AvatarImage src={recipient?.avatarUrl || undefined} />
-            <AvatarFallback>{recipient?.username?.substring(0, 2).toUpperCase() || '??'}</AvatarFallback>
+            <AvatarFallback>
+              {isLoadingProfile ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                recipient?.username?.substring(0, 2).toUpperCase() || '??'
+              )}
+            </AvatarFallback>
           </Avatar>
           <div>
             <h2 className="text-lg font-semibold">{recipientName}</h2>
@@ -729,14 +735,14 @@ export function DirectMessenger({ recipientId }: DirectMessengerProps) {
           </div>
         ))}
         
-        {isLoading && (
+        {isLoadingMessages && (
           <div className="flex flex-col items-center justify-center h-full text-gray-500">
             <Loader2 className="h-12 w-12 mb-2 opacity-50 animate-spin" />
             <p>Loading messages...</p>
           </div>
         )}
         
-        {messages.length === 0 && !isLoading && (
+        {messages.length === 0 && !isLoadingMessages && (
           <div className="flex flex-col items-center justify-center h-full text-gray-500">
             <MessageCircle className="h-12 w-12 mb-2 opacity-20" />
             <p>No messages yet</p>
