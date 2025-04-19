@@ -1723,6 +1723,163 @@ export class DatabaseStorage implements IStorage {
       ]);
     }
   }
+  
+  // AI Tool Referral methods
+  async trackAIToolReferral(referral: InsertAiToolReferral): Promise<AiToolReferral> {
+    try {
+      // Create table if it doesn't exist
+      try {
+        const pool = await import("./db").then(m => m.pool);
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS ai_tool_referrals (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            tool_id TEXT NOT NULL,
+            task_id INTEGER REFERENCES tasks(id),
+            clicked BOOLEAN DEFAULT true NOT NULL,
+            converted BOOLEAN DEFAULT false NOT NULL,
+            commission_earned DECIMAL(10, 2),
+            created_at TIMESTAMP DEFAULT NOW(),
+            conversion_date TIMESTAMP
+          )
+        `);
+      } catch (error) {
+        console.error("Error creating ai_tool_referrals table:", error);
+      }
+      
+      // Insert the referral
+      const [newReferral] = await db.insert(aiToolReferrals).values(referral).returning();
+      return newReferral;
+    } catch (error) {
+      console.error("Error in trackAIToolReferral:", error);
+      
+      // Fallback to direct SQL if ORM fails
+      try {
+        const pool = await import("./db").then(m => m.pool);
+        const result = await pool.query(`
+          INSERT INTO ai_tool_referrals (
+            user_id, tool_id, task_id, clicked, converted, commission_earned
+          ) VALUES ($1, $2, $3, $4, $5, $6)
+          RETURNING *
+        `, [
+          referral.userId,
+          referral.toolId,
+          referral.taskId || null,
+          referral.clicked || true,
+          referral.converted || false,
+          referral.commissionEarned || null
+        ]);
+        
+        if (result.rows.length > 0) {
+          return {
+            id: result.rows[0].id,
+            userId: result.rows[0].user_id,
+            toolId: result.rows[0].tool_id,
+            taskId: result.rows[0].task_id,
+            clicked: result.rows[0].clicked,
+            converted: result.rows[0].converted,
+            commissionEarned: result.rows[0].commission_earned,
+            createdAt: result.rows[0].created_at,
+            conversionDate: result.rows[0].conversion_date
+          } as AiToolReferral;
+        }
+      } catch (fallbackError) {
+        console.error("Error in trackAIToolReferral fallback:", fallbackError);
+      }
+      
+      throw error;
+    }
+  }
+  
+  async updateReferralConversion(id: number, converted: boolean, commission?: number): Promise<AiToolReferral | undefined> {
+    try {
+      const [updatedReferral] = await db.update(aiToolReferrals)
+        .set({
+          converted,
+          commissionEarned: commission || null,
+          conversionDate: converted ? new Date() : null
+        })
+        .where(eq(aiToolReferrals.id, id))
+        .returning();
+      
+      return updatedReferral;
+    } catch (error) {
+      console.error("Error updating referral conversion:", error);
+      
+      // Fallback with direct SQL
+      try {
+        const pool = await import("./db").then(m => m.pool);
+        const result = await pool.query(`
+          UPDATE ai_tool_referrals
+          SET converted = $2, 
+              commission_earned = $3, 
+              conversion_date = $4
+          WHERE id = $1
+          RETURNING *
+        `, [
+          id,
+          converted,
+          commission || null,
+          converted ? new Date() : null
+        ]);
+        
+        if (result.rows.length > 0) {
+          return {
+            id: result.rows[0].id,
+            userId: result.rows[0].user_id,
+            toolId: result.rows[0].tool_id,
+            taskId: result.rows[0].task_id,
+            clicked: result.rows[0].clicked,
+            converted: result.rows[0].converted,
+            commissionEarned: result.rows[0].commission_earned,
+            createdAt: result.rows[0].created_at,
+            conversionDate: result.rows[0].conversion_date
+          } as AiToolReferral;
+        }
+        
+        return undefined;
+      } catch (fallbackError) {
+        console.error("Error in updateReferralConversion fallback:", fallbackError);
+        return undefined;
+      }
+    }
+  }
+  
+  async getReferralsByUserId(userId: number): Promise<AiToolReferral[]> {
+    try {
+      return await db.select()
+        .from(aiToolReferrals)
+        .where(eq(aiToolReferrals.userId, userId))
+        .orderBy(desc(aiToolReferrals.createdAt));
+    } catch (error) {
+      console.error("Error getting referrals by user ID:", error);
+      
+      // Fallback with direct SQL
+      try {
+        const pool = await import("./db").then(m => m.pool);
+        const result = await pool.query(`
+          SELECT * FROM ai_tool_referrals
+          WHERE user_id = $1
+          ORDER BY created_at DESC
+        `, [userId]);
+        
+        return result.rows.map(row => ({
+          id: row.id,
+          userId: row.user_id,
+          toolId: row.tool_id,
+          taskId: row.task_id,
+          clicked: row.clicked,
+          converted: row.converted,
+          commissionEarned: row.commission_earned,
+          createdAt: row.created_at,
+          conversionDate: row.conversion_date
+        } as AiToolReferral));
+      } catch (fallbackError) {
+        console.error("Error in getReferralsByUserId fallback:", fallbackError);
+        return [];
+      }
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

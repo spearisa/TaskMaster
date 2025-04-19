@@ -471,3 +471,98 @@ export function getAIToolsByCategory(categoryId: string) {
     }))
   };
 }
+
+// Get AI recommendations with pricing tiers and commission information for a task
+export async function getAIRecommendations(task: TaskWithStringDates) {
+  try {
+    // Convert task for OpenAI processing
+    const taskContent = `${task.title} ${task.description || ''} Category: ${task.category}`;
+    
+    // Create a prompt for the OpenAI API to analyze the task and suggest relevant AI tools
+    const prompt = `
+    I need to recommend AI applications with pricing tiers for a user based on this task:
+    "${taskContent}"
+    
+    For each recommendation, provide:
+    1. The name of the app
+    2. A brief description of how it would help with this specific task
+    3. The main category it belongs to
+    4. The URL
+    5. 2-3 specific features that would be relevant to this task
+    6. 3 pricing tiers (Free/Basic, Premium, Enterprise) with prices and commission percentages
+    
+    Return exactly 3 AI applications that would be most helpful for this task.
+    Format your response as a structured JSON array.
+    `;
+    
+    // Get recommendations from AI
+    const aiResponse = await generateChatCompletion(prompt);
+    
+    // Process the AI response
+    let responseContent = '';
+    if (typeof aiResponse === 'string') {
+      responseContent = aiResponse;
+    } else if (aiResponse && typeof aiResponse === 'object' && aiResponse.content) {
+      responseContent = aiResponse.content as string;
+    }
+    
+    // Try to extract a JSON array from the response
+    const jsonMatch = responseContent.match(/\[\s*\{.*\}\s*\]/s);
+    
+    if (jsonMatch) {
+      const jsonStr = jsonMatch[0];
+      try {
+        const recommendations = JSON.parse(jsonStr);
+        
+        // Format and enhance recommendations
+        return recommendations.map((rec: any) => {
+          // Ensure each recommendation has all required fields
+          return {
+            id: rec.id || generateAppId(rec.name),
+            name: rec.name,
+            description: rec.description || "AI-powered tool to enhance your workflow",
+            url: rec.url || `https://www.example.com/${rec.name.toLowerCase().replace(/\s+/g, '-')}`,
+            category: rec.category || "Productivity",
+            useCases: rec.features || rec.useCases || ["productivity", "automation"],
+            pricingTiers: rec.pricingTiers || [
+              {
+                name: "Free",
+                price: 0,
+                features: ["Basic features"],
+                referralCommission: 0
+              },
+              {
+                name: "Premium",
+                price: 9.99,
+                features: ["Advanced features", "Priority support"],
+                referralCommission: 15
+              },
+              {
+                name: "Enterprise",
+                price: 29.99,
+                features: ["All features", "Team collaboration", "Dedicated support"],
+                referralCommission: 25
+              }
+            ]
+          };
+        });
+      } catch (error) {
+        console.error("Error parsing AI recommendation JSON:", error);
+        // Fallback to keyword-based recommendations
+        return getTopAIApplicationsForTask(task, 3);
+      }
+    } else {
+      // Fallback to keyword-based recommendations if no JSON found
+      return getTopAIApplicationsForTask(task, 3);
+    }
+  } catch (error) {
+    console.error("Error in getAIRecommendations:", error);
+    // Fallback to keyword-based recommendations
+    return getTopAIApplicationsForTask(task, 3);
+  }
+}
+
+// Helper function to generate an app ID from name
+function generateAppId(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, '-');
+}

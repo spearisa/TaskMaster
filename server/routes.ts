@@ -15,7 +15,8 @@ import {
   generateChatCompletion, generateImage, generateCode
 } from "./openai-service";
 import {
-  getTopAIApplicationsForTask, getAllAITools, getAIToolsCategories, getAIToolsByCategory
+  getTopAIApplicationsForTask, getAllAITools, getAIToolsCategories, getAIToolsByCategory,
+  getAIRecommendations
 } from "./ai-recommendation-service";
 import { setupAuth } from "./auth";
 import { WebSocketServer, WebSocket } from "ws";
@@ -2133,6 +2134,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Recommendations and Referral Tracking
+  app.post('/api/ai-recommendations', async (req, res) => {
+    try {
+      if (!req.isAuthenticated() && !req.apiUser) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const userId = req.user?.id || req.apiUser?.id;
+      const { taskId } = req.body;
+      
+      if (!taskId) {
+        return res.status(400).json({ message: 'Task ID is required' });
+      }
+      
+      const task = await storage.getTaskById(parseInt(taskId));
+      if (!task) {
+        return res.status(404).json({ message: 'Task not found' });
+      }
+      
+      // Get AI recommendations based on task content
+      const recommendations = await getAIRecommendations(task);
+      
+      res.json({
+        task,
+        recommendations
+      });
+    } catch (error) {
+      console.error('Error getting AI recommendations:', error);
+      res.status(500).json({ message: 'Failed to get AI recommendations' });
+    }
+  });
+  
+  app.post('/api/ai-referral/track', async (req, res) => {
+    try {
+      if (!req.isAuthenticated() && !req.apiUser) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const userId = req.user?.id || req.apiUser?.id;
+      const { toolId, taskId } = req.body;
+      
+      if (!toolId) {
+        return res.status(400).json({ message: 'Tool ID is required' });
+      }
+      
+      // Record the referral click
+      const referral = await storage.trackAIToolReferral({
+        userId,
+        toolId,
+        taskId: taskId ? parseInt(taskId) : undefined,
+        clicked: true,
+        converted: false
+      });
+      
+      res.json({
+        success: true,
+        referral
+      });
+    } catch (error) {
+      console.error('Error tracking AI referral:', error);
+      res.status(500).json({ message: 'Failed to track referral' });
+    }
+  });
+  
+  app.post('/api/ai-referral/convert', async (req, res) => {
+    try {
+      if (!req.isAuthenticated() && !req.apiUser) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const { referralId, commission } = req.body;
+      
+      if (!referralId) {
+        return res.status(400).json({ message: 'Referral ID is required' });
+      }
+      
+      // Update the referral as converted with commission info
+      const updatedReferral = await storage.updateReferralConversion(
+        parseInt(referralId),
+        true,
+        commission ? parseFloat(commission) : undefined
+      );
+      
+      if (!updatedReferral) {
+        return res.status(404).json({ message: 'Referral not found' });
+      }
+      
+      res.json({
+        success: true,
+        referral: updatedReferral
+      });
+    } catch (error) {
+      console.error('Error converting AI referral:', error);
+      res.status(500).json({ message: 'Failed to convert referral' });
+    }
+  });
+  
+  app.get('/api/user/:userId/referrals', async (req, res) => {
+    try {
+      if (!req.isAuthenticated() && !req.apiUser) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const userId = parseInt(req.params.userId);
+      
+      // Ensure user can only access their own referrals unless admin
+      if (req.user?.id !== userId && req.user?.role !== 'admin' && !req.apiUser) {
+        return res.status(403).json({ message: 'Unauthorized access' });
+      }
+      
+      const referrals = await storage.getReferralsByUserId(userId);
+      
+      res.json({
+        referrals
+      });
+    } catch (error) {
+      console.error('Error getting user referrals:', error);
+      res.status(500).json({ message: 'Failed to get referrals' });
+    }
+  });
+  
   // Create HTTP server
   // API Key Management Routes
   
