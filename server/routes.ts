@@ -1680,25 +1680,59 @@ app.get("/api/profile/share/:userId", async (req, res) => {
           const content = response.choices[0].message.content.trim();
           const parsedContent = JSON.parse(content);
           
-          // Create a sanitized response with validated fields
-          const sanitizedResponse = {
-            description: parsedContent.description || defaultResponse.description,
-            steps: Array.isArray(parsedContent.steps) && parsedContent.steps.length > 0 
-              ? parsedContent.steps 
-              : defaultResponse.steps,
-            estimatedTime: typeof parsedContent.estimatedTime === 'number' 
-              ? parsedContent.estimatedTime 
-              : defaultResponse.estimatedTime,
-            tags: Array.isArray(parsedContent.tags) 
-              ? parsedContent.tags 
-              : defaultResponse.tags,
-            priority: parsedContent.priority && ['low', 'medium', 'high'].includes(parsedContent.priority) 
-              ? parsedContent.priority 
-              : defaultResponse.priority
+          // Validate fields
+          const validatedPriority = parsedContent.priority && ['low', 'medium', 'high'].includes(parsedContent.priority) 
+            ? parsedContent.priority 
+            : defaultResponse.priority;
+          
+          const validatedEstimatedTime = typeof parsedContent.estimatedTime === 'number' 
+            ? parsedContent.estimatedTime 
+            : defaultResponse.estimatedTime;
+          
+          const validatedSteps = Array.isArray(parsedContent.steps) && parsedContent.steps.length > 0 
+            ? parsedContent.steps 
+            : defaultResponse.steps;
+          
+          const validatedTags = Array.isArray(parsedContent.tags) 
+            ? parsedContent.tags 
+            : defaultResponse.tags;
+            
+          const validatedDescription = parsedContent.description || defaultResponse.description;
+          
+          // Create a consolidated description field that contains all the AI-generated content
+          let consolidatedDescription = validatedDescription + '\n\n';
+          
+          // Add priority
+          consolidatedDescription += `Priority: ${validatedPriority}\n\n`;
+          
+          // Add estimated time
+          consolidatedDescription += `Estimated Time: ${validatedEstimatedTime} minutes\n\n`;
+          
+          // Add steps
+          if (validatedSteps.length > 0) {
+            consolidatedDescription += 'Steps:\n';
+            validatedSteps.forEach((step, index) => {
+              consolidatedDescription += `${index + 1}. ${step}\n`;
+            });
+            consolidatedDescription += '\n';
+          }
+          
+          // Add tags
+          if (validatedTags.length > 0) {
+            consolidatedDescription += 'Tags: ' + validatedTags.join(', ') + '\n';
+          }
+          
+          // Return the response with a consolidated description
+          const finalResponse = {
+            description: consolidatedDescription.trim(),
+            steps: validatedSteps,            // keeping these for backward compatibility
+            estimatedTime: validatedEstimatedTime, // keeping these for backward compatibility
+            tags: validatedTags,              // keeping these for backward compatibility
+            priority: validatedPriority       // keeping these for backward compatibility
           };
           
-          console.log("Sending sanitized AI template response:", sanitizedResponse);
-          return res.json(sanitizedResponse);
+          console.log("Sending consolidated AI template response:", finalResponse);
+          return res.json(finalResponse);
         } catch (parseError) {
           console.error("Error parsing AI template response:", parseError);
           console.error("Raw template AI response:", response.choices[0].message.content);
@@ -1706,13 +1740,30 @@ app.get("/api/profile/share/:userId", async (req, res) => {
         }
       } catch (aiError) {
         console.error("OpenAI error:", aiError);
-        // Return a default template instead of an error
+        // Return a default template with consolidated description
+        const defaultDescription = `Task template for ${title}. This is a template in the ${category || 'general'} category.`;
+        const defaultSteps = ["Step 1: Plan the task", "Step 2: Execute the task", "Step 3: Review the completed task"];
+        const defaultTags = ["template", category || "general"];
+        const defaultPriority = "medium";
+        const defaultEstimatedTime = 30;
+        
+        // Create a consolidated description
+        let consolidatedDescription = defaultDescription + '\n\n';
+        consolidatedDescription += `Priority: ${defaultPriority}\n\n`;
+        consolidatedDescription += `Estimated Time: ${defaultEstimatedTime} minutes\n\n`;
+        consolidatedDescription += 'Steps:\n';
+        defaultSteps.forEach((step, index) => {
+          consolidatedDescription += `${index + 1}. ${step}\n`;
+        });
+        consolidatedDescription += '\n';
+        consolidatedDescription += 'Tags: ' + defaultTags.join(', ');
+        
         return res.json({
-          description: `Task template for ${title}. This is a template in the ${category || 'general'} category.`,
-          steps: ["Step 1: Plan the task", "Step 2: Execute the task", "Step 3: Review the completed task"],
-          estimatedTime: 30,
-          tags: ["template", category || "general"],
-          priority: "medium" // Ensure default value is compliant with schema
+          description: consolidatedDescription.trim(),
+          steps: defaultSteps,            // keeping these for backward compatibility
+          estimatedTime: defaultEstimatedTime, // keeping these for backward compatibility
+          tags: defaultTags,              // keeping these for backward compatibility
+          priority: defaultPriority       // keeping these for backward compatibility
         });
       }
     } catch (error) {
