@@ -32,6 +32,9 @@ export const tasks = pgTable("tasks", {
   acceptingBids: boolean("accepting_bids").default(false), // Whether the task is open for bidding
   biddingDeadline: timestamp("bidding_deadline"), // Deadline for submitting bids
   winningBidId: integer("winning_bid_id"), // Reference to the selected bid
+  zoomMeetingId: text("zoom_meeting_id"),
+  zoomJoinUrl: text("zoom_join_url"),
+  zoomStartUrl: text("zoom_start_url"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -78,6 +81,9 @@ export const insertTaskSchema = z.object({
   budget: z.number().optional().nullable(),
   acceptingBids: z.boolean().default(false).optional(),
   biddingDeadline: z.date().optional().nullable(),
+  zoomMeetingId: z.string().optional(),
+  zoomJoinUrl: z.string().optional(),
+  zoomStartUrl: z.string().optional(),
 });
 
 export const taskSchema = z.object({
@@ -97,6 +103,9 @@ export const taskSchema = z.object({
   acceptingBids: z.boolean().default(false).optional(),
   biddingDeadline: z.string().optional().nullable(),
   winningBidId: z.number().optional().nullable(),
+  zoomMeetingId: z.string().optional(),
+  zoomJoinUrl: z.string().optional(),
+  zoomStartUrl: z.string().optional(),
 });
 
 // Create the direct messages table
