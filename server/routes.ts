@@ -2723,6 +2723,73 @@ app.get("/api/profile/share/:userId", async (req, res) => {
     }
   });
   
+  // AI delegation for templates
+  app.post('/api/ai/delegate-template', async (req, res) => {
+    try {
+      if (!req.isAuthenticated() && !req.apiUser) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const { title, description, category, context } = req.body;
+      
+      if (!title) {
+        return res.status(400).json({ message: 'Template title is required' });
+      }
+      
+      // Call OpenAI to generate template details
+      const prompt = `Create a detailed task template for: "${title}". 
+Category: ${category || "General"}
+${description ? `Description: ${description}` : ''}
+${context ? `Additional context: ${context}` : ''}
+
+Please provide the following components in JSON format:
+1. A detailed description of the template (2-4 sentences)
+2. A list of sequential steps to complete the task (5-10 steps)
+3. Relevant tags for categorizing this template (3-6 tags)
+4. An estimated time to complete the task in minutes
+5. A suggested priority level (low, medium, high)
+
+Format your response as JSON with these keys: description, steps, tags, estimatedTime, priority`;
+
+      try {
+        // Call the AI service
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+          messages: [
+            { role: "system", content: "You are a task management AI assistant helping to create detailed templates." },
+            { role: "user", content: prompt }
+          ],
+          response_format: { type: "json_object" }
+        });
+
+        // Parse the response
+        let aiResponse;
+        try {
+          aiResponse = JSON.parse(response.choices[0].message.content);
+        } catch (parseError) {
+          console.error("Error parsing AI response:", parseError);
+          return res.status(500).json({ message: "Failed to parse AI response" });
+        }
+
+        // Return the AI-generated template details
+        return res.json({
+          success: true,
+          description: aiResponse.description,
+          steps: aiResponse.steps,
+          tags: aiResponse.tags,
+          estimatedTime: typeof aiResponse.estimatedTime === 'number' ? aiResponse.estimatedTime : parseInt(aiResponse.estimatedTime),
+          priority: aiResponse.priority
+        });
+      } catch (aiError) {
+        console.error("AI service error:", aiError);
+        return res.status(500).json({ message: "AI service error" });
+      }
+    } catch (error) {
+      console.error('Error delegating template to AI:', error);
+      res.status(500).json({ message: 'Failed to delegate template to AI' });
+    }
+  });
+
   app.post('/api/ai-referral/convert', async (req, res) => {
     try {
       if (!req.isAuthenticated() && !req.apiUser) {

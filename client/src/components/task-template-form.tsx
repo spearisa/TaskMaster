@@ -26,8 +26,27 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { Loader2, Plus, X } from 'lucide-react';
+import { 
+  Loader2, 
+  Plus, 
+  X, 
+  Sparkles, 
+  Lightbulb,
+  ListTodo,
+  CheckCircle2
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose
+} from '@/components/ui/dialog';
+import { Card, CardContent } from '@/components/ui/card';
 
 // Define the form schema with Zod
 const formSchema = z.object({
@@ -53,6 +72,9 @@ export function TaskTemplateForm({ onSuccess, defaultValues }: TaskTemplateFormP
   const { toast } = useToast();
   const [newStep, setNewStep] = useState('');
   const [newTag, setNewTag] = useState('');
+  const [aiContext, setAiContext] = useState('');
+  const [aiResult, setAiResult] = useState<any>(null);
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
 
   // Initialize form with defaultValues or empty values
   const form = useForm<FormValues>({
@@ -126,6 +148,52 @@ export function TaskTemplateForm({ onSuccess, defaultValues }: TaskTemplateFormP
         variant: 'destructive',
       });
     },
+  });
+  
+  // AI Delegation mutation
+  const aiDelegateMutation = useMutation({
+    mutationFn: async (context: string) => {
+      const templateDetails = {
+        title: form.getValues('title'),
+        description: form.getValues('description'),
+        category: form.getValues('category'),
+        context: context
+      };
+      const res = await apiRequest('POST', '/api/ai/delegate-template', templateDetails);
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      setAiResult(data);
+      
+      // Update form with AI generated content
+      if (data.description) {
+        form.setValue('description', data.description);
+      }
+      
+      if (data.steps && Array.isArray(data.steps)) {
+        form.setValue('steps', data.steps);
+      }
+      
+      if (data.estimatedTime) {
+        form.setValue('estimatedTime', data.estimatedTime);
+      }
+      
+      if (data.tags && Array.isArray(data.tags)) {
+        form.setValue('tags', data.tags);
+      }
+      
+      toast({
+        title: 'AI Delegation Complete',
+        description: 'Template details have been generated and applied to the form',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'AI Delegation Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
   });
 
   // Form submission handler
@@ -440,6 +508,120 @@ export function TaskTemplateForm({ onSuccess, defaultValues }: TaskTemplateFormP
             </FormItem>
           )}
         />
+        
+        {/* AI Delegation */}
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full mb-4 bg-primary/5 hover:bg-primary/10 border-primary/20"
+            >
+              <Sparkles className="mr-2 h-4 w-4 text-primary" />
+              Delegate to AI Assistant
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <Sparkles className="h-5 w-5 mr-2 text-primary" />
+                AI Template Assistant
+              </DialogTitle>
+              <DialogDescription>
+                Let our AI assistant help you create a detailed template. Provide some context about the template's purpose.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Title</p>
+                <p className="text-sm border p-2 rounded-md bg-muted/50">
+                  {form.getValues('title') || 'No title provided'}
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Category</p>
+                <p className="text-sm border p-2 rounded-md bg-muted/50">
+                  {form.getValues('category') || 'No category selected'}
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="ai-context" className="text-sm font-medium">
+                  Additional Context (optional)
+                </label>
+                <Textarea
+                  id="ai-context"
+                  placeholder="Provide more details about what this template should include..."
+                  value={aiContext}
+                  onChange={(e) => setAiContext(e.target.value)}
+                  rows={4}
+                />
+              </div>
+              
+              {aiResult && (
+                <Card className="bg-primary/5 border-primary/20">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                      <p className="text-sm font-medium">AI template details generated</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      The AI has suggested details for your template. Click "Apply Changes" to use them.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setAiContext('');
+                  setAiResult(null);
+                }}
+              >
+                Cancel
+              </Button>
+              
+              {!aiResult ? (
+                <Button 
+                  type="button" 
+                  onClick={() => {
+                    if (!form.getValues('title')) {
+                      toast({
+                        title: "Title Required",
+                        description: "Please add a title before delegating to AI",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    
+                    setIsLoadingAi(true);
+                    aiDelegateMutation.mutate(aiContext, {
+                      onSettled: () => {
+                        setIsLoadingAi(false);
+                      }
+                    });
+                  }}
+                  disabled={isLoadingAi || aiDelegateMutation.isPending}
+                >
+                  {(isLoadingAi || aiDelegateMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Generate Template Details
+                </Button>
+              ) : (
+                <DialogClose asChild>
+                  <Button type="button">
+                    Apply Changes
+                  </Button>
+                </DialogClose>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Submit Button */}
         <Button type="submit" className="w-full" disabled={isSubmitting}>
