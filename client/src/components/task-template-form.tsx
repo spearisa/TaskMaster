@@ -173,7 +173,19 @@ export function TaskTemplateForm({ onSuccess, defaultValues }: TaskTemplateFormP
         
         const data = await res.json();
         console.log("AI delegation response:", data);
-        return data;
+        
+        // Validate and sanitize the response
+        const sanitizedResponse = {
+          description: typeof data.description === 'string' ? data.description : '',
+          steps: Array.isArray(data.steps) ? data.steps : [],
+          estimatedTime: typeof data.estimatedTime === 'number' ? data.estimatedTime : 30,
+          tags: Array.isArray(data.tags) ? data.tags : [],
+          priority: data.priority && ['low', 'medium', 'high'].includes(data.priority) 
+            ? data.priority 
+            : 'medium'
+        };
+        
+        return sanitizedResponse;
       } catch (err) {
         console.error("Error in AI delegation:", err);
         throw err;
@@ -192,22 +204,24 @@ export function TaskTemplateForm({ onSuccess, defaultValues }: TaskTemplateFormP
         form.setValue('steps', data.steps);
       }
       
-      if (data.estimatedTime) {
+      if (data.estimatedTime !== undefined && data.estimatedTime !== null) {
         const estimatedTime = typeof data.estimatedTime === 'string' 
           ? parseInt(data.estimatedTime) 
           : data.estimatedTime;
         
-        form.setValue('estimatedTime', estimatedTime);
+        form.setValue('estimatedTime', isNaN(estimatedTime) ? 30 : estimatedTime);
       }
       
       if (data.tags && Array.isArray(data.tags)) {
         form.setValue('tags', data.tags);
       }
       
-      // Handle the priority field from AI response
-      if (data.priority && ['low', 'medium', 'high'].includes(data.priority)) {
-        form.setValue('priority', data.priority as 'low' | 'medium' | 'high');
-      }
+      // Ensure priority is valid
+      const validPriority = data.priority && ['low', 'medium', 'high'].includes(data.priority)
+        ? data.priority as 'low' | 'medium' | 'high'
+        : 'medium';
+        
+      form.setValue('priority', validPriority);
       
       toast({
         title: 'AI Delegation Complete',
@@ -216,10 +230,19 @@ export function TaskTemplateForm({ onSuccess, defaultValues }: TaskTemplateFormP
     },
     onError: (error: any) => {
       console.error("AI delegation mutation error:", error);
+      let errorMessage = "An unexpected error occurred";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String(error.message);
+      }
       
       toast({
         title: 'AI Delegation Failed',
-        description: error.message || "An unexpected error occurred",
+        description: errorMessage,
         variant: 'destructive',
       });
     }

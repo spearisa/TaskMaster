@@ -1666,7 +1666,7 @@ app.get("/api/profile/share/:userId", async (req, res) => {
           steps: ["Step 1: Plan the task", "Step 2: Execute the task", "Step 3: Review the completed task"],
           estimatedTime: 30,
           tags: ["template", category || "general"],
-          priority: "medium"
+          priority: "medium" // Ensure default value is compliant with schema
         };
         
         // Check if we have content from the API
@@ -1680,20 +1680,25 @@ app.get("/api/profile/share/:userId", async (req, res) => {
           const content = response.choices[0].message.content.trim();
           const parsedContent = JSON.parse(content);
           
-          // Validate the response structure
-          if (!parsedContent.description || 
-              !Array.isArray(parsedContent.steps) || 
-              parsedContent.steps.length === 0 ||
-              typeof parsedContent.estimatedTime !== 'number' ||
-              !Array.isArray(parsedContent.tags) ||
-              !parsedContent.priority ||
-              !['low', 'medium', 'high'].includes(parsedContent.priority)) {
-            
-            console.warn("AI response missing required fields or has invalid priority, using default template");
-            return res.json(defaultResponse);
-          }
+          // Create a sanitized response with validated fields
+          const sanitizedResponse = {
+            description: parsedContent.description || defaultResponse.description,
+            steps: Array.isArray(parsedContent.steps) && parsedContent.steps.length > 0 
+              ? parsedContent.steps 
+              : defaultResponse.steps,
+            estimatedTime: typeof parsedContent.estimatedTime === 'number' 
+              ? parsedContent.estimatedTime 
+              : defaultResponse.estimatedTime,
+            tags: Array.isArray(parsedContent.tags) 
+              ? parsedContent.tags 
+              : defaultResponse.tags,
+            priority: parsedContent.priority && ['low', 'medium', 'high'].includes(parsedContent.priority) 
+              ? parsedContent.priority 
+              : defaultResponse.priority
+          };
           
-          return res.json(parsedContent);
+          console.log("Sending sanitized AI template response:", sanitizedResponse);
+          return res.json(sanitizedResponse);
         } catch (parseError) {
           console.error("Error parsing AI template response:", parseError);
           console.error("Raw template AI response:", response.choices[0].message.content);
@@ -1707,7 +1712,7 @@ app.get("/api/profile/share/:userId", async (req, res) => {
           steps: ["Step 1: Plan the task", "Step 2: Execute the task", "Step 3: Review the completed task"],
           estimatedTime: 30,
           tags: ["template", category || "general"],
-          priority: "medium"
+          priority: "medium" // Ensure default value is compliant with schema
         });
       }
     } catch (error) {
