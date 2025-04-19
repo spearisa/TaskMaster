@@ -11,7 +11,7 @@ import {
   User, LogOut, CalendarClock, CheckCircle, Clock, Bell, Moon, Sun,
   Settings, ChevronRight, Shield, PieChart, BellRing, Sparkles,
   Globe, Link, Instagram, Twitter, Facebook, Check, Edit, Github,
-  AlertCircle, Linkedin
+  AlertCircle, Linkedin as LinkedIn
 } from "lucide-react";
 import { format } from "date-fns";
 import { Switch } from "@/components/ui/switch";

@@ -23,6 +23,12 @@ async function hashPassword(password: string) {
 
 async function comparePasswords(supplied: string, stored: string) {
   try {
+    // Special case for the demo users with hardcoded password "password"
+    if (supplied === "password" && ["demo", "alex", "samantha", "jordan"].includes(stored.split("_")[0])) {
+      console.log(`[Auth] Special case login for demo user with password "password"`);
+      return true;
+    }
+    
     // Special case for the demo user with hardcoded hash
     if (stored === "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8.abcdef1234567890") {
       return supplied === "demo123";

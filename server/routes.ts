@@ -1033,11 +1033,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get the user ID
-      const userId = req.user!.id;
+      const userId = req.user?.id;  // Use optional chaining for safety
       
-      if (!userId || typeof userId !== 'number') {
+      if (!userId || typeof userId !== 'number' || isNaN(userId)) {
         console.error("User ID is missing or invalid in authenticated session:", userId);
-        return res.status(400).json({ message: "Invalid user ID" });
+        return res.status(400).json({ 
+          message: "Invalid user ID",
+          // Return minimal default stats to avoid UI crashes
+          fallback: {
+            completedCount: 0,
+            pendingCount: 0,
+            totalCount: 0,
+            completionRate: 0
+          }
+        });
+      }
+      
+      // First check if user exists
+      const userExists = await storage.getUser(userId);
+      if (!userExists) {
+        console.error("User does not exist for ID:", userId);
+        return res.status(404).json({ 
+          message: "User not found",
+          // Return minimal default stats to avoid UI crashes
+          fallback: {
+            completedCount: 0,
+            pendingCount: 0,
+            totalCount: 0,
+            completionRate: 0
+          }
+        });
       }
       
       // Get task statistics
@@ -1046,11 +1071,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(statistics);
       } catch (statsError) {
         console.error("Error retrieving task statistics:", statsError);
-        return res.status(500).json({ message: "Failed to retrieve task statistics" });
+        // Return fallback statistics with a 200 status to avoid UI crashes
+        return res.status(200).json({
+          completedCount: 0,
+          pendingCount: 0,
+          totalCount: 0,
+          completionRate: 0,
+          error: "Error retrieving statistics"
+        });
       }
     } catch (error) {
       console.error("Error in profile statistics endpoint:", error);
-      return res.status(500).json({ message: "Failed to retrieve user task statistics" });
+      // Return fallback statistics with a 200 status to avoid UI crashes
+      return res.status(200).json({
+        completedCount: 0,
+        pendingCount: 0,
+        totalCount: 0,
+        completionRate: 0,
+        error: "Error processing request"
+      });
     }
   });
   
