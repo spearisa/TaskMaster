@@ -184,9 +184,11 @@ export default function ProfilePage() {
     }
   });
   
-  // Fetch tasks for statistics
-  const { data: tasks } = useQuery<TaskWithStringDates[]>({
-    queryKey: ['/api/tasks'],
+  // Fetch task statistics directly from the server
+  const { data: taskStats, isLoading: statsLoading, error: statsError } = useQuery({
+    queryKey: ['/api/profile/statistics'],
+    enabled: !!user, // Only run if user is logged in
+    retry: 1, // Only retry once if there's an error
   });
   
   // Handle logout
@@ -238,14 +240,20 @@ export default function ProfilePage() {
     });
   };
   
-  // Calculate task statistics
-  const completedTasks = tasks?.filter(task => task.completed).length || 0;
-  const pendingTasks = tasks?.filter(task => !task.completed).length || 0;
-  const totalTasks = tasks?.length || 0;
-  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  // Use server-side task statistics
+  const completedTasks = taskStats?.completedCount || 0;
+  const pendingTasks = taskStats?.pendingCount || 0;
+  const totalTasks = taskStats?.totalCount || 0;
+  const completionRate = taskStats?.completionRate || 0;
+  
+  // Fetch tasks for upcoming deadlines
+  const { data: userTasks } = useQuery<TaskWithStringDates[]>({
+    queryKey: ['/api/tasks'],
+    enabled: !!user,
+  });
   
   // Calculate upcoming deadlines
-  const upcomingDeadlines = tasks
+  const upcomingDeadlines = userTasks
     ?.filter(task => !task.completed && task.dueDate)
     .sort((a, b) => {
       if (!a.dueDate || !b.dueDate) return 0;

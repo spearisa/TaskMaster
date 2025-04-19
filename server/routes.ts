@@ -1024,6 +1024,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get user task statistics
+  app.get("/api/profile/statistics", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the user ID
+      const userId = req.user!.id;
+      
+      // Get task statistics
+      const statistics = await storage.getUserTaskStatistics(userId);
+      
+      return res.json(statistics);
+    } catch (error) {
+      console.error("Error getting user task statistics:", error);
+      return res.status(500).json({ message: "Failed to retrieve user task statistics" });
+    }
+  });
+  
   // Keep the legacy endpoint for backward compatibility
   app.put("/api/users/profile", async (req, res) => {
     try {
