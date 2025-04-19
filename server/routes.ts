@@ -1025,7 +1025,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get shareable link for a profile
-  app.get("/api/profile/share", async (req, res) => {
+  // Get share link for the current user's profile
+app.get("/api/profile/share", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.isAuthenticated()) {
@@ -1066,21 +1067,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+// Get share link for a specific user's profile
+app.get("/api/profile/share/:userId", async (req, res) => {
+    try {
+      // Parse user ID from params
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // Check if profile exists and is public
+      const profile = await storage.getUser(userId);
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+      
+      if (!profile.isPublic) {
+        return res.status(403).json({ 
+          message: "Cannot generate share link for private profile",
+          isPublic: false
+        });
+      }
+      
+      // Generate a clean username for URL
+      const cleanUsername = profile.username.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+      
+      // Return both user-friendly and direct links
+      return res.json({
+        profileId: profile.id,
+        displayName: profile.displayName,
+        username: profile.username,
+        isPublic: true,
+        directLink: `/profile/${userId}`,
+        friendlyLink: `/profile/${userId}-${cleanUsername}`,
+        shareMessage: `Check out ${profile.displayName}'s profile on Appmo!`
+      });
+    } catch (error) {
+      console.error("Error generating share link:", error);
+      return res.status(500).json({ message: "Failed to generate share link" });
+    }
+  });
+  
   // Get user task statistics
   app.get("/api/profile/statistics/:userId?", async (req, res) => {
     try {
       // Get user ID either from route params or authenticated user
-      let userId;
+      let userId = null;
       
       if (req.params.userId) {
         // Get from route params for shared profiles
         userId = parseInt(req.params.userId);
         
+        if (isNaN(userId)) {
+          console.error("Invalid user ID in params:", req.params.userId);
+          return res.status(400).json({ 
+            message: "Invalid user ID",
+            fallback: {
+              completedCount: 0,
+              pendingCount: 0,
+              totalCount: 0,
+              completionRate: 0
+            }
+          });
+        }
+        
         // Check if user exists and profile is public
-        const userProfile = await storage.getPublicUserProfile(userId);
+        const userProfile = await storage.getUser(userId);
         if (!userProfile) {
           return res.status(404).json({ 
-            message: "User not found or profile is not public",
+            message: "User not found",
+            fallback: {
+              completedCount: 0,
+              pendingCount: 0,
+              totalCount: 0,
+              completionRate: 0
+            }
+          });
+        }
+        
+        // If the profile is not public, only allow access if the requester is the user themselves
+        if (!userProfile.isPublic && (!req.isAuthenticated() || req.user?.id !== userId)) {
+          return res.status(403).json({ 
+            message: "Profile is not public",
             fallback: {
               completedCount: 0,
               pendingCount: 0,
@@ -1098,25 +1167,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId = req.user?.id;
       }
       
-      if (!userId || typeof userId !== 'number' || isNaN(userId)) {
+      if (!userId || isNaN(userId)) {
         console.error("User ID is missing or invalid:", userId);
         return res.status(400).json({ 
           message: "Invalid user ID",
-          fallback: {
-            completedCount: 0,
-            pendingCount: 0,
-            totalCount: 0,
-            completionRate: 0
-          }
-        });
-      }
-      
-      // Check if user exists
-      const userExists = await storage.getUser(userId);
-      if (!userExists) {
-        console.error("User does not exist for ID:", userId);
-        return res.status(404).json({ 
-          message: "User not found",
           fallback: {
             completedCount: 0,
             pendingCount: 0,

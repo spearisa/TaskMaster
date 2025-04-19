@@ -41,8 +41,8 @@ export function ProfileShare({ userId, username, displayName }: ProfileShareProp
   
   // Fetch profile link data from the API
   const { data: shareData, isLoading, error } = useQuery<ShareLinkResponse>({
-    queryKey: ["/api/profile/share"],
-    queryFn: () => fetch("/api/profile/share").then(res => {
+    queryKey: ["/api/profile/share", userId],
+    queryFn: () => fetch(`/api/profile/share/${userId}`).then(res => {
       if (!res.ok) {
         throw new Error("Failed to generate share link");
       }

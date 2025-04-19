@@ -226,7 +226,13 @@ export default function ProfilePage() {
   
   // Fetch task statistics directly from the server
   const { data: taskStats, isLoading: statsLoading, error: statsError } = useQuery({
-    queryKey: ['/api/profile/statistics'],
+    queryKey: ['/api/profile/statistics', user?.id],
+    queryFn: () => fetch(`/api/profile/statistics/${user?.id}`).then(res => {
+      if (!res.ok) {
+        throw new Error("Failed to fetch statistics");
+      }
+      return res.json();
+    }),
     enabled: !!user, // Only run if user is logged in
     retry: 1, // Only retry once if there's an error
     onError: (error) => {
