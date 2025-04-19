@@ -628,7 +628,7 @@ export default function ProfilePage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-2xl font-bold">
-                    {profileData?.completedTaskCount || completedTasks}
+                    {completedTasks}
                   </p>
                 </CardContent>
               </Card>
@@ -642,7 +642,7 @@ export default function ProfilePage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-2xl font-bold">
-                    {profileData?.totalTaskCount || totalTasks}
+                    {totalTasks}
                   </p>
                 </CardContent>
               </Card>
@@ -653,23 +653,13 @@ export default function ProfilePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center">
-                    {profileData ? (
-                      <>
+                    {statsLoading ? (
+                      <div className="w-full flex items-center">
                         <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2">
-                          <div 
-                            className="bg-primary h-2.5 rounded-full" 
-                            style={{ width: profileData.totalTaskCount > 0
-                              ? `${(profileData.completedTaskCount / profileData.totalTaskCount * 100)}%`
-                              : '0%'
-                            }}
-                          ></div>
+                          <div className="bg-gray-300 animate-pulse h-2.5 rounded-full" style={{ width: '0%' }}></div>
                         </div>
-                        <span className="text-sm font-bold">
-                          {profileData.totalTaskCount > 0
-                            ? Math.round(profileData.completedTaskCount / profileData.totalTaskCount * 100)
-                            : 0}%
-                        </span>
-                      </>
+                        <span className="text-sm font-bold text-gray-400">Loading...</span>
+                      </div>
                     ) : (
                       <>
                         <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2">
