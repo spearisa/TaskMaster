@@ -1642,13 +1642,15 @@ app.get("/api/profile/share/:userId", async (req, res) => {
       2. A list of 3-7 ordered steps to complete the task
       3. An estimated time to complete (in minutes)
       4. Suggested tags (2-4 tags)
+      5. A priority level (must be exactly one of: "low", "medium", or "high")
       
       You MUST respond with JSON in EXACTLY this format (no variations allowed):
       {
         "description": "detailed description here",
         "steps": ["step 1", "step 2", "step 3"],
         "estimatedTime": 30,
-        "tags": ["tag1", "tag2", "tag3"]
+        "tags": ["tag1", "tag2", "tag3"],
+        "priority": "medium"
       }`;
       
       try {
@@ -1663,7 +1665,8 @@ app.get("/api/profile/share/:userId", async (req, res) => {
           description: `Task template for ${title}. This is a template in the ${category || 'general'} category.`,
           steps: ["Step 1: Plan the task", "Step 2: Execute the task", "Step 3: Review the completed task"],
           estimatedTime: 30,
-          tags: ["template", category || "general"]
+          tags: ["template", category || "general"],
+          priority: "medium"
         };
         
         // Check if we have content from the API
@@ -1682,9 +1685,11 @@ app.get("/api/profile/share/:userId", async (req, res) => {
               !Array.isArray(parsedContent.steps) || 
               parsedContent.steps.length === 0 ||
               typeof parsedContent.estimatedTime !== 'number' ||
-              !Array.isArray(parsedContent.tags)) {
+              !Array.isArray(parsedContent.tags) ||
+              !parsedContent.priority ||
+              !['low', 'medium', 'high'].includes(parsedContent.priority)) {
             
-            console.warn("AI response missing required fields, using default template");
+            console.warn("AI response missing required fields or has invalid priority, using default template");
             return res.json(defaultResponse);
           }
           
@@ -1701,7 +1706,8 @@ app.get("/api/profile/share/:userId", async (req, res) => {
           description: `Task template for ${title}. This is a template in the ${category || 'general'} category.`,
           steps: ["Step 1: Plan the task", "Step 2: Execute the task", "Step 3: Review the completed task"],
           estimatedTime: 30,
-          tags: ["template", category || "general"]
+          tags: ["template", category || "general"],
+          priority: "medium"
         });
       }
     } catch (error) {
