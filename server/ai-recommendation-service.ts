@@ -320,8 +320,7 @@ function getAppById(appId: string) {
 }
 
 // Top AI applications using keyword matching
-// Update the import to include the type
-import { generateChatCompletion } from "./openai-service";
+// Import the types for OpenAI service
 
 export async function getTopAIApplicationsForTask(task: TaskWithStringDates, limit: number = 3): Promise<any[]> {
   // Extract keywords from task

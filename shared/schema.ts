@@ -383,3 +383,25 @@ export type BlogCategoryWithStringDates = z.infer<typeof blogCategorySchema>;
 export type InsertBlogComment = z.infer<typeof insertBlogCommentSchema>;
 export type BlogComment = typeof blogComments.$inferSelect;
 export type BlogCommentWithStringDates = z.infer<typeof blogCommentSchema>;
+
+// AI tool referrals tracking
+export const aiToolReferrals = pgTable("ai_tool_referrals", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  toolId: text("tool_id").notNull(), // Format: "categoryId:appId[:tierName]"
+  taskId: integer("task_id").references(() => tasks.id),
+  clicked: boolean("clicked").default(true).notNull(),
+  converted: boolean("converted").default(false).notNull(),
+  commissionEarned: decimal("commission_earned", { precision: 10, scale: 2 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  conversionDate: timestamp("conversion_date"),
+});
+
+export const insertAiToolReferralSchema = createInsertSchema(aiToolReferrals).omit({
+  id: true,
+  createdAt: true,
+  conversionDate: true,
+});
+
+export type InsertAiToolReferral = z.infer<typeof insertAiToolReferralSchema>;
+export type AiToolReferral = typeof aiToolReferrals.$inferSelect;
