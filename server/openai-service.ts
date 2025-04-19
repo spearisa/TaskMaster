@@ -14,12 +14,38 @@ const anthropic = process.env.ANTHROPIC_API_KEY
 
 /**
  * Helper function to safely parse JSON or return a fallback
+ * Enhanced with better error handling and validation
  */
 function safeJsonParse(jsonString: string, fallback: any) {
   try {
-    return JSON.parse(jsonString);
+    // Trim any whitespace that might cause parsing issues
+    const trimmedString = jsonString.trim();
+    
+    // Check if the string is null or empty
+    if (!trimmedString) {
+      console.warn("Empty JSON string provided to safeJsonParse");
+      return fallback;
+    }
+    
+    // First check if string starts and ends with curly braces (basic JSON object check)
+    if (!(trimmedString.startsWith('{') && trimmedString.endsWith('}'))) {
+      console.warn("JSON string does not appear to be a valid JSON object:", trimmedString.substring(0, 100) + "...");
+      return fallback;
+    }
+    
+    // Now try to parse it
+    const parsed = JSON.parse(trimmedString);
+    
+    // Validate that it's actually an object
+    if (typeof parsed !== 'object' || parsed === null) {
+      console.warn("JSON parsed successfully but result is not an object:", typeof parsed);
+      return fallback;
+    }
+    
+    return parsed;
   } catch (error) {
     console.error("Error parsing JSON:", error);
+    console.error("JSON string that failed to parse (first 200 chars):", jsonString.substring(0, 200));
     return fallback;
   }
 }
@@ -263,7 +289,7 @@ export async function delegateTaskToAI(task: TaskWithStringDates, context?: stri
           Analyze the task details and provide a detailed response that will help the user
           complete this task efficiently.
           
-          Respond with JSON in this format:
+          You MUST respond with JSON in EXACTLY this format (no variations allowed):
           {
             "taskTitle": string,
             "analysisAndContext": string,
@@ -305,9 +331,47 @@ export async function delegateTaskToAI(task: TaskWithStringDates, context?: stri
       nextActions: "Begin by reviewing the task requirements in detail."
     };
 
-    return response.choices[0].message.content ? 
-      safeJsonParse(response.choices[0].message.content, defaultResponse) : 
-      defaultResponse;
+    // Check if we have content from the API
+    if (!response.choices[0].message.content) {
+      console.warn("No content returned from AI API, using default response");
+      return defaultResponse;
+    }
+
+    try {
+      // Parse and validate the response
+      const parsedContent = JSON.parse(response.choices[0].message.content);
+      
+      // Verify required fields exist
+      if (!parsedContent.taskTitle || 
+          !parsedContent.analysisAndContext || 
+          !Array.isArray(parsedContent.completionSteps) ||
+          !parsedContent.draftContent ||
+          !Array.isArray(parsedContent.resourceSuggestions) ||
+          typeof parsedContent.totalEstimatedTime !== 'number' ||
+          !parsedContent.nextActions) {
+        
+        console.warn("AI response missing required fields, using default response");
+        return defaultResponse;
+      }
+      
+      // Validate completion steps structure
+      const validSteps = parsedContent.completionSteps.every((step: any) => 
+        typeof step.stepNumber === 'number' && 
+        typeof step.description === 'string' && 
+        typeof step.estimatedMinutes === 'number'
+      );
+      
+      if (!validSteps) {
+        console.warn("AI response has invalid completion steps structure, using default response");
+        return defaultResponse;
+      }
+      
+      return parsedContent;
+    } catch (parseError) {
+      console.error("Error parsing AI response:", parseError);
+      console.error("Raw AI response:", response.choices[0].message.content);
+      return defaultResponse;
+    }
   } catch (error) {
     console.error("Error delegating task to AI:", error);
     throw new Error("Failed to delegate task to AI");
