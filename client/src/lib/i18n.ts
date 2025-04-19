@@ -258,6 +258,8 @@ const resources = {
         tryAgain: 'Please try again',
         goBack: 'Go Back',
         contactSupport: 'Contact Support',
+        pageNotFoundMessage: 'The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.',
+        requestedUrl: 'Requested URL'
       }
     }
   },
@@ -515,6 +517,8 @@ const resources = {
         tryAgain: 'Por favor, inténtalo de nuevo',
         goBack: 'Volver',
         contactSupport: 'Contactar Soporte',
+        pageNotFoundMessage: 'Es posible que la página que estás buscando haya sido eliminada, haya cambiado de nombre o no esté disponible temporalmente.',
+        requestedUrl: 'URL Solicitada'
       }
     }
   },
@@ -594,6 +598,13 @@ const resources = {
         settings: 'Paramètres',
         help: 'Aide',
         apiDocs: 'Documentation API',
+        back: 'Retour',
+        openMenu: 'Ouvrir Menu',
+        closeMenu: 'Fermer Menu',
+        menu: 'Menu',
+        mainNavigation: 'Navigation Principale',
+        sideNavigation: 'Navigation Latérale',
+        bottomNavigation: 'Navigation Inférieure',
       },
       tasks: {
         task: 'Tâche',
@@ -765,6 +776,8 @@ const resources = {
         tryAgain: 'Veuillez réessayer',
         goBack: 'Retour',
         contactSupport: 'Contacter le Support',
+        pageNotFoundMessage: 'La page que vous recherchez a peut-être été supprimée, a changé de nom ou est temporairement indisponible.',
+        requestedUrl: 'URL Demandée'
       }
     }
   }
