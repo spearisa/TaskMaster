@@ -39,6 +39,27 @@ declare global {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Serve SEO-related static files from public directory
+  app.get('/robots.txt', (req, res) => {
+    const robotsPath = path.join(process.cwd(), 'public', 'robots.txt');
+    if (fs.existsSync(robotsPath)) {
+      res.type('text/plain');
+      res.sendFile(robotsPath);
+    } else {
+      res.status(404).send('Not found');
+    }
+  });
+  
+  app.get('/sitemap.xml', (req, res) => {
+    const sitemapPath = path.join(process.cwd(), 'public', 'sitemap.xml');
+    if (fs.existsSync(sitemapPath)) {
+      res.type('application/xml');
+      res.sendFile(sitemapPath);
+    } else {
+      res.status(404).send('Not found');
+    }
+  });
+  
   // Serve the Swagger JSON file for API documentation
   app.get('/appmo-api-swagger.json', (req, res) => {
     try {
