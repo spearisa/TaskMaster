@@ -204,6 +204,11 @@ export function TaskTemplateForm({ onSuccess, defaultValues }: TaskTemplateFormP
         form.setValue('tags', data.tags);
       }
       
+      // Handle the priority field from AI response
+      if (data.priority && ['low', 'medium', 'high'].includes(data.priority)) {
+        form.setValue('priority', data.priority as 'low' | 'medium' | 'high');
+      }
+      
       toast({
         title: 'AI Delegation Complete',
         description: 'Template details have been generated and applied to the form',
