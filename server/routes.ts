@@ -1117,12 +1117,27 @@ app.get("/api/profile/share/:userId", async (req, res) => {
       
       if (req.params.userId) {
         // Get from route params for shared profiles
-        userId = parseInt(req.params.userId);
-        
-        if (isNaN(userId)) {
-          console.error("Invalid user ID in params:", req.params.userId);
+        try {
+          // Log the incoming userId parameter
+          console.log("Statistics endpoint - User ID parameter received:", req.params.userId);
+          userId = parseInt(req.params.userId);
+          
+          if (isNaN(userId)) {
+            console.error("Invalid user ID in params:", req.params.userId);
+            return res.status(400).json({ 
+              message: "Invalid user ID parameter",
+              fallback: {
+                completedCount: 0,
+                pendingCount: 0,
+                totalCount: 0,
+                completionRate: 0
+              }
+            });
+          }
+        } catch (parseError) {
+          console.error("Error parsing user ID:", parseError);
           return res.status(400).json({ 
-            message: "Invalid user ID",
+            message: "Error parsing user ID",
             fallback: {
               completedCount: 0,
               pendingCount: 0,
@@ -1132,9 +1147,12 @@ app.get("/api/profile/share/:userId", async (req, res) => {
           });
         }
         
-        // Check if user exists and profile is public
+        console.log("Statistics endpoint - Parsed userId:", userId);
+        
+        // Check if user exists
         const userProfile = await storage.getUser(userId);
         if (!userProfile) {
+          console.error("User profile not found for ID:", userId);
           return res.status(404).json({ 
             message: "User not found",
             fallback: {
@@ -1148,6 +1166,7 @@ app.get("/api/profile/share/:userId", async (req, res) => {
         
         // If the profile is not public, only allow access if the requester is the user themselves
         if (!userProfile.isPublic && (!req.isAuthenticated() || req.user?.id !== userId)) {
+          console.error("Attempt to access non-public profile:", userId);
           return res.status(403).json({ 
             message: "Profile is not public",
             fallback: {
@@ -1182,7 +1201,9 @@ app.get("/api/profile/share/:userId", async (req, res) => {
       
       // Get task statistics
       try {
+        console.log("Attempting to fetch statistics for user ID:", userId);
         const statistics = await storage.getUserTaskStatistics(userId);
+        console.log("Statistics fetched successfully:", statistics);
         return res.json(statistics);
       } catch (statsError) {
         console.error("Error retrieving task statistics:", statsError);

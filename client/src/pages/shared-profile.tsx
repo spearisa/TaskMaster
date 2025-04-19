@@ -15,6 +15,14 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+// Define TaskStatistics interface
+interface TaskStatistics {
+  completedCount: number;
+  pendingCount: number;
+  totalCount: number;
+  completionRate: number;
+}
+
 export default function SharedProfilePage() {
   const { id } = useParams();
   const [_, navigate] = useLocation();
@@ -47,6 +55,19 @@ export default function SharedProfilePage() {
     enabled: !isNaN(userId),
     retry: 1
   });
+  
+  // Fetch task statistics - use the profile data to display statistics instead
+  // of making another API call since we're getting 400 errors
+  const stats = profile ? {
+    completedCount: profile.completedTaskCount || 0,
+    totalCount: profile.totalTaskCount || 0,
+    pendingCount: (profile.totalTaskCount || 0) - (profile.completedTaskCount || 0),
+    completionRate: profile.totalTaskCount > 0 
+      ? (profile.completedTaskCount / profile.totalTaskCount) * 100 
+      : 0
+  } : null;
+  
+  const statsLoading = isLoading;
   
   // Handle back navigation
   const goBack = () => {
@@ -259,18 +280,30 @@ export default function SharedProfilePage() {
                 <Separator className="my-4" />
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div>
-                    <p className="text-xl font-bold">{profile?.completedTaskCount || 0}</p>
+                    <p className="text-xl font-bold">
+                      {statsLoading 
+                        ? <Skeleton className="h-6 w-8 mx-auto" />
+                        : stats?.completedCount || profile?.completedTaskCount || 0}
+                    </p>
                     <p className="text-xs text-gray-500">Completed</p>
                   </div>
                   <div>
-                    <p className="text-xl font-bold">{profile?.totalTaskCount || 0}</p>
+                    <p className="text-xl font-bold">
+                      {statsLoading 
+                        ? <Skeleton className="h-6 w-8 mx-auto" />
+                        : stats?.totalCount || profile?.totalTaskCount || 0}
+                    </p>
                     <p className="text-xs text-gray-500">Total Tasks</p>
                   </div>
                   <div>
                     <p className="text-xl font-bold">
-                      {profile && profile.totalTaskCount > 0 
-                        ? Math.round((profile.completedTaskCount / profile.totalTaskCount) * 100)
-                        : 0}%
+                      {statsLoading 
+                        ? <Skeleton className="h-6 w-8 mx-auto" />
+                        : stats?.completionRate 
+                          ? `${Math.round(stats.completionRate)}%` 
+                          : (profile && profile.totalTaskCount > 0 
+                            ? `${Math.round((profile.completedTaskCount / profile.totalTaskCount) * 100)}%`
+                            : '0%')}
                     </p>
                     <p className="text-xs text-gray-500">Completion</p>
                   </div>
