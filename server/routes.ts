@@ -106,6 +106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerAdminRoutes(app);
   
   // Get AI application recommendations for a specific task (POST endpoint)
+  // This endpoint works for both authenticated and unauthenticated users (for public tasks)
   app.post("/api/ai-recommendations", async (req, res) => {
     try {
       const { taskId } = req.body;
@@ -119,19 +120,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Task not found" });
       }
       
-      // Verify ownership or public access
-      const isOwner = req.isAuthenticated() && req.user && req.user.id === task.userId;
-      const isAssignee = req.isAuthenticated() && req.user && task.assignedToUserId === req.user.id;
-      
-      if (!isOwner && !isAssignee && !task.isPublic) {
-        return res.status(403).json({ message: "You do not have permission to view this task" });
+      // For public tasks, allow access without authentication
+      if (!task.isPublic) {
+        // Verify ownership or assignment if task is not public
+        const isOwner = req.isAuthenticated() && req.user && req.user.id === task.userId;
+        const isAssignee = req.isAuthenticated() && req.user && task.assignedToUserId === req.user.id;
+        const isApiUser = req.apiUser && req.apiUser.id === task.userId;
+        
+        if (!isOwner && !isAssignee && !isApiUser) {
+          return res.status(403).json({ message: "You do not have permission to view this task" });
+        }
       }
       
+      // Format dates for AI processing
+      const taskWithFormattedDates = {
+        ...task,
+        dueDate: task.dueDate ? task.dueDate.toISOString() : null,
+        completedAt: task.completedAt ? task.completedAt.toISOString() : null,
+      };
+      
       // Get recommendations based on task content
-      const recommendations = await getAIRecommendations(task);
+      const recommendations = await getAIRecommendations(taskWithFormattedDates);
       
       res.json({
-        task,
+        task: taskWithFormattedDates,
         recommendations
       });
     } catch (error) {
@@ -2882,7 +2894,8 @@ app.get("/api/profile/share/:userId", async (req, res) => {
     }
   });
 
-  // AI Recommendations and Referral Tracking
+  // AI Recommendations and Referral Tracking - DEPRECATED (use endpoint at line ~110 instead)
+  /*
   app.post('/api/ai-recommendations', async (req, res) => {
     try {
       if (!req.isAuthenticated() && !req.apiUser) {
@@ -2897,6 +2910,7 @@ app.get("/api/profile/share/:userId", async (req, res) => {
       }
       
       const task = await storage.getTaskById(parseInt(taskId));
+      
       if (!task) {
         return res.status(404).json({ message: 'Task not found' });
       }
@@ -2913,6 +2927,7 @@ app.get("/api/profile/share/:userId", async (req, res) => {
       res.status(500).json({ message: 'Failed to get AI recommendations' });
     }
   });
+  */
   
   app.post('/api/ai-referral/track', async (req, res) => {
     try {

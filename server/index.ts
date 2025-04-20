@@ -121,15 +121,15 @@ app.use((req, res, next) => {
     };
     
     // Create a larger array of ports to try in different ranges
-    // For Replit, start with port 5000 as it's what the Replit workflow expects
+    // Modified port priority to match Replit workflow configuration
     const availablePorts = [
       5000,                       // First try Replit's preferred port
-      ...generatePortRange(3000, 5),  // Then try 3000-3004
+      3000,                       // Then try alternative port
       ...generatePortRange(8080, 5),  // Then try 8080-8084
       ...generatePortRange(4000, 5),  // Then try 4000-4004
       ...generatePortRange(8000, 5),  // Then try 8000-8004
       ...generatePortRange(9000, 5),  // Then try 9000-9004
-      ...generatePortRange(5001, 9)   // Finally try 5001-5009
+      ...generatePortRange(5001, 9)   // Try 5001-5009
     ];
     
     let serverStarted = false;

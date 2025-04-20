@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { format } from 'date-fns';
 import { TaskWithStringDates } from '@shared/schema';
+import { PublicAIRecommendations } from '@/components/public-ai-recommendations';
 
 type SharedTaskResponse = {
   task: TaskWithStringDates;
@@ -223,6 +224,11 @@ export default function SharedTaskPage() {
             Sign In
           </Button>
         </div>
+      )}
+      
+      {/* AI Recommendations for this task */}
+      {!loading && !error && task && (
+        <PublicAIRecommendations taskId={task.id} />
       )}
     </div>
   );
