@@ -37,6 +37,13 @@ import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { addUserProfileColumns } from "./add-user-profile-columns";
 
+// Helper function to calculate average rating from array of ratings
+function calculateAverage(ratings: (number | null | undefined)[]): number | null {
+  const validRatings = ratings.filter((r): r is number => typeof r === 'number');
+  if (validRatings.length === 0) return null;
+  return validRatings.reduce((sum, val) => sum + val, 0) / validRatings.length;
+}
+
 // Extend Express Request type to include API user
 declare global {
   namespace Express {
