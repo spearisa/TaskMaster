@@ -21,9 +21,9 @@ export default function AIModelDetailPage() {
   
   // Fetch model details
   const { data: model, isLoading, error } = useQuery({
-    queryKey: [`/api/huggingface/models/${modelId}`],
+    queryKey: [`/api/huggingface/model/${modelId}`],
     queryFn: async () => {
-      const response = await fetch(`/api/huggingface/models/${modelId}`);
+      const response = await fetch(`/api/huggingface/model/${modelId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch model details');
       }
@@ -33,9 +33,9 @@ export default function AIModelDetailPage() {
   
   // Fetch model readme
   const { data: readme, isLoading: readmeLoading } = useQuery({
-    queryKey: [`/api/huggingface/models/${modelId}/readme`],
+    queryKey: [`/api/huggingface/model/${modelId}/readme`],
     queryFn: async () => {
-      const response = await fetch(`/api/huggingface/models/${modelId}/readme`);
+      const response = await fetch(`/api/huggingface/model/${modelId}/readme`);
       if (!response.ok) {
         return ""; // Not all models have a readme
       }
