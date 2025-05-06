@@ -15,7 +15,9 @@ import {
   Calendar,
   ShieldAlert,
   Users,
-  BookText
+  BookText,
+  Store,
+  ShoppingBag
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -203,6 +205,37 @@ export function SideNavigation() {
                     )}
                   >
                     <span className="text-sm">Messages</span>
+                  </div>
+                </Link>
+                
+                {/* Marketplace Section */}
+                <div className="flex gap-2 mt-4 mb-1 px-4 pt-2">
+                  <Store size={18} className="text-gray-500" />
+                  <span className="font-semibold text-gray-600">Marketplace</span>
+                </div>
+                <Link href="/marketplace">
+                  <div 
+                    className={cn(
+                      "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                      isActive('/marketplace') && !isActive('/marketplace/sell')
+                        ? "border-l-primary text-primary" 
+                        : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+                    )}
+                  >
+                    <span className="text-sm">Browse Apps</span>
+                  </div>
+                </Link>
+                
+                <Link href="/marketplace/sell">
+                  <div 
+                    className={cn(
+                      "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                      isActive('/marketplace/sell') 
+                        ? "border-l-primary text-primary" 
+                        : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+                    )}
+                  >
+                    <span className="text-sm">Sell Your App</span>
                   </div>
                 </Link>
                 
@@ -502,6 +535,37 @@ export function SideNavigation() {
               )}
             >
               <span className="text-sm">API Docs</span>
+            </div>
+          </Link>
+          
+          {/* Marketplace Section */}
+          <div className="flex gap-2 mt-4 mb-1 px-4 pt-2">
+            <Store size={18} className="text-gray-500" />
+            <span className="font-semibold text-gray-600">Marketplace</span>
+          </div>
+          <Link href="/marketplace">
+            <div 
+              className={cn(
+                "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                isActive('/marketplace') && !isActive('/marketplace/sell')
+                  ? "border-l-primary text-primary" 
+                  : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+              )}
+            >
+              <span className="text-sm">Browse Apps</span>
+            </div>
+          </Link>
+          
+          <Link href="/marketplace/sell">
+            <div 
+              className={cn(
+                "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                isActive('/marketplace/sell') 
+                  ? "border-l-primary text-primary" 
+                  : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+              )}
+            >
+              <span className="text-sm">Sell Your App</span>
             </div>
           </Link>
           

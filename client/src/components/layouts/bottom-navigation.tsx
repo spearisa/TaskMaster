@@ -7,7 +7,8 @@ import {
   User,
   Globe,
   BookOpen,
-  ShieldAlert
+  ShieldAlert,
+  Store
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
