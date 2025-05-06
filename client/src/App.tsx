@@ -38,6 +38,9 @@ import MarketplaceSellPage from "@/pages/marketplace-sell";
 import MarketplaceFavoritesPage from "@/pages/marketplace-favorites";
 import MarketplaceMyListingsPage from "@/pages/marketplace-my-listings";
 import MarketplaceBidsPage from "@/pages/marketplace-bids";
+// Hugging Face AI Models Pages
+import AIModelsPage from "@/pages/ai-models";
+import AIModelDetailPage from "@/pages/ai-model-detail";
 // Import i18n instance
 import '@/lib/i18n';
 
@@ -72,6 +75,10 @@ function Router() {
       <ProtectedRoute path="/marketplace/favorites" component={MarketplaceFavoritesPage} />
       <ProtectedRoute path="/marketplace/my-listings" component={MarketplaceMyListingsPage} />
       <ProtectedRoute path="/marketplace/bids" component={MarketplaceBidsPage} />
+      
+      {/* AI Models routes */}
+      <Route path="/ai-models" component={AIModelsPage} />
+      <Route path="/ai-models/:id" component={AIModelDetailPage} />
       
       {/* Admin routes */}
       <Route path="/admin/login" component={AdminLogin} />
