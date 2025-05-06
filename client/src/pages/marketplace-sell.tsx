@@ -27,9 +27,39 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { 
+  Loader2, ArrowLeft, Calendar, DollarSign, Clock, Percent,
+  Users, Code, Server, FileCode, Image, Link as LinkIcon, 
+  Info, Upload, LucideIcon, BadgeCheck, ShieldCheck, 
+  HelpCircle, Tags, Building, Check, Star, 
+  MessageSquare, Flag, Shield, Zap, 
+  Bookmark, ChevronRight, Laptop, Store
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Form schema
 const listingSchema = z.object({
@@ -37,6 +67,7 @@ const listingSchema = z.object({
   shortDescription: z.string().max(120, { message: "Short description must be less than 120 characters" }),
   description: z.string().min(50, { message: "Description must be at least 50 characters" }),
   category: z.string().min(1, { message: "Please select a category" }),
+  subcategory: z.string().optional(),
   price: z.coerce.number().min(1, { message: "Price is required" }),
   monetization: z.string().min(1, { message: "Please select a monetization model" }),
   monthlyRevenue: z.coerce.number().optional(),
@@ -48,6 +79,10 @@ const listingSchema = z.object({
   establishedDate: z.string().optional(),
   websiteUrl: z.string().url({ message: "Please enter a valid URL" }).optional().or(z.literal('')),
   repoUrl: z.string().url({ message: "Please enter a valid repository URL" }).optional().or(z.literal('')),
+  documentationUrl: z.string().url({ message: "Please enter a valid documentation URL" }).optional().or(z.literal('')),
+  supportPeriod: z.coerce.number().optional(),
+  supportDetails: z.string().optional(),
+  featuredImage: z.string().optional(),
   status: z.enum(["draft", "published"]),
 });
 
@@ -65,6 +100,7 @@ export default function MarketplaceSell() {
       shortDescription: "",
       description: "",
       category: "",
+      subcategory: "",
       price: undefined,
       monetization: "",
       monthlyRevenue: undefined,
@@ -76,6 +112,10 @@ export default function MarketplaceSell() {
       establishedDate: "",
       websiteUrl: "",
       repoUrl: "",
+      documentationUrl: "",
+      supportPeriod: undefined,
+      supportDetails: "",
+      featuredImage: "",
       status: "draft",
     }
   });
@@ -169,18 +209,25 @@ export default function MarketplaceSell() {
         </Link>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl">List Your App for Sale</CardTitle>
-              <CardDescription>
-                Provide accurate information to attract serious buyers. All fields marked with * are required.
-              </CardDescription>
+      <div className="flex flex-col md:flex-row gap-6">
+        <div className="w-full md:w-2/3">
+          <Card className="bg-card shadow-sm mb-8">
+            <CardHeader className="bg-primary/5 border-b border-primary/10">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/15 p-2 rounded-full">
+                  <Store className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl">List Your App for Sale</CardTitle>
+                  <CardDescription>
+                    Provide accurate information to attract serious buyers
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
                   <div className="space-y-6">
                     <h2 className="text-xl font-semibold">Basic Information</h2>
                     
@@ -528,17 +575,56 @@ export default function MarketplaceSell() {
                     />
                   </div>
                   
-                  <div className="flex justify-end gap-4">
-                    <Link href="/marketplace">
-                      <Button variant="outline" type="button">Cancel</Button>
-                    </Link>
-                    <Button 
-                      type="submit"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Submit Listing
-                    </Button>
+                  <div className="mt-8 bg-muted/40 border border-muted p-6 rounded-lg">
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                      <div>
+                        <h3 className="font-medium text-base">Ready to list your app?</h3>
+                        <p className="text-muted-foreground text-sm">You can save as a draft or publish immediately</p>
+                      </div>
+                      
+                      <div className="flex gap-3 flex-wrap justify-center">
+                        <Link href="/marketplace">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={isSubmitting}
+                            className="px-5"
+                          >
+                            Cancel
+                          </Button>
+                        </Link>
+                        
+                        <Button
+                          type="submit"
+                          variant="secondary"
+                          onClick={() => form.setValue("status", "draft")}
+                          disabled={isSubmitting}
+                          className="px-5"
+                        >
+                          <Code className="mr-2 h-4 w-4" />
+                          Save as Draft
+                        </Button>
+                        
+                        <Button
+                          type="submit"
+                          onClick={() => form.setValue("status", "published")}
+                          disabled={isSubmitting}
+                          className="px-5"
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Publishing...
+                            </>
+                          ) : (
+                            <>
+                              <Check className="mr-2 h-4 w-4" />
+                              Publish Listing
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </form>
               </Form>
@@ -546,84 +632,164 @@ export default function MarketplaceSell() {
           </Card>
         </div>
         
-        <div className="md:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Listing Tips</CardTitle>
-              <CardDescription>Maximize your chances of a successful sale</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="font-semibold text-sm mb-1">Be Transparent</h3>
-                <p className="text-sm text-muted-foreground">
-                  Honest descriptions and accurate metrics build trust with potential buyers.
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold text-sm mb-1">Highlight Growth Potential</h3>
-                <p className="text-sm text-muted-foreground">
-                  Explain opportunities for expansion that the new owner could capitalize on.
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold text-sm mb-1">Include Detailed Metrics</h3>
-                <p className="text-sm text-muted-foreground">
-                  Provide specific data about revenue, traffic, and user engagement where possible.
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold text-sm mb-1">Set a Realistic Price</h3>
-                <p className="text-sm text-muted-foreground">
-                  Apps typically sell for 2-4x annual profit. Price accordingly for faster sales.
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold text-sm mb-1">Be Responsive</h3>
-                <p className="text-sm text-muted-foreground">
-                  Answer questions quickly and thoroughly to maintain buyer interest.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>What Happens Next?</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-start gap-2">
-                <Badge className="mt-1">1</Badge>
-                <p className="text-sm">
-                  <span className="font-medium">Your listing goes live</span> and appears in the marketplace (if published)
-                </p>
-              </div>
-              
-              <div className="flex items-start gap-2">
-                <Badge className="mt-1">2</Badge>
-                <p className="text-sm">
-                  <span className="font-medium">Interested buyers</span> can make offers or ask questions about your app
-                </p>
-              </div>
-              
-              <div className="flex items-start gap-2">
-                <Badge className="mt-1">3</Badge>
-                <p className="text-sm">
-                  <span className="font-medium">You'll be notified</span> when you receive offers or questions
-                </p>
-              </div>
-              
-              <div className="flex items-start gap-2">
-                <Badge className="mt-1">4</Badge>
-                <p className="text-sm">
-                  <span className="font-medium">When you accept an offer</span>, we'll help facilitate the transaction securely
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="w-full md:w-1/3">
+          <div className="space-y-6 sticky top-6">
+            <Card className="bg-card shadow-sm">
+              <CardHeader className="bg-primary/5 border-b border-primary/10">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Info className="h-5 w-5 text-primary" />
+                  Tips for Sellers
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-5 space-y-5 text-sm">
+                <div>
+                  <h3 className="font-semibold flex items-center mb-2">
+                    <DollarSign className="h-4 w-4 text-green-600 mr-2" />
+                    Maximize Your Value
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Buyers pay more for apps with verified revenue, clean code, and comprehensive documentation.
+                  </p>
+                </div>
+                
+                <Separator />
+                
+                <div>
+                  <h3 className="font-semibold flex items-center mb-2">
+                    <Image className="h-4 w-4 text-blue-600 mr-2" />
+                    Add Visual Content
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Screenshots and demo videos can increase your listing visibility by 70% and attract more serious buyers.
+                  </p>
+                </div>
+                
+                <Separator />
+                
+                <div>
+                  <h3 className="font-semibold flex items-center mb-2">
+                    <ShieldCheck className="h-4 w-4 text-amber-600 mr-2" />
+                    Build Trust
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Provide code access, documentation links, and support details to establish credibility with potential buyers.
+                  </p>
+                </div>
+                
+                <Separator />
+                
+                <div>
+                  <h3 className="font-semibold flex items-center mb-2">
+                    <Clock className="h-4 w-4 text-purple-600 mr-2" />
+                    Response Time Matters
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Sellers who respond to inquiries within 24 hours are 3x more likely to close a sale.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-card shadow-sm">
+              <CardHeader className="bg-primary/5 border-b border-primary/10">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <ChevronRight className="h-5 w-5 text-primary" />
+                  What Happens Next
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-5">
+                <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <div className="bg-primary/10 flex items-center justify-center rounded-full w-7 h-7 flex-shrink-0 mt-0.5">
+                      <span className="text-sm font-medium text-primary">1</span>
+                    </div>
+                    <div>
+                      <h3 className="font-medium mb-1">Your listing goes live</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Your app will be visible to all potential buyers on the marketplace
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <div className="bg-primary/10 flex items-center justify-center rounded-full w-7 h-7 flex-shrink-0 mt-0.5">
+                      <span className="text-sm font-medium text-primary">2</span>
+                    </div>
+                    <div>
+                      <h3 className="font-medium mb-1">Buyers show interest</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Interested buyers will contact you with questions and offers
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <div className="bg-primary/10 flex items-center justify-center rounded-full w-7 h-7 flex-shrink-0 mt-0.5">
+                      <span className="text-sm font-medium text-primary">3</span>
+                    </div>
+                    <div>
+                      <h3 className="font-medium mb-1">Negotiate and accept</h3>
+                      <p className="text-sm text-muted-foreground">
+                        When you find the right offer, you can accept and move to closing
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <div className="bg-primary/10 flex items-center justify-center rounded-full w-7 h-7 flex-shrink-0 mt-0.5">
+                      <span className="text-sm font-medium text-primary">4</span>
+                    </div>
+                    <div>
+                      <h3 className="font-medium mb-1">Secure transaction</h3>
+                      <p className="text-sm text-muted-foreground">
+                        We'll help facilitate a safe transfer of ownership and payment
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-gradient-to-br from-primary/5 via-primary/10 to-background shadow-sm">
+              <CardContent className="pt-5">
+                <div className="text-center mb-2">
+                  <BadgeCheck className="h-10 w-10 text-primary mx-auto mb-2" />
+                  <h3 className="font-medium text-lg mb-1">Seller Verification</h3>
+                  <p className="text-sm text-muted-foreground mb-5">
+                    Verified sellers receive 2x more inquiries
+                  </p>
+                </div>
+                
+                <div className="bg-card rounded-lg border p-4 mb-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Complete Profile</span>
+                    </div>
+                    <Check className="h-4 w-4 bg-primary text-primary-foreground rounded-full p-0.5" />
+                  </div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Verified Email</span>
+                    </div>
+                    <Check className="h-4 w-4 bg-primary text-primary-foreground rounded-full p-0.5" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">ID Verification</span>
+                    </div>
+                    <div className="h-4 w-4 border rounded-full" />
+                  </div>
+                </div>
+                
+                <Button variant="outline" className="w-full">
+                  Upgrade to Verified Seller
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
