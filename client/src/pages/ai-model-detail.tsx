@@ -1,6 +1,6 @@
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ModelTabs } from "@/components/huggingface/index";
+import ModelTabs from "@/components/huggingface/model-tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
