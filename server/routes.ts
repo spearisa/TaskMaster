@@ -3589,6 +3589,232 @@ app.get("/api/profile/share/:userId", async (req, res) => {
     }
   });
   
+  // Review-related endpoints
+  
+  // Get reviews for a listing
+  app.get('/api/marketplace/listings/:id/reviews', async (req, res) => {
+    try {
+      const listingId = parseInt(req.params.id);
+      
+      if (isNaN(listingId)) {
+        return res.status(400).json({ message: 'Invalid listing ID' });
+      }
+      
+      // Get all reviews for the listing
+      const reviews = await db.select()
+        .from(appReviews)
+        .where(eq(appReviews.listingId, listingId))
+        .execute();
+      
+      // Get reviewer details for each review
+      const reviewsWithDetails = await Promise.all(
+        reviews.map(async (review) => {
+          const [reviewer] = await db.select()
+            .from(users)
+            .where(eq(users.id, review.reviewerId))
+            .execute();
+          
+          const reviewerProfile = reviewer ? {
+            id: reviewer.id,
+            username: reviewer.username,
+            displayName: reviewer.displayName,
+            avatarUrl: reviewer.avatarUrl
+          } : null;
+          
+          return {
+            ...review,
+            createdAt: review.createdAt.toISOString(),
+            updatedAt: review.updatedAt.toISOString(),
+            reviewer: reviewerProfile
+          };
+        })
+      );
+      
+      res.json(reviewsWithDetails);
+    } catch (error) {
+      console.error('Error fetching listing reviews:', error);
+      res.status(500).json({ message: 'Failed to fetch listing reviews' });
+    }
+  });
+  
+  // Get seller reviews and reputation metrics
+  app.get('/api/marketplace/sellers/:id/reviews', async (req, res) => {
+    try {
+      const sellerId = parseInt(req.params.id);
+      
+      if (isNaN(sellerId)) {
+        return res.status(400).json({ message: 'Invalid seller ID' });
+      }
+      
+      // Check if seller exists
+      const [seller] = await db.select()
+        .from(users)
+        .where(eq(users.id, sellerId))
+        .execute();
+      
+      if (!seller) {
+        return res.status(404).json({ message: 'Seller not found' });
+      }
+      
+      // Get all reviews for listings by this seller
+      const reviews = await db.select()
+        .from(appReviews)
+        .where(eq(appReviews.sellerId, sellerId))
+        .execute();
+      
+      // Calculate seller reputation metrics
+      const reputationMetrics = {
+        totalReviews: reviews.length,
+        averageRatings: {
+          overall: calculateAverage(reviews.map(r => r.overallRating)),
+          codeQuality: calculateAverage(reviews.map(r => r.codeQualityRating)),
+          documentation: calculateAverage(reviews.map(r => r.documentationRating)),
+          support: calculateAverage(reviews.map(r => r.supportRating)),
+          value: calculateAverage(reviews.map(r => r.valueRating))
+        },
+        // Count how many reviews in each rating bracket (1-5 stars)
+        ratingDistribution: {
+          '5': reviews.filter(r => r.overallRating === 5).length,
+          '4': reviews.filter(r => r.overallRating === 4).length,
+          '3': reviews.filter(r => r.overallRating === 3).length,
+          '2': reviews.filter(r => r.overallRating === 2).length,
+          '1': reviews.filter(r => r.overallRating === 1).length
+        }
+      };
+      
+      // Get reviewer details for the most recent reviews (limit to 10)
+      const recentReviews = reviews.sort((a, b) => 
+        b.createdAt.getTime() - a.createdAt.getTime()
+      ).slice(0, 10);
+      
+      const detailedReviews = await Promise.all(
+        recentReviews.map(async (review) => {
+          const [reviewer] = await db.select()
+            .from(users)
+            .where(eq(users.id, review.reviewerId))
+            .execute();
+            
+          const [listing] = await db.select()
+            .from(appListings)
+            .where(eq(appListings.id, review.listingId))
+            .execute();
+          
+          const reviewerProfile = reviewer ? {
+            id: reviewer.id,
+            username: reviewer.username,
+            displayName: reviewer.displayName,
+            avatarUrl: reviewer.avatarUrl
+          } : null;
+          
+          return {
+            ...review,
+            createdAt: review.createdAt.toISOString(),
+            updatedAt: review.updatedAt.toISOString(),
+            reviewer: reviewerProfile,
+            listing: listing ? {
+              id: listing.id,
+              title: listing.title,
+              slug: listing.slug
+            } : null
+          };
+        })
+      );
+      
+      res.json({
+        sellerId,
+        metrics: reputationMetrics,
+        recentReviews: detailedReviews
+      });
+    } catch (error) {
+      console.error('Error fetching seller reviews:', error);
+      res.status(500).json({ message: 'Failed to fetch seller reviews' });
+    }
+  });
+  
+  // Submit a review for an app after purchase
+  app.post('/api/marketplace/transactions/:id/review', async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated() && !req.apiUser) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const userId = req.user?.id || req.apiUser?.id;
+      const transactionId = parseInt(req.params.id);
+      
+      if (isNaN(transactionId)) {
+        return res.status(400).json({ message: 'Invalid transaction ID' });
+      }
+      
+      // Get the transaction to check ownership and status
+      const [transaction] = await db.select()
+        .from(appTransactions)
+        .where(eq(appTransactions.id, transactionId))
+        .execute();
+      
+      if (!transaction) {
+        return res.status(404).json({ message: 'Transaction not found' });
+      }
+      
+      // Check if the user is the buyer of this transaction
+      if (transaction.buyerId !== userId) {
+        return res.status(403).json({ message: 'Not authorized to review this transaction' });
+      }
+      
+      // Check if the transaction is completed
+      if (transaction.status !== 'completed') {
+        return res.status(400).json({ message: 'Cannot review an incomplete transaction' });
+      }
+      
+      // Check if the user has already reviewed this transaction
+      const existingReview = await db.select()
+        .from(appReviews)
+        .where(
+          and(
+            eq(appReviews.transactionId, transactionId),
+            eq(appReviews.reviewerId, userId)
+          )
+        )
+        .execute();
+      
+      if (existingReview.length > 0) {
+        return res.status(400).json({ message: 'You have already reviewed this transaction' });
+      }
+      
+      // Validate request body
+      const result = insertAppReviewSchema.safeParse({
+        ...req.body,
+        transactionId,
+        reviewerId: userId,
+        listingId: transaction.listingId,
+        sellerId: transaction.sellerId
+      });
+      
+      if (!result.success) {
+        const errorMessage = fromZodError(result.error).message;
+        return res.status(400).json({ message: errorMessage });
+      }
+      
+      // Insert the review
+      const [newReview] = await db.insert(appReviews)
+        .values(result.data)
+        .returning()
+        .execute();
+      
+      // Format the review for API response
+      const formattedReview = {
+        ...newReview,
+        createdAt: newReview.createdAt.toISOString(),
+        updatedAt: newReview.updatedAt.toISOString()
+      };
+      
+      res.status(201).json(formattedReview);
+    } catch (error) {
+      console.error('Error creating app review:', error);
+      res.status(500).json({ message: 'Failed to create app review' });
+    }
+  });
+  
   // Add a listing to user's favorites
   app.post('/api/marketplace/listings/:id/favorite', async (req, res) => {
     try {
