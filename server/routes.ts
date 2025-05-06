@@ -23,7 +23,7 @@ import {
   getAIRecommendations
 } from "./ai-recommendation-service";
 import { 
-  getTrendingModels, searchModels, getModelDetails, getTrendingModelsByCategory, 
+  getTrendingModels, searchModels, getModelDetails, getModelReadme, getTrendingModelsByCategory, 
   MODEL_TYPES, type HuggingFaceModel 
 } from "./huggingface-api";
 import { setupAuth } from "./auth";
@@ -38,7 +38,6 @@ import {
 } from "./api-keys";
 import { registerAdminRoutes } from "./admin-routes";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error";
 import { addUserProfileColumns } from "./add-user-profile-columns";
 
 // Helper function to calculate average rating from array of ratings
@@ -305,6 +304,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(`Error getting Hugging Face model details for ${req.params.id}:`, error);
       return res.status(500).json({ message: "Failed to get model details" });
+    }
+  });
+  
+  // Get AI model README content
+  app.get("/api/huggingface/model/:id/readme", async (req, res) => {
+    try {
+      const modelId = req.params.id;
+      
+      if (!modelId) {
+        return res.status(400).json({ message: "Model ID is required" });
+      }
+      
+      const readme = await getModelReadme(modelId);
+      
+      if (!readme) {
+        return res.status(404).json({ 
+          message: "README content not found for this model",
+          content: "No README content available for this model." 
+        });
+      }
+      
+      return res.json(readme);
+    } catch (error) {
+      console.error(`Error getting Hugging Face model README for ${req.params.id}:`, error);
+      return res.status(500).json({ 
+        message: "Failed to get model README",
+        content: "Error loading README content." 
+      });
     }
   });
   

@@ -7,25 +7,23 @@ import fetch from 'node-fetch';
 
 const HUGGINGFACE_API_URL = 'https://huggingface.co/api';
 
-// Model types based on Hugging Face classifications
+// Define common model pipeline types
 export const MODEL_TYPES = [
   'text-generation',
+  'text-to-image', 
+  'image-to-text',
+  'image-classification',
   'text-classification',
   'token-classification',
-  'question-answering',
+  'translation',
   'summarization',
-  'translation', 
-  'image-classification',
-  'image-segmentation',
-  'object-detection',
-  'image-to-text',
-  'text-to-image',
-  'speech-recognition',
-  'text-to-speech',
-  'tabular-classification',
-  'tabular-regression',
+  'question-answering',
+  'fill-mask',
+  'conversational',
+  'feature-extraction',
   'zero-shot-classification',
-  'feature-extraction'
+  'text-to-speech',
+  'sentence-similarity'
 ];
 
 export interface HuggingFaceModel {
@@ -66,28 +64,37 @@ interface HuggingFaceSearchResponse {
  * @returns Array of HuggingFace models
  */
 export async function getTrendingModels(
-  limit: number = 10,
+  limit: number = 20,
   pipelineTag?: string,
-  sort: 'downloads' | 'trending' | 'modified' = 'trending',
+  sort: 'downloads' | 'trending' | 'likes' | 'modified' = 'downloads',
   direction: 'asc' | 'desc' = 'desc'
 ): Promise<HuggingFaceModel[]> {
   try {
+    // Build query parameters
     let url = `${HUGGINGFACE_API_URL}/models?limit=${limit}&sort=${sort}&direction=${direction}`;
     
-    if (pipelineTag) {
+    // Add pipeline tag filter if provided
+    if (pipelineTag && pipelineTag !== 'all') {
       url += `&filter=${pipelineTag}`;
     }
     
+    // Fetch data from Hugging Face API
     const response = await fetch(url);
     
     if (!response.ok) {
-      throw new Error(`Hugging Face API error: ${response.status} ${response.statusText}`);
+      throw new Error(`Hugging Face API error: ${response.status}`);
     }
     
+    // Parse response
     const data = await response.json() as HuggingFaceModel[];
-    return data;
+    
+    // Transform to include modelId for easier reference
+    return data.map(model => ({
+      ...model,
+      modelId: `${model.author}/${model.id}` // Format: username/modelname
+    }));
   } catch (error) {
-    console.error('Error fetching trending models from Hugging Face:', error);
+    console.error('Error fetching trending models:', error);
     return [];
   }
 }
@@ -102,26 +109,35 @@ export async function getTrendingModels(
  */
 export async function searchModels(
   query: string,
-  limit: number = 10,
+  limit: number = 20,
   pipelineTag?: string
 ): Promise<HuggingFaceModel[]> {
   try {
+    // Build query parameters
     let url = `${HUGGINGFACE_API_URL}/models?search=${encodeURIComponent(query)}&limit=${limit}`;
     
-    if (pipelineTag) {
+    // Add pipeline tag filter if provided
+    if (pipelineTag && pipelineTag !== 'all') {
       url += `&filter=${pipelineTag}`;
     }
     
+    // Fetch data from Hugging Face API
     const response = await fetch(url);
     
     if (!response.ok) {
-      throw new Error(`Hugging Face API error: ${response.status} ${response.statusText}`);
+      throw new Error(`Hugging Face API error: ${response.status}`);
     }
     
+    // Parse response
     const data = await response.json() as HuggingFaceModel[];
-    return data;
+    
+    // Transform to include modelId for easier reference
+    return data.map(model => ({
+      ...model,
+      modelId: `${model.author}/${model.id}` // Format: username/modelname
+    }));
   } catch (error) {
-    console.error('Error searching models from Hugging Face:', error);
+    console.error('Error searching models:', error);
     return [];
   }
 }
@@ -134,16 +150,50 @@ export async function searchModels(
  */
 export async function getModelDetails(modelId: string): Promise<HuggingFaceModel | null> {
   try {
+    // Split model ID into author and model name
+    const [author, modelName] = modelId.split('/');
+    
+    // Fetch model details from Hugging Face API
     const response = await fetch(`${HUGGINGFACE_API_URL}/models/${modelId}`);
     
     if (!response.ok) {
-      throw new Error(`Hugging Face API error: ${response.status} ${response.statusText}`);
+      throw new Error(`Hugging Face API error: ${response.status}`);
     }
     
-    const data = await response.json() as HuggingFaceModel;
+    // Parse response
+    const data = await response.json();
+    
+    // Add modelId field for consistency
+    return {
+      ...data,
+      modelId
+    };
+  } catch (error) {
+    console.error(`Error fetching model details for ${modelId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Gets README content for a specific Hugging Face model
+ * 
+ * @param modelId The model ID (author/model-name format)
+ * @returns README content or null if not found
+ */
+export async function getModelReadme(modelId: string): Promise<{ content: string } | null> {
+  try {
+    // Make API request to get README
+    const response = await fetch(`${HUGGINGFACE_API_URL}/models/${modelId}/readme`);
+    
+    if (!response.ok) {
+      return null; // Not all models have README files
+    }
+    
+    // Parse response
+    const data = await response.json() as { content: string };
     return data;
   } catch (error) {
-    console.error(`Error fetching details for model ${modelId}:`, error);
+    console.error(`Error fetching README for ${modelId}:`, error);
     return null;
   }
 }
@@ -156,19 +206,19 @@ export async function getModelDetails(modelId: string): Promise<HuggingFaceModel
  */
 export async function getTrendingModelsByCategory(
   limit: number = 5
-): Promise<Record<string, HuggingFaceModel[]>> {
+): Promise<{ [category: string]: HuggingFaceModel[] }> {
   try {
-    const categories: Record<string, HuggingFaceModel[]> = {};
+    const result: { [category: string]: HuggingFaceModel[] } = {};
     
-    // Get a subset of relevant model types
-    const selectedCategories = MODEL_TYPES.slice(0, 8);
-    
-    for (const category of selectedCategories) {
-      const models = await getTrendingModels(limit, category);
-      categories[category] = models;
+    // Get models for each pipeline type
+    for (const type of MODEL_TYPES) {
+      const models = await getTrendingModels(limit, type);
+      if (models.length > 0) {
+        result[type] = models;
+      }
     }
     
-    return categories;
+    return result;
   } catch (error) {
     console.error('Error fetching trending models by category:', error);
     return {};

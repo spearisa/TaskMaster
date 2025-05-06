@@ -1,169 +1,187 @@
-import { useEffect, useState } from "react";
+import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation, Link } from "wouter";
+import { ModelTabs } from "@/components/huggingface/index";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Download, Star, GitFork, Share2, Code, ExternalLink } from "lucide-react";
-import ModelTabs from "@/components/huggingface/model-tabs";
+import { Badge } from "@/components/ui/badge";
+import { 
+  ChevronLeft, 
+  Loader2, 
+  Star, 
+  Download, 
+  Share2, 
+  ExternalLink,
+  BookmarkPlus
+} from "lucide-react";
 
 export default function AIModelDetailPage() {
-  const [location] = useLocation();
-  const modelId = decodeURIComponent(location.split('/ai-models/')[1]);
+  // Get model ID from URL params
+  const params = useParams<{ id: string }>();
+  const modelId = decodeURIComponent(params.id || "");
   
-  // Query for model details
-  const { 
-    data: model,
-    isLoading, 
-    error
-  } = useQuery({
-    queryKey: [`/api/huggingface/model/${modelId}`],
-    queryFn: () => fetch(`/api/huggingface/model/${modelId}`).then(res => res.json()),
-    enabled: !!modelId
+  // Fetch model details
+  const { data: model, isLoading, error } = useQuery({
+    queryKey: [`/api/huggingface/models/${modelId}`],
+    queryFn: async () => {
+      const response = await fetch(`/api/huggingface/models/${modelId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch model details');
+      }
+      return response.json();
+    },
   });
-
-  // Format download count
-  const formatDownloads = (downloads: number): string => {
-    if (downloads >= 1000000) {
-      return `${(downloads / 1000000).toFixed(1)}M`;
-    } else if (downloads >= 1000) {
-      return `${(downloads / 1000).toFixed(1)}K`;
+  
+  // Fetch model readme
+  const { data: readme, isLoading: readmeLoading } = useQuery({
+    queryKey: [`/api/huggingface/models/${modelId}/readme`],
+    queryFn: async () => {
+      const response = await fetch(`/api/huggingface/models/${modelId}/readme`);
+      if (!response.ok) {
+        return ""; // Not all models have a readme
+      }
+      return response.json();
+    },
+    retry: false,
+    enabled: !!model, // Only fetch readme if model exists
+  });
+  
+  // Format numbers for better display
+  const formatNumber = (num?: number): string => {
+    if (!num) return "0";
+    if (num >= 1000000) {
+      return `${(num / 1000000).toFixed(1)}M`;
+    } else if (num >= 1000) {
+      return `${(num / 1000).toFixed(1)}K`;
     }
-    return downloads.toString();
+    return num.toString();
   };
 
-  // Format display name
-  const displayName = model?.name || modelId.split('/').pop() || "AI Model";
-  const author = model?.author || modelId.split('/')[0] || "Author";
-  
   return (
-    <div className="container max-w-7xl mx-auto py-6">
-      <Link href="/ai-models">
-        <Button variant="ghost" className="mb-6">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to models
+    <div className="container py-6 space-y-6">
+      {/* Back button */}
+      <div>
+        <Button variant="ghost" asChild>
+          <Link href="/ai-models">
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Back to Models
+          </Link>
         </Button>
-      </Link>
+      </div>
       
       {isLoading ? (
-        <div className="space-y-6">
-          <div className="flex justify-between">
-            <div>
-              <Skeleton className="h-8 w-64 mb-2" />
-              <Skeleton className="h-5 w-40" />
-            </div>
-            <Skeleton className="h-10 w-28" />
+        <div className="space-y-4">
+          <Skeleton className="h-12 w-2/3" />
+          <Skeleton className="h-6 w-1/3" />
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-8 w-24" />
           </div>
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-[400px] w-full" />
         </div>
       ) : error ? (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <h3 className="text-xl font-medium mb-2 text-red-500">Error loading model details</h3>
-            <p className="text-muted-foreground mb-6">
-              We couldn't load the information for this model. It may not exist or there was a connection issue.
-            </p>
-            <div className="flex justify-center gap-4">
-              <Button onClick={() => window.location.reload()}>
-                Try again
-              </Button>
-              <Button variant="outline" asChild>
-                <a 
-                  href={`https://huggingface.co/${modelId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  View on Hugging Face
-                </a>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center p-12 bg-red-50 rounded-lg border border-red-100">
+          <h2 className="text-xl font-bold text-red-800 mb-2">Failed to load model details</h2>
+          <p className="text-red-700 mb-6 text-center">
+            We couldn't fetch information for this model. It might not exist or there may be connectivity issues.
+          </p>
+          <Button asChild>
+            <Link href="/ai-models">
+              Back to AI Models
+            </Link>
+          </Button>
+        </div>
       ) : model ? (
         <>
-          <div className="mb-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight mb-1">{displayName}</h1>
-                <div className="flex items-center gap-2">
-                  <span>by {author}</span>
-                  <Badge 
-                    variant="outline" 
-                    className="capitalize"
-                    style={{
-                      backgroundColor: model.pipeline_tag === 'text-generation' ? 'rgba(25, 113, 194, 0.1)' : 
-                                      model.pipeline_tag === 'image-to-text' ? 'rgba(64, 186, 128, 0.1)' : 
-                                      model.pipeline_tag === 'text-to-image' ? 'rgba(244, 123, 32, 0.1)' : 
-                                      'rgba(0, 0, 0, 0.05)'
-                    }}
-                  >
-                    {model.pipeline_tag?.replace(/-/g, ' ') || 'Model'}
-                  </Badge>
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap gap-2 items-start justify-between">
+                <h1 className="text-3xl font-bold tracking-tight break-words max-w-3xl">
+                  {model.name || modelId.split('/').pop()}
+                </h1>
+                
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" className="gap-2">
+                    <BookmarkPlus className="h-4 w-4" />
+                    <span className="hidden sm:inline">Save</span>
+                  </Button>
+                  <Button variant="outline" className="gap-2">
+                    <Share2 className="h-4 w-4" />
+                    <span className="hidden sm:inline">Share</span>
+                  </Button>
+                  <Button variant="default" className="gap-2">
+                    <Download className="h-4 w-4" />
+                    <span>Download</span>
+                  </Button>
                 </div>
               </div>
               
-              <div className="flex flex-wrap gap-2">
-                <Button asChild variant="outline">
+              <div className="text-muted-foreground">
+                by <span className="font-medium">{model.author}</span> •{" "}
+                {model.pipeline_tag && (
+                  <Badge variant="outline" className="capitalize ml-1">
+                    {model.pipeline_tag.replace(/-/g, ' ')}
+                  </Badge>
+                )}
+              </div>
+              
+              <div className="flex flex-wrap gap-4 mt-2">
+                <div className="flex items-center gap-1">
+                  <Download className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm">
+                    {formatNumber(model.downloads)} downloads
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Star className="h-4 w-4 text-yellow-500" />
+                  <span className="text-sm">
+                    {formatNumber(model.likes)} likes
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <ExternalLink className="h-4 w-4 text-blue-500" />
                   <a 
-                    href={`https://huggingface.co/${model.modelId}`}
+                    href={`https://huggingface.co/${modelId}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    className="text-sm text-blue-600 hover:underline"
                   >
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Open in Hugging Face
+                    View on Hugging Face
                   </a>
-                </Button>
-                <Button>
-                  <Download className="mr-2 h-4 w-4" />
-                  Use this model
-                </Button>
+                </div>
               </div>
             </div>
             
-            <div className="flex flex-wrap gap-6 text-sm">
-              <div className="flex items-center">
-                <Download className="h-4 w-4 mr-1.5" />
-                <span className="font-medium mr-1">Downloads:</span>
-                <span>{formatDownloads(model.downloads || 0)}</span>
+            {/* Model metadata and interactive elements */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-accent/30 p-4 rounded-lg">
+              <div className="space-y-1">
+                <span className="text-sm font-medium">License</span>
+                <p className="font-medium">{model.license || "Not specified"}</p>
               </div>
-              <div className="flex items-center">
-                <Star className="h-4 w-4 mr-1.5 text-yellow-500" />
-                <span className="font-medium mr-1">Likes:</span>
-                <span>{model.likes || 0}</span>
+              <div className="space-y-1">
+                <span className="text-sm font-medium">Last updated</span>
+                <p className="font-medium">
+                  {new Date(model.lastModified).toLocaleDateString()}
+                </p>
               </div>
-              <div className="flex items-center">
-                <GitFork className="h-4 w-4 mr-1.5" />
-                <span className="font-medium mr-1">Library:</span>
-                <span>{model.library_name || 'Not specified'}</span>
-              </div>
-              <div className="flex items-center">
-                <Code className="h-4 w-4 mr-1.5" />
-                <span className="font-medium mr-1">Files:</span>
-                <span>{model.siblings?.length || 0}</span>
+              <div className="space-y-1">
+                <span className="text-sm font-medium">Monthly downloads</span>
+                <p className="font-medium">
+                  {formatNumber(model.downloads_last_month)}
+                </p>
               </div>
             </div>
+            
+            {/* Detailed tabs */}
+            {readmeLoading ? (
+              <div className="py-8 flex justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <ModelTabs model={model} readme={readme?.content} />
+            )}
           </div>
-          
-          <ModelTabs model={model} />
         </>
-      ) : (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <h3 className="text-xl font-medium mb-2">Model not found</h3>
-            <p className="text-muted-foreground mb-6">
-              The model you're looking for could not be found
-            </p>
-            <Button asChild>
-              <Link href="/ai-models">
-                Browse models
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      ) : null}
     </div>
   );
 }

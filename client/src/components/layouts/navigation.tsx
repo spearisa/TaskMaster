@@ -237,6 +237,19 @@ export function SideNavigation() {
                   </div>
                 </Link>
                 
+                <Link href="/ai-models">
+                  <div 
+                    className={cn(
+                      "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                      isActive('/ai-models') 
+                        ? "border-l-primary text-primary" 
+                        : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+                    )}
+                  >
+                    <span className="text-sm">AI Models</span>
+                  </div>
+                </Link>
+                
                 {/* Profile */}
                 <div className="flex gap-2 mt-4 mb-1 px-4 pt-2">
                   <User size={18} className="text-gray-500" />
@@ -520,6 +533,19 @@ export function SideNavigation() {
               )}
             >
               <span className="text-sm">AI Tools</span>
+            </div>
+          </Link>
+          
+          <Link href="/ai-models">
+            <div 
+              className={cn(
+                "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                isActive('/ai-models') 
+                  ? "border-l-primary text-primary" 
+                  : "border-l-transparent text-gray-600 hover:text-gray-900 hover:border-l-gray-200"
+              )}
+            >
+              <span className="text-sm">AI Models</span>
             </div>
           </Link>
           
