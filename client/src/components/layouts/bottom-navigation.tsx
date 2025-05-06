@@ -44,15 +44,15 @@ export function BottomNavigation() {
         // Authenticated user navigation
         { path: '/', labelKey: 'navigation.tasks', icon: Home },
         { path: '/calendar', labelKey: 'navigation.calendar', icon: Calendar },
-        { path: '/public-tasks', labelKey: 'navigation.publicTasks', icon: Globe },
+        { path: '/marketplace', labelKey: 'navigation.marketplace', icon: Store },
         { path: '/messenger', labelKey: 'messages.messages', icon: MessageSquare },
-        { path: '/api-docs', labelKey: 'navigation.apiDocs', icon: BookOpen },
+        { path: '/public-tasks', labelKey: 'navigation.publicTasks', icon: Globe },
       ];
     } else {
       return [
         // Non-authenticated user navigation - limited options
         { path: '/public-tasks', labelKey: 'navigation.publicTasks', icon: Globe },
-        { path: '/api-docs', labelKey: 'navigation.apiDocs', icon: BookOpen },
+        { path: '/marketplace', labelKey: 'navigation.marketplace', icon: Store },
         { path: '/auth', labelKey: 'auth.signIn', icon: User },
         { path: '/admin/login', labelKey: 'admin.login', icon: ShieldAlert },
       ];

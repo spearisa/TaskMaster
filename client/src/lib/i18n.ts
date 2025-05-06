@@ -87,6 +87,7 @@ const resources = {
         mainNavigation: 'Main Navigation',
         sideNavigation: 'Side Navigation',
         bottomNavigation: 'Bottom Navigation',
+        marketplace: 'Marketplace',
       },
       tasks: {
         task: 'Task',
@@ -346,6 +347,7 @@ const resources = {
         mainNavigation: 'Navegación Principal',
         sideNavigation: 'Navegación Lateral',
         bottomNavigation: 'Navegación Inferior',
+        marketplace: 'Mercado',
       },
       tasks: {
         task: 'Tarea',
@@ -605,6 +607,7 @@ const resources = {
         mainNavigation: 'Navigation Principale',
         sideNavigation: 'Navigation Latérale',
         bottomNavigation: 'Navigation Inférieure',
+        marketplace: 'Marché',
       },
       tasks: {
         task: 'Tâche',
