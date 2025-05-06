@@ -3089,13 +3089,43 @@ app.get("/api/profile/share/:userId", async (req, res) => {
         bio: seller.bio
       } : null;
       
+      // Get review metrics for the listing
+      const reviews = await db.select()
+        .from(appReviews)
+        .where(eq(appReviews.listingId, listingId))
+        .execute();
+      
+      // Calculate average ratings if reviews exist
+      let reviewMetrics = null;
+      if (reviews.length > 0) {
+        const overallRatings = reviews.map(r => r.overallRating).filter(Boolean);
+        const codeQualityRatings = reviews.map(r => r.codeQualityRating).filter(Boolean);
+        const documentationRatings = reviews.map(r => r.documentationRating).filter(Boolean);
+        const supportRatings = reviews.map(r => r.supportRating).filter(Boolean);
+        const valueRatings = reviews.map(r => r.valueRating).filter(Boolean);
+        
+        const calcAverage = (arr: number[]) => arr.length > 0 ? 
+          arr.reduce((sum, val) => sum + val, 0) / arr.length : null;
+        
+        reviewMetrics = {
+          reviewCount: reviews.length,
+          averageRating: calcAverage(overallRatings),
+          codeQualityRating: calcAverage(codeQualityRatings),
+          documentationRating: calcAverage(documentationRatings),
+          supportRating: calcAverage(supportRatings),
+          valueRating: calcAverage(valueRatings)
+        };
+      }
+      
       // Format dates for API response
       const formattedListing = {
         ...listing,
         createdAt: listing.createdAt.toISOString(),
         updatedAt: listing.updatedAt.toISOString(),
         establishedDate: listing.establishedDate ? listing.establishedDate.toISOString() : null,
-        seller: sellerProfile
+        lastMaintained: listing.lastMaintained ? listing.lastMaintained.toISOString() : null,
+        seller: sellerProfile,
+        ...reviewMetrics
       };
       
       res.json(formattedListing);

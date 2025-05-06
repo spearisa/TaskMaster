@@ -617,6 +617,11 @@ export const insertAppListingSchema = createInsertSchema(appListings)
     monthlyTraffic: z.number().int().optional().nullable(),
     establishedDate: z.date().optional().nullable(),
     repoUrl: z.string().url({ message: "Must be a valid URL" }).optional().nullable(),
+    subcategory: z.string().optional().nullable(),
+    supportPeriod: z.number().int().min(0).optional().nullable(),
+    supportDetails: z.string().optional().nullable(),
+    documentation: z.string().url({ message: "Must be a valid URL" }).optional().nullable(),
+    lastMaintained: z.date().optional().nullable(),
   });
 
 export const appListingSchema = z.object({
@@ -630,6 +635,7 @@ export const appListingSchema = z.object({
   updatedAt: z.string(),
   status: z.enum(['draft', 'published', 'sold', 'archived']),
   category: z.string(),
+  subcategory: z.string().optional().nullable(),
   technologies: z.array(z.string()).optional().nullable(),
   monthlyRevenue: z.number().optional().nullable(),
   monthlyProfit: z.number().optional().nullable(),
@@ -641,9 +647,19 @@ export const appListingSchema = z.object({
   demoUrl: z.string().optional().nullable(),
   repoUrl: z.string().optional().nullable(),
   verified: z.boolean(),
+  supportPeriod: z.number().optional().nullable(), // Number of months support is included
+  supportDetails: z.string().optional().nullable(), // Details about what's included in support
+  documentation: z.string().optional().nullable(), // Link to documentation or description
+  lastMaintained: z.string().optional().nullable(), // When the app was last updated by developer
   seller: userProfileSchema.optional(),
   favoriteCount: z.number().optional(),
   isFavorited: z.boolean().optional(),
+  averageRating: z.number().optional(), // Average overall rating
+  codeQualityRating: z.number().optional(), // Average code quality rating
+  documentationRating: z.number().optional(), // Average documentation rating
+  supportRating: z.number().optional(), // Average support rating
+  valueRating: z.number().optional(), // Average value rating
+  reviewCount: z.number().optional(), // Number of reviews
 });
 
 export const insertAppBidSchema = createInsertSchema(appBids)
