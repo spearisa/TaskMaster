@@ -458,6 +458,7 @@ export const appListings = pgTable('app_listings', {
   additionalImages: text('additional_images').array(),
   demoUrl: text('demo_url'),
   verified: boolean('verified').default(false),
+  repoUrl: text('repo_url'),
 });
 
 export const appBids = pgTable('app_bids', {
@@ -572,6 +573,7 @@ export const insertAppListingSchema = createInsertSchema(appListings)
     monthlyProfit: z.number().optional().nullable(),
     monthlyTraffic: z.number().int().optional().nullable(),
     establishedDate: z.date().optional().nullable(),
+    repoUrl: z.string().url({ message: "Must be a valid URL" }).optional().nullable(),
   });
 
 export const appListingSchema = z.object({
@@ -594,6 +596,7 @@ export const appListingSchema = z.object({
   featuredImage: z.string().optional().nullable(),
   additionalImages: z.array(z.string()).optional().nullable(),
   demoUrl: z.string().optional().nullable(),
+  repoUrl: z.string().optional().nullable(),
   verified: z.boolean(),
   seller: userProfileSchema.optional(),
   favoriteCount: z.number().optional(),

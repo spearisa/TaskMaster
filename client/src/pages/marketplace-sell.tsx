@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -47,11 +47,12 @@ const listingSchema = z.object({
   features: z.string().optional(),
   establishedDate: z.string().optional(),
   websiteUrl: z.string().url({ message: "Please enter a valid URL" }).optional().or(z.literal('')),
+  repoUrl: z.string().url({ message: "Please enter a valid repository URL" }).optional().or(z.literal('')),
   status: z.enum(["draft", "published"]),
 });
 
 export default function MarketplaceSell() {
-  const [_, navigate] = useNavigate();
+  const [_, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,6 +75,7 @@ export default function MarketplaceSell() {
       features: "",
       establishedDate: "",
       websiteUrl: "",
+      repoUrl: "",
       status: "draft",
     }
   });
@@ -108,7 +110,7 @@ export default function MarketplaceSell() {
       queryClient.invalidateQueries({ queryKey: ["/api/marketplace/listings"] });
       
       // Navigate to the listing page
-      navigate(`/marketplace/listing/${data.id}`);
+      setLocation(`/marketplace/listing/${data.id}`);
     },
     onError: (error: any) => {
       toast({
@@ -350,6 +352,27 @@ export default function MarketplaceSell() {
                           </FormControl>
                           <FormDescription>
                             Live URL where potential buyers can see your app (if available)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="repoUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Code Repository URL</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="https://github.com/username/repository"
+                              type="url"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Link to GitHub, GitLab or other code repository for technical evaluation
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
