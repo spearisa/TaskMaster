@@ -28,12 +28,13 @@ import {
   createPaymentIntent, getPaymentIntent, confirmPaymentComplete
 } from "./stripe-service";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and, or } from "drizzle-orm";
 import { 
   createApiKey, getApiKeys, validateApiKey, revokeApiKey 
 } from "./api-keys";
 import { registerAdminRoutes } from "./admin-routes";
 import { z } from "zod";
+import { fromZodError } from "zod-validation-error";
 import { addUserProfileColumns } from "./add-user-profile-columns";
 
 // Extend Express Request type to include API user
@@ -3021,6 +3022,676 @@ app.get("/api/profile/share/:userId", async (req, res) => {
     } catch (error) {
       console.error('Error getting user referrals:', error);
       res.status(500).json({ message: 'Failed to get referrals' });
+    }
+  });
+  
+  // App Marketplace Routes
+  
+  // Get all published app listings
+  app.get('/api/marketplace/listings', async (req, res) => {
+    try {
+      const categoryFilter = req.query.category as string;
+      const priceMin = req.query.price_min ? parseFloat(req.query.price_min as string) : undefined;
+      const priceMax = req.query.price_max ? parseFloat(req.query.price_max as string) : undefined;
+      const searchTerm = req.query.search as string;
+      
+      // Query the database for published listings with optional filters
+      const listings = await db.select()
+        .from(appListings)
+        .where(eq(appListings.status, 'published'))
+        .execute();
+      
+      // Format listings for API response
+      const formattedListings = listings.map(listing => ({
+        ...listing,
+        createdAt: listing.createdAt.toISOString(),
+        updatedAt: listing.updatedAt.toISOString(),
+        establishedDate: listing.establishedDate ? listing.establishedDate.toISOString() : null
+      }));
+      
+      res.json(formattedListings);
+    } catch (error) {
+      console.error('Error fetching app listings:', error);
+      res.status(500).json({ message: 'Failed to fetch app listings' });
+    }
+  });
+  
+  // Get a specific app listing by ID
+  app.get('/api/marketplace/listings/:id', async (req, res) => {
+    try {
+      const listingId = parseInt(req.params.id);
+      
+      if (isNaN(listingId)) {
+        return res.status(400).json({ message: 'Invalid listing ID' });
+      }
+      
+      // Query the database for the listing
+      const [listing] = await db.select()
+        .from(appListings)
+        .where(eq(appListings.id, listingId))
+        .execute();
+      
+      if (!listing) {
+        return res.status(404).json({ message: 'Listing not found' });
+      }
+      
+      // Get the seller details
+      const [seller] = await db.select()
+        .from(users)
+        .where(eq(users.id, listing.sellerId))
+        .execute();
+      
+      const sellerProfile = seller ? {
+        id: seller.id,
+        username: seller.username,
+        displayName: seller.displayName,
+        avatarUrl: seller.avatarUrl,
+        bio: seller.bio
+      } : null;
+      
+      // Format dates for API response
+      const formattedListing = {
+        ...listing,
+        createdAt: listing.createdAt.toISOString(),
+        updatedAt: listing.updatedAt.toISOString(),
+        establishedDate: listing.establishedDate ? listing.establishedDate.toISOString() : null,
+        seller: sellerProfile
+      };
+      
+      res.json(formattedListing);
+    } catch (error) {
+      console.error('Error fetching app listing:', error);
+      res.status(500).json({ message: 'Failed to fetch app listing' });
+    }
+  });
+  
+  // Create a new app listing
+  app.post('/api/marketplace/listings', async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated() && !req.apiUser) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const userId = req.user?.id || req.apiUser?.id;
+      
+      // Validate request body
+      const result = insertAppListingSchema.safeParse({
+        ...req.body,
+        sellerId: userId
+      });
+      
+      if (!result.success) {
+        const errorMessage = fromZodError(result.error).message;
+        return res.status(400).json({ message: errorMessage });
+      }
+      
+      // Insert the listing
+      const [newListing] = await db.insert(appListings)
+        .values(result.data)
+        .returning()
+        .execute();
+      
+      // Format the listing for API response
+      const formattedListing = {
+        ...newListing,
+        createdAt: newListing.createdAt.toISOString(),
+        updatedAt: newListing.updatedAt.toISOString(),
+        establishedDate: newListing.establishedDate ? newListing.establishedDate.toISOString() : null
+      };
+      
+      res.status(201).json(formattedListing);
+    } catch (error) {
+      console.error('Error creating app listing:', error);
+      res.status(500).json({ message: 'Failed to create app listing' });
+    }
+  });
+  
+  // Update an app listing
+  app.put('/api/marketplace/listings/:id', async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated() && !req.apiUser) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const userId = req.user?.id || req.apiUser?.id;
+      const listingId = parseInt(req.params.id);
+      
+      if (isNaN(listingId)) {
+        return res.status(400).json({ message: 'Invalid listing ID' });
+      }
+      
+      // Get the listing to check ownership
+      const [listing] = await db.select()
+        .from(appListings)
+        .where(eq(appListings.id, listingId))
+        .execute();
+      
+      if (!listing) {
+        return res.status(404).json({ message: 'Listing not found' });
+      }
+      
+      // Check if the user is the seller
+      if (listing.sellerId !== userId && req.user?.isAdmin !== true) {
+        return res.status(403).json({ message: 'Not authorized to update this listing' });
+      }
+      
+      // Validate request body
+      const result = insertAppListingSchema.safeParse({
+        ...req.body,
+        sellerId: listing.sellerId
+      });
+      
+      if (!result.success) {
+        const errorMessage = fromZodError(result.error).message;
+        return res.status(400).json({ message: errorMessage });
+      }
+      
+      // Update the listing
+      const [updatedListing] = await db.update(appListings)
+        .set({
+          ...result.data,
+          updatedAt: new Date()
+        })
+        .where(eq(appListings.id, listingId))
+        .returning()
+        .execute();
+      
+      // Format the listing for API response
+      const formattedListing = {
+        ...updatedListing,
+        createdAt: updatedListing.createdAt.toISOString(),
+        updatedAt: updatedListing.updatedAt.toISOString(),
+        establishedDate: updatedListing.establishedDate ? updatedListing.establishedDate.toISOString() : null
+      };
+      
+      res.json(formattedListing);
+    } catch (error) {
+      console.error('Error updating app listing:', error);
+      res.status(500).json({ message: 'Failed to update app listing' });
+    }
+  });
+  
+  // Delete an app listing
+  app.delete('/api/marketplace/listings/:id', async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated() && !req.apiUser) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const userId = req.user?.id || req.apiUser?.id;
+      const listingId = parseInt(req.params.id);
+      
+      if (isNaN(listingId)) {
+        return res.status(400).json({ message: 'Invalid listing ID' });
+      }
+      
+      // Get the listing to check ownership
+      const [listing] = await db.select()
+        .from(appListings)
+        .where(eq(appListings.id, listingId))
+        .execute();
+      
+      if (!listing) {
+        return res.status(404).json({ message: 'Listing not found' });
+      }
+      
+      // Check if the user is the seller
+      if (listing.sellerId !== userId && req.user?.isAdmin !== true) {
+        return res.status(403).json({ message: 'Not authorized to delete this listing' });
+      }
+      
+      // Delete the listing
+      await db.delete(appListings)
+        .where(eq(appListings.id, listingId))
+        .execute();
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting app listing:', error);
+      res.status(500).json({ message: 'Failed to delete app listing' });
+    }
+  });
+  
+  // Submit a bid for an app listing
+  app.post('/api/marketplace/listings/:id/bids', async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated() && !req.apiUser) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const userId = req.user?.id || req.apiUser?.id;
+      const listingId = parseInt(req.params.id);
+      
+      if (isNaN(listingId)) {
+        return res.status(400).json({ message: 'Invalid listing ID' });
+      }
+      
+      // Get the listing to check if it exists and is published
+      const [listing] = await db.select()
+        .from(appListings)
+        .where(eq(appListings.id, listingId))
+        .execute();
+      
+      if (!listing) {
+        return res.status(404).json({ message: 'Listing not found' });
+      }
+      
+      // Check if the listing is published
+      if (listing.status !== 'published') {
+        return res.status(400).json({ message: 'Cannot bid on a listing that is not published' });
+      }
+      
+      // Check that the bidder is not the seller
+      if (listing.sellerId === userId) {
+        return res.status(400).json({ message: 'You cannot bid on your own listing' });
+      }
+      
+      // Validate request body
+      const result = insertAppBidSchema.safeParse({
+        ...req.body,
+        listingId,
+        bidderId: userId
+      });
+      
+      if (!result.success) {
+        const errorMessage = fromZodError(result.error).message;
+        return res.status(400).json({ message: errorMessage });
+      }
+      
+      // Insert the bid
+      const [newBid] = await db.insert(appBids)
+        .values(result.data)
+        .returning()
+        .execute();
+      
+      // Format the bid for API response
+      const formattedBid = {
+        ...newBid,
+        createdAt: newBid.createdAt.toISOString(),
+        updatedAt: newBid.updatedAt.toISOString()
+      };
+      
+      res.status(201).json(formattedBid);
+    } catch (error) {
+      console.error('Error creating app bid:', error);
+      res.status(500).json({ message: 'Failed to create app bid' });
+    }
+  });
+  
+  // Get bids for a listing
+  app.get('/api/marketplace/listings/:id/bids', async (req, res) => {
+    try {
+      const listingId = parseInt(req.params.id);
+      
+      if (isNaN(listingId)) {
+        return res.status(400).json({ message: 'Invalid listing ID' });
+      }
+      
+      // Get the listing to check ownership
+      const [listing] = await db.select()
+        .from(appListings)
+        .where(eq(appListings.id, listingId))
+        .execute();
+      
+      if (!listing) {
+        return res.status(404).json({ message: 'Listing not found' });
+      }
+      
+      // If user is authenticated and is the seller, they can see all bids
+      // Otherwise, if authenticated, they can only see their own bids
+      // If not authenticated, they can't see any bids
+      let query = db.select().from(appBids).where(eq(appBids.listingId, listingId));
+      
+      if (req.isAuthenticated() || req.apiUser) {
+        const userId = req.user?.id || req.apiUser?.id;
+        
+        if (listing.sellerId !== userId && req.user?.isAdmin !== true) {
+          // Not the seller or admin, can only see own bids
+          query = query.where(eq(appBids.bidderId, userId));
+        }
+      } else {
+        // Not authenticated, can't see any bids
+        return res.status(401).json({ message: 'Authentication required to view bids' });
+      }
+      
+      // Execute the query
+      const bids = await query.execute();
+      
+      // Format bids for API response
+      const formattedBids = bids.map(bid => ({
+        ...bid,
+        createdAt: bid.createdAt.toISOString(),
+        updatedAt: bid.updatedAt.toISOString()
+      }));
+      
+      res.json(formattedBids);
+    } catch (error) {
+      console.error('Error fetching app bids:', error);
+      res.status(500).json({ message: 'Failed to fetch app bids' });
+    }
+  });
+  
+  // Add a question to a listing
+  app.post('/api/marketplace/listings/:id/questions', async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated() && !req.apiUser) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const userId = req.user?.id || req.apiUser?.id;
+      const listingId = parseInt(req.params.id);
+      
+      if (isNaN(listingId)) {
+        return res.status(400).json({ message: 'Invalid listing ID' });
+      }
+      
+      // Get the listing to check if it exists
+      const [listing] = await db.select()
+        .from(appListings)
+        .where(eq(appListings.id, listingId))
+        .execute();
+      
+      if (!listing) {
+        return res.status(404).json({ message: 'Listing not found' });
+      }
+      
+      // Validate request body
+      const result = insertAppQuestionSchema.safeParse({
+        ...req.body,
+        listingId,
+        askerId: userId,
+        isPublic: req.body.isPublic ?? true
+      });
+      
+      if (!result.success) {
+        const errorMessage = fromZodError(result.error).message;
+        return res.status(400).json({ message: errorMessage });
+      }
+      
+      // Insert the question
+      const [newQuestion] = await db.insert(appQuestions)
+        .values(result.data)
+        .returning()
+        .execute();
+      
+      // Format the question for API response
+      const formattedQuestion = {
+        ...newQuestion,
+        createdAt: newQuestion.createdAt.toISOString(),
+        answeredAt: newQuestion.answeredAt ? newQuestion.answeredAt.toISOString() : null
+      };
+      
+      res.status(201).json(formattedQuestion);
+    } catch (error) {
+      console.error('Error creating app question:', error);
+      res.status(500).json({ message: 'Failed to create app question' });
+    }
+  });
+  
+  // Get questions for a listing
+  app.get('/api/marketplace/listings/:id/questions', async (req, res) => {
+    try {
+      const listingId = parseInt(req.params.id);
+      
+      if (isNaN(listingId)) {
+        return res.status(400).json({ message: 'Invalid listing ID' });
+      }
+      
+      // Get the listing to check if it exists
+      const [listing] = await db.select()
+        .from(appListings)
+        .where(eq(appListings.id, listingId))
+        .execute();
+      
+      if (!listing) {
+        return res.status(404).json({ message: 'Listing not found' });
+      }
+      
+      // Query the database for questions
+      // If not authenticated or not the seller, only show public questions
+      let query = db.select().from(appQuestions).where(eq(appQuestions.listingId, listingId));
+      
+      if (!req.isAuthenticated() && !req.apiUser) {
+        // Not authenticated, only show public questions
+        query = query.where(eq(appQuestions.isPublic, true));
+      } else {
+        const userId = req.user?.id || req.apiUser?.id;
+        
+        if (listing.sellerId !== userId && req.user?.isAdmin !== true) {
+          // Not the seller or admin, only show public questions or own questions
+          query = query.where(
+            or(
+              eq(appQuestions.isPublic, true),
+              eq(appQuestions.askerId, userId)
+            )
+          );
+        }
+      }
+      
+      // Execute the query
+      const questions = await query.execute();
+      
+      // Format questions for API response
+      const formattedQuestions = questions.map(question => ({
+        ...question,
+        createdAt: question.createdAt.toISOString(),
+        answeredAt: question.answeredAt ? question.answeredAt.toISOString() : null
+      }));
+      
+      res.json(formattedQuestions);
+    } catch (error) {
+      console.error('Error fetching app questions:', error);
+      res.status(500).json({ message: 'Failed to fetch app questions' });
+    }
+  });
+  
+  // Answer a question
+  app.post('/api/marketplace/questions/:id/answer', async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated() && !req.apiUser) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const userId = req.user?.id || req.apiUser?.id;
+      const questionId = parseInt(req.params.id);
+      
+      if (isNaN(questionId)) {
+        return res.status(400).json({ message: 'Invalid question ID' });
+      }
+      
+      // Get the question
+      const [question] = await db.select()
+        .from(appQuestions)
+        .where(eq(appQuestions.id, questionId))
+        .execute();
+      
+      if (!question) {
+        return res.status(404).json({ message: 'Question not found' });
+      }
+      
+      // Get the listing to check ownership
+      const [listing] = await db.select()
+        .from(appListings)
+        .where(eq(appListings.id, question.listingId))
+        .execute();
+      
+      if (!listing) {
+        return res.status(404).json({ message: 'Listing not found' });
+      }
+      
+      // Check if the user is the seller
+      if (listing.sellerId !== userId && req.user?.isAdmin !== true) {
+        return res.status(403).json({ message: 'Not authorized to answer this question' });
+      }
+      
+      // Validate the answer
+      if (!req.body.answer || typeof req.body.answer !== 'string' || req.body.answer.trim() === '') {
+        return res.status(400).json({ message: 'Answer is required' });
+      }
+      
+      // Update the question with the answer
+      const [updatedQuestion] = await db.update(appQuestions)
+        .set({
+          answer: req.body.answer,
+          answeredAt: new Date()
+        })
+        .where(eq(appQuestions.id, questionId))
+        .returning()
+        .execute();
+      
+      // Format the question for API response
+      const formattedQuestion = {
+        ...updatedQuestion,
+        createdAt: updatedQuestion.createdAt.toISOString(),
+        answeredAt: updatedQuestion.answeredAt ? updatedQuestion.answeredAt.toISOString() : null
+      };
+      
+      res.json(formattedQuestion);
+    } catch (error) {
+      console.error('Error answering app question:', error);
+      res.status(500).json({ message: 'Failed to answer app question' });
+    }
+  });
+  
+  // Add a listing to user's favorites
+  app.post('/api/marketplace/listings/:id/favorite', async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated() && !req.apiUser) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const userId = req.user?.id || req.apiUser?.id;
+      const listingId = parseInt(req.params.id);
+      
+      if (isNaN(listingId)) {
+        return res.status(400).json({ message: 'Invalid listing ID' });
+      }
+      
+      // Check if the listing exists
+      const [listing] = await db.select()
+        .from(appListings)
+        .where(eq(appListings.id, listingId))
+        .execute();
+      
+      if (!listing) {
+        return res.status(404).json({ message: 'Listing not found' });
+      }
+      
+      // Check if already favorited
+      const [existingFavorite] = await db.select()
+        .from(appFavorites)
+        .where(
+          and(
+            eq(appFavorites.userId, userId),
+            eq(appFavorites.listingId, listingId)
+          )
+        )
+        .execute();
+      
+      if (existingFavorite) {
+        return res.status(400).json({ message: 'Listing already in favorites' });
+      }
+      
+      // Add to favorites
+      const [favorite] = await db.insert(appFavorites)
+        .values({
+          userId,
+          listingId,
+          createdAt: new Date()
+        })
+        .returning()
+        .execute();
+      
+      // Format for API response
+      const formattedFavorite = {
+        ...favorite,
+        createdAt: favorite.createdAt.toISOString()
+      };
+      
+      res.status(201).json(formattedFavorite);
+    } catch (error) {
+      console.error('Error adding listing to favorites:', error);
+      res.status(500).json({ message: 'Failed to add listing to favorites' });
+    }
+  });
+  
+  // Remove a listing from user's favorites
+  app.delete('/api/marketplace/listings/:id/favorite', async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated() && !req.apiUser) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const userId = req.user?.id || req.apiUser?.id;
+      const listingId = parseInt(req.params.id);
+      
+      if (isNaN(listingId)) {
+        return res.status(400).json({ message: 'Invalid listing ID' });
+      }
+      
+      // Delete the favorite
+      await db.delete(appFavorites)
+        .where(
+          and(
+            eq(appFavorites.userId, userId),
+            eq(appFavorites.listingId, listingId)
+          )
+        )
+        .execute();
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error removing listing from favorites:', error);
+      res.status(500).json({ message: 'Failed to remove listing from favorites' });
+    }
+  });
+  
+  // Get user's favorite listings
+  app.get('/api/marketplace/favorites', async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated() && !req.apiUser) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const userId = req.user?.id || req.apiUser?.id;
+      
+      // Get user's favorites with listing details
+      const favorites = await db.select({
+        favorite: appFavorites,
+        listing: appListings
+      })
+        .from(appFavorites)
+        .innerJoin(appListings, eq(appFavorites.listingId, appListings.id))
+        .where(eq(appFavorites.userId, userId))
+        .execute();
+      
+      // Format for API response
+      const formattedFavorites = favorites.map(({ favorite, listing }) => ({
+        id: favorite.id,
+        userId: favorite.userId,
+        listingId: favorite.listingId,
+        createdAt: favorite.createdAt.toISOString(),
+        listing: {
+          ...listing,
+          createdAt: listing.createdAt.toISOString(),
+          updatedAt: listing.updatedAt.toISOString(),
+          establishedDate: listing.establishedDate ? listing.establishedDate.toISOString() : null
+        }
+      }));
+      
+      res.json(formattedFavorites);
+    } catch (error) {
+      console.error('Error fetching favorite listings:', error);
+      res.status(500).json({ message: 'Failed to fetch favorite listings' });
     }
   });
   
