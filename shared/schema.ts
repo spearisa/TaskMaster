@@ -448,6 +448,7 @@ export const appListings = pgTable('app_listings', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   status: text('status', { enum: ['draft', 'published', 'sold', 'archived'] }).default('draft').notNull(),
   category: text('category').notNull(),
+  subcategory: text('subcategory'),
   technologies: text('technologies').array(),
   monthlyRevenue: decimal('monthly_revenue', { precision: 10, scale: 2 }),
   monthlyProfit: decimal('monthly_profit', { precision: 10, scale: 2 }),
@@ -459,6 +460,10 @@ export const appListings = pgTable('app_listings', {
   demoUrl: text('demo_url'),
   verified: boolean('verified').default(false),
   repoUrl: text('repo_url'),
+  supportPeriod: integer('support_period'), // Number of months support is included
+  supportDetails: text('support_details'), // Details about what's included in support
+  documentation: text('documentation_url'), // Link to documentation
+  lastMaintained: timestamp('last_maintained'), // When the app was last updated by developer
 });
 
 export const appBids = pgTable('app_bids', {
@@ -547,7 +552,7 @@ export const appQuestionsRelations = relations(appQuestions, ({ one }) => ({
   }),
 }));
 
-export const appTransactionsRelations = relations(appTransactions, ({ one }) => ({
+export const appTransactionsRelations = relations(appTransactions, ({ one, many }) => ({
   listing: one(appListings, {
     fields: [appTransactions.listingId],
     references: [appListings.id],
@@ -558,6 +563,44 @@ export const appTransactionsRelations = relations(appTransactions, ({ one }) => 
   }),
   buyer: one(users, {
     fields: [appTransactions.buyerId],
+    references: [users.id],
+  }),
+  reviews: many(appReviews),
+}));
+
+// App reviews with detailed rating categories
+export const appReviews = pgTable('app_reviews', {
+  id: serial('id').primaryKey(),
+  transactionId: integer('transaction_id').references(() => appTransactions.id).notNull(),
+  reviewerId: integer('reviewer_id').references(() => users.id).notNull(),
+  listingId: integer('listing_id').references(() => appListings.id).notNull(),
+  sellerId: integer('seller_id').references(() => users.id).notNull(),
+  overallRating: integer('overall_rating').notNull(), // 1-5 stars
+  codeQualityRating: integer('code_quality_rating'), // 1-5 stars
+  documentationRating: integer('documentation_rating'), // 1-5 stars
+  supportRating: integer('support_rating'), // 1-5 stars
+  valueRating: integer('value_rating'), // 1-5 stars
+  review: text('review'),
+  verified: boolean('verified').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const appReviewsRelations = relations(appReviews, ({ one }) => ({
+  transaction: one(appTransactions, {
+    fields: [appReviews.transactionId],
+    references: [appTransactions.id],
+  }),
+  reviewer: one(users, {
+    fields: [appReviews.reviewerId],
+    references: [users.id],
+  }),
+  listing: one(appListings, {
+    fields: [appReviews.listingId],
+    references: [appListings.id],
+  }),
+  seller: one(users, {
+    fields: [appReviews.sellerId],
     references: [users.id],
   }),
 }));
@@ -636,6 +679,35 @@ export const appQuestionSchema = z.object({
   asker: userProfileSchema.optional(),
 });
 
+// App review schemas
+export const insertAppReviewSchema = createInsertSchema(appReviews)
+  .omit({ id: true, createdAt: true, updatedAt: true, verified: true })
+  .extend({
+    overallRating: z.number().min(1).max(5),
+    codeQualityRating: z.number().min(1).max(5).optional(),
+    documentationRating: z.number().min(1).max(5).optional(),
+    supportRating: z.number().min(1).max(5).optional(),
+    valueRating: z.number().min(1).max(5).optional(),
+  });
+
+export const appReviewSchema = z.object({
+  id: z.number(),
+  transactionId: z.number(),
+  reviewerId: z.number(),
+  listingId: z.number(),
+  sellerId: z.number(),
+  overallRating: z.number(),
+  codeQualityRating: z.number().optional().nullable(),
+  documentationRating: z.number().optional().nullable(),
+  supportRating: z.number().optional().nullable(),
+  valueRating: z.number().optional().nullable(),
+  review: z.string().optional().nullable(),
+  verified: z.boolean(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  reviewer: userProfileSchema.optional(),
+});
+
 // Export types for the marketplace tables
 export type AppListing = typeof appListings.$inferSelect;
 export type InsertAppListing = z.infer<typeof insertAppListingSchema>;
@@ -651,6 +723,10 @@ export type InsertAppFavorite = typeof appFavorites.$inferInsert;
 export type AppQuestion = typeof appQuestions.$inferSelect;
 export type InsertAppQuestion = z.infer<typeof insertAppQuestionSchema>;
 export type AppQuestionWithDetails = z.infer<typeof appQuestionSchema>;
+
+export type AppReview = typeof appReviews.$inferSelect;
+export type InsertAppReview = z.infer<typeof insertAppReviewSchema>;
+export type AppReviewWithDetails = z.infer<typeof appReviewSchema>;
 
 export type AppTransaction = typeof appTransactions.$inferSelect;
 export type InsertAppTransaction = typeof appTransactions.$inferInsert;
