@@ -17,7 +17,8 @@ import {
   Building,
   CheckCircle2,
   XCircle,
-  Loader2
+  Loader2,
+  Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -53,6 +54,7 @@ import {
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { ListingReviewsTab, RatingBadge } from "@/components/marketplace";
 
 // Form schemas
 const bidSchema = z.object({
@@ -293,6 +295,7 @@ export default function MarketplaceListing() {
                 <TabsList className="mb-4">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="financials">Financials</TabsTrigger>
+                  <TabsTrigger value="reviews">Reviews</TabsTrigger>
                   <TabsTrigger value="questions">Q&A ({questions?.length || 0})</TabsTrigger>
                 </TabsList>
                 
@@ -453,6 +456,70 @@ export default function MarketplaceListing() {
                       </dl>
                     </CardContent>
                   </Card>
+                </TabsContent>
+                
+                <TabsContent value="reviews" className="space-y-4">
+                  <ListingReviewsTab 
+                    listingId={parseInt(listingId!)} 
+                    sellerId={listing.sellerId}
+                  />
+                  
+                  {/* Display ratings summary if available */}
+                  {listing.averageRating && (
+                    <Card className="mb-4">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">Rating Summary</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center mb-4">
+                          <div className="text-4xl font-bold mr-3">{listing.averageRating.toFixed(1)}</div>
+                          <div>
+                            <div className="flex text-yellow-500 mb-1">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star 
+                                  key={star} 
+                                  className={`h-5 w-5 ${star <= Math.round(listing.averageRating) ? 'fill-current' : ''}`} 
+                                />
+                              ))}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              Based on {listing.reviewCount} {listing.reviewCount === 1 ? 'review' : 'reviews'}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          {listing.codeQualityRating && (
+                            <div>
+                              <div className="text-sm font-medium mb-1">Code Quality</div>
+                              <RatingBadge overallRating={listing.codeQualityRating} showNumber={true} />
+                            </div>
+                          )}
+                          
+                          {listing.documentationRating && (
+                            <div>
+                              <div className="text-sm font-medium mb-1">Documentation</div>
+                              <RatingBadge overallRating={listing.documentationRating} showNumber={true} />
+                            </div>
+                          )}
+                          
+                          {listing.supportRating && (
+                            <div>
+                              <div className="text-sm font-medium mb-1">Support</div>
+                              <RatingBadge overallRating={listing.supportRating} showNumber={true} />
+                            </div>
+                          )}
+                          
+                          {listing.valueRating && (
+                            <div>
+                              <div className="text-sm font-medium mb-1">Value for Money</div>
+                              <RatingBadge overallRating={listing.valueRating} showNumber={true} />
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </TabsContent>
                 
                 <TabsContent value="questions" className="space-y-4">
