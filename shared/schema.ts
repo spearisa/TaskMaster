@@ -1,4 +1,5 @@
-import { pgTable, text, serial, integer, boolean, timestamp, real, decimal, json, relations } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real, decimal, json } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -434,3 +435,219 @@ export const insertAiToolReferralSchema = createInsertSchema(aiToolReferrals).om
 
 export type InsertAiToolReferral = z.infer<typeof insertAiToolReferralSchema>;
 export type AiToolReferral = typeof aiToolReferrals.$inferSelect;
+
+// Marketplace schema for app listings, similar to Flippa
+export const appListings = pgTable('app_listings', {
+  id: serial('id').primaryKey(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  shortDescription: text('short_description'),
+  sellerId: integer('seller_id').references(() => users.id).notNull(),
+  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  status: text('status', { enum: ['draft', 'published', 'sold', 'archived'] }).default('draft').notNull(),
+  category: text('category').notNull(),
+  technologies: text('technologies').array(),
+  monthlyRevenue: decimal('monthly_revenue', { precision: 10, scale: 2 }),
+  monthlyProfit: decimal('monthly_profit', { precision: 10, scale: 2 }),
+  monthlyTraffic: integer('monthly_traffic'),
+  establishedDate: timestamp('established_date'),
+  includesSourceCode: boolean('includes_source_code').default(true),
+  featuredImage: text('featured_image'),
+  additionalImages: text('additional_images').array(),
+  demoUrl: text('demo_url'),
+  verified: boolean('verified').default(false),
+});
+
+export const appBids = pgTable('app_bids', {
+  id: serial('id').primaryKey(),
+  listingId: integer('listing_id').references(() => appListings.id).notNull(),
+  bidderId: integer('bidder_id').references(() => users.id).notNull(),
+  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+  message: text('message'),
+  status: text('status', { enum: ['pending', 'accepted', 'rejected', 'expired'] }).default('pending').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const appFavorites = pgTable('app_favorites', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  listingId: integer('listing_id').references(() => appListings.id).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const appQuestions = pgTable('app_questions', {
+  id: serial('id').primaryKey(),
+  listingId: integer('listing_id').references(() => appListings.id).notNull(),
+  askerId: integer('asker_id').references(() => users.id).notNull(),
+  question: text('question').notNull(),
+  answer: text('answer'),
+  isPublic: boolean('is_public').default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  answeredAt: timestamp('answered_at'),
+});
+
+export const appTransactions = pgTable('app_transactions', {
+  id: serial('id').primaryKey(),
+  listingId: integer('listing_id').references(() => appListings.id).notNull(),
+  sellerId: integer('seller_id').references(() => users.id).notNull(),
+  buyerId: integer('buyer_id').references(() => users.id).notNull(),
+  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+  status: text('status', { enum: ['pending', 'completed', 'refunded', 'disputed'] }).default('pending').notNull(),
+  stripePaymentIntentId: text('stripe_payment_intent_id'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  completedAt: timestamp('completed_at'),
+});
+
+// Define relations for the marketplace tables
+export const appListingsRelations = relations(appListings, ({ one, many }) => ({
+  seller: one(users, {
+    fields: [appListings.sellerId],
+    references: [users.id],
+  }),
+  bids: many(appBids),
+  favorites: many(appFavorites),
+  questions: many(appQuestions),
+  transactions: many(appTransactions),
+}));
+
+export const appBidsRelations = relations(appBids, ({ one }) => ({
+  listing: one(appListings, {
+    fields: [appBids.listingId],
+    references: [appListings.id],
+  }),
+  bidder: one(users, {
+    fields: [appBids.bidderId],
+    references: [users.id],
+  }),
+}));
+
+export const appFavoritesRelations = relations(appFavorites, ({ one }) => ({
+  user: one(users, {
+    fields: [appFavorites.userId],
+    references: [users.id],
+  }),
+  listing: one(appListings, {
+    fields: [appFavorites.listingId],
+    references: [appListings.id],
+  }),
+}));
+
+export const appQuestionsRelations = relations(appQuestions, ({ one }) => ({
+  listing: one(appListings, {
+    fields: [appQuestions.listingId],
+    references: [appListings.id],
+  }),
+  asker: one(users, {
+    fields: [appQuestions.askerId],
+    references: [users.id],
+  }),
+}));
+
+export const appTransactionsRelations = relations(appTransactions, ({ one }) => ({
+  listing: one(appListings, {
+    fields: [appTransactions.listingId],
+    references: [appListings.id],
+  }),
+  seller: one(users, {
+    fields: [appTransactions.sellerId],
+    references: [users.id],
+  }),
+  buyer: one(users, {
+    fields: [appTransactions.buyerId],
+    references: [users.id],
+  }),
+}));
+
+// Zod schemas for marketplace validation
+export const insertAppListingSchema = createInsertSchema(appListings)
+  .omit({ id: true, createdAt: true, updatedAt: true, verified: true })
+  .extend({
+    technologies: z.array(z.string()).optional(),
+    additionalImages: z.array(z.string()).optional(),
+    price: z.number().positive({ message: "Price must be positive" }),
+    monthlyRevenue: z.number().optional().nullable(),
+    monthlyProfit: z.number().optional().nullable(),
+    monthlyTraffic: z.number().int().optional().nullable(),
+    establishedDate: z.date().optional().nullable(),
+  });
+
+export const appListingSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  description: z.string(),
+  shortDescription: z.string().optional().nullable(),
+  sellerId: z.number(),
+  price: z.number(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  status: z.enum(['draft', 'published', 'sold', 'archived']),
+  category: z.string(),
+  technologies: z.array(z.string()).optional().nullable(),
+  monthlyRevenue: z.number().optional().nullable(),
+  monthlyProfit: z.number().optional().nullable(),
+  monthlyTraffic: z.number().optional().nullable(),
+  establishedDate: z.string().optional().nullable(),
+  includesSourceCode: z.boolean(),
+  featuredImage: z.string().optional().nullable(),
+  additionalImages: z.array(z.string()).optional().nullable(),
+  demoUrl: z.string().optional().nullable(),
+  verified: z.boolean(),
+  seller: userProfileSchema.optional(),
+  favoriteCount: z.number().optional(),
+  isFavorited: z.boolean().optional(),
+});
+
+export const insertAppBidSchema = createInsertSchema(appBids)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .extend({
+    amount: z.number().positive({ message: "Bid amount must be positive" }),
+  });
+
+export const appBidSchema = z.object({
+  id: z.number(),
+  listingId: z.number(),
+  bidderId: z.number(),
+  amount: z.number(),
+  message: z.string().optional().nullable(),
+  status: z.enum(['pending', 'accepted', 'rejected', 'expired']),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  bidder: userProfileSchema.optional(),
+});
+
+export const insertAppQuestionSchema = createInsertSchema(appQuestions)
+  .omit({ id: true, createdAt: true, answeredAt: true, answer: true });
+
+export const appQuestionSchema = z.object({
+  id: z.number(),
+  listingId: z.number(),
+  askerId: z.number(),
+  question: z.string(),
+  answer: z.string().optional().nullable(),
+  isPublic: z.boolean(),
+  createdAt: z.string(),
+  answeredAt: z.string().optional().nullable(),
+  asker: userProfileSchema.optional(),
+});
+
+// Export types for the marketplace tables
+export type AppListing = typeof appListings.$inferSelect;
+export type InsertAppListing = z.infer<typeof insertAppListingSchema>;
+export type AppListingWithDetails = z.infer<typeof appListingSchema>;
+
+export type AppBid = typeof appBids.$inferSelect;
+export type InsertAppBid = z.infer<typeof insertAppBidSchema>;
+export type AppBidWithDetails = z.infer<typeof appBidSchema>;
+
+export type AppFavorite = typeof appFavorites.$inferSelect;
+export type InsertAppFavorite = typeof appFavorites.$inferInsert;
+
+export type AppQuestion = typeof appQuestions.$inferSelect;
+export type InsertAppQuestion = z.infer<typeof insertAppQuestionSchema>;
+export type AppQuestionWithDetails = z.infer<typeof appQuestionSchema>;
+
+export type AppTransaction = typeof appTransactions.$inferSelect;
+export type InsertAppTransaction = typeof appTransactions.$inferInsert;

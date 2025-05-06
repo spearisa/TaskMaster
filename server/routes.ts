@@ -7,7 +7,10 @@ import fs from "fs";
 import { 
   insertTaskSchema, taskSchema, insertDirectMessageSchema, 
   updateProfileSchema, insertTaskTemplateSchema, taskTemplateSchema,
-  insertTaskBidSchema, taskBids
+  insertTaskBidSchema, taskBids, insertAppListingSchema, appListings,
+  appListingSchema, insertAppBidSchema, appBids, appBidSchema,
+  insertAppQuestionSchema, appQuestions, appQuestionSchema,
+  appTransactions, appFavorites
 } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { 
