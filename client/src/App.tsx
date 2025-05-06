@@ -31,6 +31,13 @@ import AdminDashboard from "@/pages/admin/dashboard";
 import AdminUsersPage from "@/pages/admin/users";
 import AdminBlogPage from "@/pages/admin/blog";
 import AdminLogin from "@/pages/admin/login";
+// Marketplace Pages
+import MarketplacePage from "@/pages/marketplace";
+import MarketplaceListingPage from "@/pages/marketplace-listing";
+import MarketplaceSellPage from "@/pages/marketplace-sell";
+import MarketplaceFavoritesPage from "@/pages/marketplace-favorites";
+import MarketplaceMyListingsPage from "@/pages/marketplace-my-listings";
+import MarketplaceBidsPage from "@/pages/marketplace-bids";
 // Import i18n instance
 import '@/lib/i18n';
 
@@ -57,6 +64,14 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <Route path="/shared-task/:id" component={SharedTaskPage} />
       <Route path="/profile/:id" component={SharedProfilePage} />
+      
+      {/* Marketplace routes */}
+      <Route path="/marketplace" component={MarketplacePage} />
+      <Route path="/marketplace/listing/:id" component={MarketplaceListingPage} />
+      <ProtectedRoute path="/marketplace/sell" component={MarketplaceSellPage} />
+      <ProtectedRoute path="/marketplace/favorites" component={MarketplaceFavoritesPage} />
+      <ProtectedRoute path="/marketplace/my-listings" component={MarketplaceMyListingsPage} />
+      <ProtectedRoute path="/marketplace/bids" component={MarketplaceBidsPage} />
       
       {/* Admin routes */}
       <Route path="/admin/login" component={AdminLogin} />

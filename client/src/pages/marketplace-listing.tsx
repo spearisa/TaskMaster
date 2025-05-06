@@ -14,7 +14,7 @@ import {
   Globe, 
   ShoppingCart, 
   Clock, 
-  Buildings,
+  Building,
   CheckCircle2,
   XCircle,
   Loader2

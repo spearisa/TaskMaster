@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, PlusCircle, DollarSign, Buildings, Calendar, Heart } from "lucide-react";
+import { Loader2, Search, PlusCircle, DollarSign, Building, Calendar, Heart } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function Marketplace() {
@@ -205,7 +205,7 @@ export default function Marketplace() {
                         <span className="font-medium">${listing.price.toLocaleString()}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Buildings className="h-4 w-4 text-muted-foreground" />
+                        <Building className="h-4 w-4 text-muted-foreground" />
                         <span>${listing.monthlyRevenue?.toLocaleString() || "N/A"}/mo</span>
                       </div>
                       <div className="flex items-center gap-1">
