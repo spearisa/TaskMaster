@@ -22,6 +22,10 @@ import {
   getTopAIApplicationsForTask, getAllAITools, getAIToolsCategories, getAIToolsByCategory,
   getAIRecommendations
 } from "./ai-recommendation-service";
+import { 
+  getTrendingModels, searchModels, getModelDetails, getTrendingModelsByCategory, 
+  MODEL_TYPES, type HuggingFaceModel 
+} from "./huggingface-api";
 import { setupAuth } from "./auth";
 import { WebSocketServer, WebSocket } from "ws";
 import { 
@@ -233,6 +237,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting AI tools by category:", error);
       return res.status(500).json({ message: "Failed to get AI tools by category" });
+    }
+  });
+  
+  // ===== Hugging Face Integration API Routes =====
+  
+  // Get trending AI models
+  app.get("/api/huggingface/trending", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 12;
+      const category = req.query.category as string | undefined;
+      const sort = (req.query.sort as 'downloads' | 'trending' | 'modified') || 'trending';
+      
+      const models = await getTrendingModels(limit, category, sort);
+      
+      return res.json({
+        models,
+        category,
+        sort
+      });
+    } catch (error) {
+      console.error("Error getting trending models from Hugging Face:", error);
+      return res.status(500).json({ message: "Failed to get trending models" });
+    }
+  });
+  
+  // Search AI models
+  app.get("/api/huggingface/search", async (req, res) => {
+    try {
+      const query = req.query.query as string;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const category = req.query.category as string | undefined;
+      
+      if (!query) {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+      
+      const models = await searchModels(query, limit, category);
+      
+      return res.json({
+        models,
+        query,
+        category
+      });
+    } catch (error) {
+      console.error("Error searching Hugging Face models:", error);
+      return res.status(500).json({ message: "Failed to search models" });
+    }
+  });
+  
+  // Get AI model details
+  app.get("/api/huggingface/model/:id", async (req, res) => {
+    try {
+      const modelId = req.params.id;
+      
+      if (!modelId) {
+        return res.status(400).json({ message: "Model ID is required" });
+      }
+      
+      const model = await getModelDetails(modelId);
+      
+      if (!model) {
+        return res.status(404).json({ message: "Model not found" });
+      }
+      
+      return res.json(model);
+    } catch (error) {
+      console.error(`Error getting Hugging Face model details for ${req.params.id}:`, error);
+      return res.status(500).json({ message: "Failed to get model details" });
+    }
+  });
+  
+  // Get trending models by category
+  app.get("/api/huggingface/trending-by-category", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 4;
+      
+      const categorizedModels = await getTrendingModelsByCategory(limit);
+      
+      return res.json({
+        categories: categorizedModels,
+        modelTypes: MODEL_TYPES
+      });
+    } catch (error) {
+      console.error("Error getting trending models by category:", error);
+      return res.status(500).json({ message: "Failed to get trending models by category" });
     }
   });
   
