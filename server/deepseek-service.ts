@@ -35,14 +35,32 @@ interface CodeGenerationResponse {
  */
 export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): Promise<CodeGenerationResponse> {
   try {
-    // Prioritize dedicated DeepSeek API key if available
-    const apiKey = process.env.DEEPSEEK_API_KEY || process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACE_API_TOKEN;
+    // Try different authentication tokens in priority order
+    let apiKey = null;
+    let useDeepSeekAPI = false;
     
-    if (!apiKey) {
-      throw new Error('No DeepSeek API key is available. Please set DEEPSEEK_API_KEY environment variable.');
+    // Try DeepSeek API first
+    if (process.env.DEEPSEEK_API_KEY) {
+      apiKey = process.env.DEEPSEEK_API_KEY;
+      useDeepSeekAPI = true;
+      console.log('Using DEEPSEEK_API_KEY for authentication');
+    } 
+    // Then try Hugging Face API Token
+    else if (process.env.HUGGINGFACE_API_TOKEN) {
+      apiKey = process.env.HUGGINGFACE_API_TOKEN;
+      console.log('Using HUGGINGFACE_API_TOKEN for authentication');
+    }
+    // Finally try Hugging Face API Key
+    else if (process.env.HUGGINGFACE_API_KEY) {
+      apiKey = process.env.HUGGINGFACE_API_KEY;
+      console.log('Using HUGGINGFACE_API_KEY for authentication');
     }
     
-    console.log(`Using API key for DeepSeek: ${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 4)} (length: ${apiKey.length})`)
+    if (!apiKey) {
+      throw new Error('No API authentication token is available. Please set DEEPSEEK_API_KEY or HUGGINGFACE_API_TOKEN environment variable.');
+    }
+    
+    console.log(`Using API token for DeepSeek: ${apiKey.substring(0, 3)}...${apiKey.substring(apiKey.length - 3)} (length: ${apiKey.length})`);
     
     const modelId = options.modelId || DEEPSEEK_MODELS.DEEPSEEK_CODER_33B;
     console.log(`Generating code with DeepSeek using model: ${modelId}`);
@@ -412,10 +430,22 @@ export async function handleCodeGenerationRequest(req: Request, res: Response) {
     try {
       // First attempt with DeepSeek
       try {
-        // Check for DeepSeek API key
-        const huggingFaceApiKey = process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACE_API_TOKEN;
-        if (!huggingFaceApiKey) {
-          throw new Error('Missing Hugging Face API credentials');
+        // Check for API key - prioritize DEEPSEEK_API_KEY, then check for Hugging Face tokens
+        const hasDeepSeekKey = !!process.env.DEEPSEEK_API_KEY;
+        const hasHuggingFaceToken = !!process.env.HUGGINGFACE_API_TOKEN;
+        const hasHuggingFaceKey = !!process.env.HUGGINGFACE_API_KEY;
+        
+        if (!hasDeepSeekKey && !hasHuggingFaceToken && !hasHuggingFaceKey) {
+          throw new Error('Missing API credentials for code generation');
+        }
+        
+        // Log which API credentials we're using
+        if (hasDeepSeekKey) {
+          console.log('Using DEEPSEEK_API_KEY for authentication');
+        } else if (hasHuggingFaceToken) {
+          console.log('Using HUGGINGFACE_API_TOKEN for authentication');
+        } else {
+          console.log('Using HUGGINGFACE_API_KEY for authentication');
         }
 
         const result = await generateCodeWithDeepSeek({
