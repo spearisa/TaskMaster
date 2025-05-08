@@ -147,7 +147,7 @@ export default function AppGenerator() {
         toast({
           title: "Generation Partially Successful",
           description: "Content was generated but no code files were extracted. Try adjusting your prompt.",
-          variant: "warning"
+          variant: "destructive"
         });
         
         // Create a single file with the raw response if needed
