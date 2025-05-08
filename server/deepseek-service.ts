@@ -41,6 +41,9 @@ export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): 
       throw new Error('Neither HUGGINGFACE_API_KEY nor HUGGINGFACE_API_TOKEN is set');
     }
     
+    const modelId = options.modelId || DEEPSEEK_MODELS.DEEPSEEK_CODER_33B;
+    console.log(`Generating code with DeepSeek using model: ${modelId}`);
+    
     // Create enhanced prompt with additional context
     const enhancedPrompt = createEnhancedPrompt(
       options.prompt,
@@ -49,7 +52,7 @@ export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): 
       options.features
     );
     
-    console.log(`Sending request to DeepSeek API with model: ${options.modelId || DEEPSEEK_MODELS.DEEPSEEK_CODER_33B}`);
+    console.log(`Enhanced prompt created (${enhancedPrompt.length} chars), requesting code generation...`);
     
     // Setup request parameters
     const requestBody = { 
@@ -62,9 +65,13 @@ export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): 
       }
     };
     
+    // Determine the API URL dynamically based on the model ID
+    const apiUrl = `https://api-inference.huggingface.co/models/${modelId}`;
+    console.log(`Making request to Hugging Face API: ${apiUrl}`);
+    
     // Make the API request
     const response = await axios.post(
-      DEEPSEEK_API_URL,
+      apiUrl,
       requestBody,
       {
         headers: { 
@@ -75,12 +82,44 @@ export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): 
       }
     );
     
+    if (!response.data) {
+      throw new Error('Empty response from DeepSeek API');
+    }
+    
+    console.log('Received response from DeepSeek API:', 
+      typeof response.data === 'string' 
+        ? `${response.data.substring(0, 100)}...` 
+        : `Response type: ${typeof response.data}`
+    );
+    
     // Process the response to extract code files
-    return processGeneratedCode(response.data);
+    const result = processGeneratedCode(response.data);
+    console.log(`Processed ${result.files?.length || 0} files from DeepSeek response`);
+    
+    return result;
     
   } catch (error: any) {
-    console.error('DeepSeek API Error:', error.response?.data || error.message);
-    throw new Error(`Failed to generate code with DeepSeek: ${error.response?.data?.error || error.message}`);
+    console.error('Error generating code with DeepSeek:', error);
+    
+    // Create a more informative error message based on the error type
+    let errorMessage = 'Unknown error occurred';
+    
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      errorMessage = `DeepSeek API error (${error.response.status}): ${JSON.stringify(error.response.data || {})}`;
+      console.error('Error response data:', error.response.data);
+      console.error('Error response status:', error.response.status);
+      console.error('Error response headers:', error.response.headers);
+    } else if (error.request) {
+      // The request was made but no response was received
+      errorMessage = `DeepSeek API request failed: No response received (timeout after ${error.request._currentRequest?.timeout || 'unknown'} ms)`;
+      console.error('Error request:', error.request);
+    } else {
+      // Something else happened in setting up the request
+      errorMessage = `DeepSeek error: ${error.message}`;
+    }
+    
+    throw new Error(`Failed to generate code with DeepSeek: ${errorMessage}`);
   }
 }
 
@@ -93,6 +132,7 @@ function createEnhancedPrompt(
   appType?: string, 
   features?: string[]
 ): string {
+  // Base instructions for DeepSeek similar to DeepSite's approach
   let enhancedPrompt = `You are a senior developer specializing in ${technology || 'web development'}. 
 Create a complete ${appType || 'application'} based on the following description.
 
@@ -107,6 +147,8 @@ Please follow these guidelines:
 3. Provide fully implemented code, not just stubs or placeholders.
 4. Each file should start with a markdown code block that includes the filename, e.g. \`\`\`filename.js
 5. Use modern coding standards and best practices.
+6. If creating a web application, use TailwindCSS where appropriate for styling.
+7. For HTML files, ensure they are complete, valid documents with proper DOCTYPE, head, and body sections.
 
 Return multiple code files that comprise a complete solution.`;
 
@@ -115,6 +157,7 @@ Return multiple code files that comprise a complete solution.`;
 
 /**
  * Process the raw generated response into a structured format with individual files
+ * Enhanced to better detect HTML content and extract it as a complete file
  */
 function processGeneratedCode(rawResponse: any): CodeGenerationResponse {
   let generatedText = '';
@@ -133,6 +176,24 @@ function processGeneratedCode(rawResponse: any): CodeGenerationResponse {
   
   // Extract files from the generated text
   const files: CodeGenerationResponse['files'] = [];
+  
+  // First check if there's a complete HTML document
+  const htmlPattern = /(<!DOCTYPE html>[\s\S]*?<\/html>)/g;
+  let htmlMatch = htmlPattern.exec(generatedText);
+  
+  if (htmlMatch && htmlMatch[0]) {
+    // Found a complete HTML document, add it as index.html
+    files.push({
+      name: 'index.html',
+      content: htmlMatch[0].trim(),
+      language: 'html'
+    });
+    
+    // Remove the HTML from the generated text to avoid duplicate content
+    generatedText = generatedText.replace(htmlMatch[0], '');
+  }
+  
+  // Now look for code blocks with filenames
   const filePattern = /```(?:(\w+)|(?:file|filename)[=: ]?['"]?([\w.-]+)['"]?)?\s*\n([\s\S]*?)```/g;
   
   let match;
@@ -141,6 +202,9 @@ function processGeneratedCode(rawResponse: any): CodeGenerationResponse {
     let language = match[1] || '';
     let filename = match[2] || '';
     const content = match[3] || '';
+    
+    // Skip empty content
+    if (!content.trim()) continue;
     
     // If no filename is provided, try to infer it from the language
     if (!filename && language) {
@@ -156,20 +220,78 @@ function processGeneratedCode(rawResponse: any): CodeGenerationResponse {
       language = extension;
     }
     
-    files.push({
-      name: filename,
-      content: content.trim(),
-      language: language
-    });
+    // Handle special case for HTML content - make sure it's complete
+    if (language === 'html' && filename === 'index.html' && !content.includes('<!DOCTYPE html>')) {
+      // If it seems like an incomplete HTML snippet, wrap it properly
+      const completeHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generated App</title>
+</head>
+<body>
+${content.trim()}
+</body>
+</html>`;
+      
+      files.push({
+        name: filename,
+        content: completeHtml,
+        language: language
+      });
+    } else {
+      // Regular file
+      files.push({
+        name: filename,
+        content: content.trim(),
+        language: language
+      });
+    }
   }
   
-  // If no files were extracted but we have text, create a single file
+  // If no files were extracted but we have text, check for HTML content
   if (files.length === 0 && generatedText.trim()) {
-    files.push({
-      name: 'response.txt',
-      content: generatedText.trim(),
-      language: 'text'
-    });
+    // Check if the response contains HTML tags but not properly formatted as code blocks
+    if (generatedText.includes('<html') || generatedText.includes('<!DOCTYPE') || 
+        (generatedText.includes('<body') && generatedText.includes('</body>'))) {
+      
+      // Try to extract HTML content
+      const htmlContent = generatedText.match(/<html[\s\S]*?<\/html>/i) || 
+                          generatedText.match(/<!DOCTYPE[\s\S]*?<\/html>/i);
+      
+      if (htmlContent) {
+        files.push({
+          name: 'index.html',
+          content: htmlContent[0].trim(),
+          language: 'html'
+        });
+      } else {
+        // Fallback for partial HTML
+        files.push({
+          name: 'index.html',
+          content: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generated App</title>
+</head>
+<body>
+${generatedText.trim()}
+</body>
+</html>`,
+          language: 'html'
+        });
+      }
+    } else {
+      // Not HTML, add as plain text
+      files.push({
+        name: 'response.txt',
+        content: generatedText.trim(),
+        language: 'text'
+      });
+    }
   }
   
   return {
