@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Copy, Download, Code, LoaderCircle, FileCode2, Server, Package, Layers } from 'lucide-react';
+import { Copy, Download, Code, LoaderCircle, FileCode2, Server, Package, Layers, Eye } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -74,6 +74,9 @@ export default function AppGenerator() {
   const [generatedText, setGeneratedText] = useState('');
   const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
   const [activeFile, setActiveFile] = useState<string | null>(null);
+  
+  // Reference iframe toggle
+  const [showDeepSiteReference, setShowDeepSiteReference] = useState(false);
   
   // Handle feature selection
   const toggleFeature = (featureId: string) => {
@@ -230,8 +233,7 @@ export default function AppGenerator() {
               
               toast({
                 title: "Generation Partially Successful",
-                description: "Content was generated but no code files were properly formatted. Try adjusting your prompt.",
-                variant: "warning"
+                description: "Content was generated but no code files were properly formatted. Try adjusting your prompt."
               });
             }
           } else {
@@ -457,7 +459,7 @@ export default function AppGenerator() {
               </div>
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col gap-4">
             <Button 
               className="w-full" 
               onClick={generateApp} 
@@ -474,6 +476,16 @@ export default function AppGenerator() {
                   Generate Application
                 </>
               )}
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              type="button"
+              className="w-full"
+              onClick={() => setShowDeepSiteReference(prev => !prev)}
+            >
+              <Eye className="mr-2 h-4 w-4" />
+              {showDeepSiteReference ? "Hide DeepSite Reference" : "Show DeepSite Reference"}
             </Button>
           </CardFooter>
         </Card>
