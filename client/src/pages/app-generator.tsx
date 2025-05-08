@@ -391,13 +391,13 @@ export default function AppGenerator() {
             </CardHeader>
             <CardContent className="p-0 overflow-hidden">
               <iframe 
-                src="https://deepsite-mz0uqihsua-uc.a.run.app" 
+                src="https://huggingface-projects-deepsite.hf.space/" 
                 width="100%" 
                 height="700px" 
                 style={{ border: "none", borderRadius: "0 0 8px 8px" }}
                 allow="clipboard-write; fullscreen"
                 title="DeepSite Reference Implementation"
-                sandbox="allow-same-origin allow-scripts allow-forms"
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
               />
             </CardContent>
           </Card>
