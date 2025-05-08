@@ -343,13 +343,17 @@ function getExtensionFromLanguage(language: string): string {
 
 /**
  * API endpoint handler for code generation requests
+ * Improved to match DeepSite's implementation more closely
  */
 export async function handleCodeGenerationRequest(req: Request, res: Response) {
   try {
     // Ensure req.body exists
     if (!req.body) {
       console.error('DeepSeek error: Request body is undefined');
-      return res.status(400).json({ error: 'Request body is missing' });
+      return res.status(400).json({ 
+        ok: false,
+        message: 'Request body is missing'
+      });
     }
     
     console.log('DeepSeek received request body:', req.body);
@@ -360,30 +364,74 @@ export async function handleCodeGenerationRequest(req: Request, res: Response) {
       appType, 
       features,
       modelId,
-      maxLength
+      maxLength,
+      provider = 'deepseek' // Default provider
     } = req.body;
     
     if (!prompt) {
-      return res.status(400).json({ error: 'Prompt is required' });
+      return res.status(400).json({ 
+        ok: false,
+        message: 'Prompt is required'
+      });
     }
 
-    console.log(`Received DeepSeek code generation request: ${prompt.substring(0, 100)}...`);
+    // Check for API key
+    const apiKey = process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACE_API_TOKEN;
+    if (!apiKey) {
+      console.error('Missing Hugging Face API credentials');
+      return res.status(500).json({
+        ok: false,
+        message: 'Server is not properly configured with API credentials'
+      });
+    }
+
+    console.log(`Received code generation request [${provider}]: ${prompt.substring(0, 100)}...`);
     
-    const result = await generateCodeWithDeepSeek({
-      prompt,
-      technology,
-      appType,
-      features,
-      modelId: modelId || DEEPSEEK_MODELS.DEEPSEEK_CODER_33B,
-      maxLength: maxLength || 4096
-    });
+    // Set headers for JSON response
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-cache');
     
-    return res.json(result);
+    try {
+      const result = await generateCodeWithDeepSeek({
+        prompt,
+        technology,
+        appType,
+        features,
+        modelId: modelId || DEEPSEEK_MODELS.DEEPSEEK_CODER_33B,
+        maxLength: maxLength || 4096
+      });
+      
+      return res.json({
+        ok: true,
+        files: result.files || [],
+        generated_text: result.generated_text
+      });
+    } catch (innerError: any) {
+      // Handle specific API errors
+      if (innerError.message.includes('exceeded your monthly included credits')) {
+        return res.status(429).json({
+          ok: false,
+          message: 'API rate limit exceeded. Please try again later.'
+        });
+      }
+      
+      throw innerError; // Re-throw to be caught by the outer catch block
+    }
   } catch (error: any) {
     console.error('DeepSeek code generation error:', error);
-    return res.status(500).json({ 
-      error: 'Failed to generate code with DeepSeek',
-      message: error.message 
+    
+    // Determine appropriate status code based on error type
+    let statusCode = 500;
+    if (error.response) {
+      statusCode = error.response.status || 500;
+    } else if (error.message.includes('timeout')) {
+      statusCode = 504; // Gateway Timeout
+    }
+    
+    return res.status(statusCode).json({ 
+      ok: false,
+      message: `Failed to generate code: ${error.message}`,
+      error: error.message
     });
   }
 }

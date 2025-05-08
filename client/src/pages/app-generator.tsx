@@ -101,24 +101,39 @@ export default function AppGenerator() {
     setActiveFile(null);
     
     try {
-      console.log("Sending request to DeepSeek API with prompt:", prompt.substring(0, 100) + "...");
+      console.log("Preparing DeepSeek code generation request...");
+      
+      // Create request payload that matches DeepSite's format
+      const requestData = {
+        prompt,
+        technology,
+        appType,
+        features: selectedFeatures,
+        modelId: 'deepseek-ai/deepseek-coder-33b-instruct',
+        maxLength: 4096,
+        provider: 'deepseek' // Explicitly identify the provider
+      };
+      
+      console.log("Sending request with:", {
+        technology: requestData.technology,
+        appType: requestData.appType,
+        features: requestData.features,
+        prompt: requestData.prompt.substring(0, 100) + "..."
+      });
       
       try {
-        // Use DeepSeek endpoint (via Hugging Face) with explicit model settings
-        const response = await apiRequest('POST', '/api/ai/deepseek/generate', {
-          prompt,
-          technology,
-          appType,
-          features: selectedFeatures,
-          modelId: 'deepseek-ai/deepseek-coder-33b-instruct',
-          maxLength: 4096
-        }, {
-          timeout: 180000 // 3 minute timeout
+        // Use improved DeepSeek endpoint with better error handling
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout
+        
+        const response = await apiRequest('POST', '/api/ai/deepseek/generate', requestData, {
+          timeout: 180000, // 3 minute timeout
+          signal: controller.signal
         });
         
-        // Response received successfully
+        clearTimeout(timeoutId);
         
-        // Log the response status
+        // Response received successfully
         console.log("DeepSeek API response status:", response.status);
         
         if (!response.ok) {
@@ -131,11 +146,15 @@ export default function AppGenerator() {
           } catch (parseError) {
             console.error("Could not parse error response:", parseError);
             
-            // Check for specific status codes
-            if (response.status === 502) {
-              errorMessage = "Server timeout error (502). The model is taking too long to generate code. Try a simpler app description or fewer features.";
+            // Check for specific status codes for better error messages
+            if (response.status === 502 || response.status === 504) {
+              errorMessage = "Server timeout error. The AI model is taking too long to generate code. Try a simpler app description or fewer features.";
             } else if (response.status === 503) {
-              errorMessage = "Service temporarily unavailable (503). Please try again in a moment.";
+              errorMessage = "Service temporarily unavailable. Please try again in a moment.";
+            } else if (response.status === 429) {
+              errorMessage = "Rate limit exceeded. Please try again later.";
+            } else if (response.status === 401 || response.status === 403) {
+              errorMessage = "API authentication error. Please check API credentials.";
             }
           }
           
@@ -144,45 +163,87 @@ export default function AppGenerator() {
         
         // Parse the JSON response
         const data = await response.json();
-        console.log("Received response from DeepSeek API with text length:", 
-                   data.generated_text ? data.generated_text.length : 0);
-        console.log("Files extracted:", data.files ? data.files.length : 0);
+        
+        // Check for the new format with "ok" field
+        if (!data.ok && data.message) {
+          throw new Error(data.message);
+        }
+        
+        console.log("Received response from DeepSeek API:", {
+          textLength: data.generated_text ? data.generated_text.length : 0,
+          filesCount: data.files ? data.files.length : 0
+        });
         
         // Store the complete text response
         setGeneratedText(data.generated_text || "");
         
         // Process the files if available
         if (data.files && data.files.length > 0) {
-          console.log("Setting generated files:", data.files.length);
-          setGeneratedFiles(data.files);
-          setActiveFile(data.files[0].name);
+          console.log("Processing generated files:", data.files.length);
+          
+          // Sort files to show index.html and main files first
+          const sortedFiles = [...data.files].sort((a, b) => {
+            // Put index.html first
+            if (a.name === 'index.html') return -1;
+            if (b.name === 'index.html') return 1;
+            
+            // Then main files
+            if (a.name.includes('main.') && !b.name.includes('main.')) return -1;
+            if (b.name.includes('main.') && !a.name.includes('main.')) return 1;
+            
+            // Then alphabetically
+            return a.name.localeCompare(b.name);
+          });
+          
+          setGeneratedFiles(sortedFiles);
+          setActiveFile(sortedFiles[0].name);
           
           toast({
             title: "App Generated Successfully",
-            description: `Generated ${data.files.length} files for your ${technology} application with DeepSeek.`,
+            description: `Generated ${sortedFiles.length} files for your ${technology} application.`,
           });
         } else {
           // No files found in the response
-          console.warn("No files found in the DeepSeek API response");
-          toast({
-            title: "Generation Partially Successful",
-            description: "Content was generated but no code files were extracted. Try adjusting your prompt.",
-            variant: "destructive"
-          });
+          console.warn("No files found in the API response");
           
-          // Create a single file with the raw response if needed
           if (data.generated_text) {
-            const fallbackFile = {
-              name: 'complete_response.txt',
-              content: data.generated_text,
-              language: 'text'
-            };
-            setGeneratedFiles([fallbackFile]);
-            setActiveFile(fallbackFile.name);
+            // Attempt to extract code blocks from text if no files were provided
+            const extractedFiles = extractFilesFromText(data.generated_text);
+            
+            if (extractedFiles.length > 0) {
+              setGeneratedFiles(extractedFiles);
+              setActiveFile(extractedFiles[0].name);
+              
+              toast({
+                title: "App Generated Successfully",
+                description: `Extracted ${extractedFiles.length} files from the generated code.`,
+              });
+            } else {
+              // Create a single file with the raw response
+              const fallbackFile = {
+                name: 'complete_response.txt',
+                content: data.generated_text,
+                language: 'text'
+              };
+              setGeneratedFiles([fallbackFile]);
+              setActiveFile(fallbackFile.name);
+              
+              toast({
+                title: "Generation Partially Successful",
+                description: "Content was generated but no code files were properly formatted. Try adjusting your prompt.",
+                variant: "warning"
+              });
+            }
+          } else {
+            toast({
+              title: "Generation Failed",
+              description: "No content was returned from the API. Try again with a different prompt.",
+              variant: "destructive"
+            });
           }
         }
       } catch (fetchError: any) {
-        if (fetchError.name === 'TimeoutError' || fetchError.name === 'AbortError') {
+        if (fetchError.name === 'AbortError') {
           throw new Error('Request timed out after 3 minutes. Try a simpler app description or fewer features.');
         } else {
           throw fetchError;
@@ -198,9 +259,12 @@ export default function AppGenerator() {
       // Check for network-related errors
       if (!navigator.onLine) {
         errorMessage = "You appear to be offline. Please check your internet connection.";
-      } else if (errorMessage.includes('502') || errorMessage.includes('timeout')) {
+      } else if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
         errorTitle = "Generation Timeout";
         errorMessage = "The request timed out. The AI model is taking too long to respond. Try a simpler app description or fewer features.";
+      } else if (errorMessage.includes('API key') || errorMessage.includes('credentials')) {
+        errorTitle = "API Configuration Error";
+        errorMessage = "There is an issue with the API configuration. Please contact the administrator.";
       }
       
       toast({
@@ -211,6 +275,66 @@ export default function AppGenerator() {
     } finally {
       setIsGenerating(false);
     }
+  };
+  
+  // Helper function to extract files from raw text if needed
+  const extractFilesFromText = (text: string): GeneratedFile[] => {
+    const files: GeneratedFile[] = [];
+    const filePattern = /```(?:(\w+)|(?:file|filename)[=: ]?['"]?([\w.-]+)['"]?)?\s*\n([\s\S]*?)```/g;
+    
+    let match;
+    while ((match = filePattern.exec(text)) !== null) {
+      // Extract filename and content
+      let language = match[1] || '';
+      let filename = match[2] || '';
+      const content = match[3] || '';
+      
+      // Skip empty content
+      if (!content.trim()) continue;
+      
+      // If no filename is provided, infer it from the language
+      if (!filename && language) {
+        const extension = getExtensionFromLanguage(language);
+        filename = `file${files.length + 1}.${extension}`;
+      } else if (!filename) {
+        // Fallback filename
+        filename = `file-${files.length + 1}.txt`;
+      }
+      
+      // If language wasn't specified, try to infer from the filename
+      if (!language) {
+        const extension = filename.split('.').pop() || '';
+        language = extension;
+      }
+      
+      files.push({
+        name: filename,
+        content: content.trim(),
+        language: language
+      });
+    }
+    
+    return files;
+  };
+  
+  // Helper to get file extension from language
+  const getExtensionFromLanguage = (language: string): string => {
+    const extensions: Record<string, string> = {
+      'javascript': 'js', 'js': 'js',
+      'typescript': 'ts', 'ts': 'ts',
+      'jsx': 'jsx', 'tsx': 'tsx',
+      'python': 'py', 'py': 'py',
+      'html': 'html', 'css': 'css',
+      'json': 'json',
+      'java': 'java',
+      'c': 'c', 'cpp': 'cpp',
+      'csharp': 'cs', 'cs': 'cs',
+      'go': 'go',
+      'rust': 'rs',
+      'php': 'php'
+    };
+    
+    return extensions[language.toLowerCase()] || 'txt';
   };
   
   // Copy file content to clipboard
