@@ -1,11 +1,8 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -14,10 +11,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Copy, Download, Code, LoaderCircle, FileCode2, Server, Package, Layers, Eye } from 'lucide-react';
+import { Copy, Download, Code, LoaderCircle, FileCode2, Eye } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 // Technology options
 const TECHNOLOGIES = [
@@ -182,64 +178,60 @@ export default function AppGenerator() {
   const currentFile = generatedFiles.find(file => file.name === activeFile);
   
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex flex-col space-y-2 mb-4">
-        <h1 className="text-3xl font-bold tracking-tight">AI App Generator</h1>
-        <p className="text-muted-foreground">
-          Generate complete application code using DeepSeek AI. Describe your app and let DeepSeek build it for you.
-        </p>
+    <div className="container max-w-6xl mx-auto pt-2 pb-6">
+      <div className="flex items-center space-x-2 mb-2">
+        <div className="text-3xl font-bold">AI App Generator</div>
+        <div className="text-sm text-muted-foreground ml-2">webview</div>
       </div>
+      
+      <p className="text-muted-foreground mb-6">
+        Generate complete application code using DeepSeek AI. Describe your app and let DeepSeek build it for you.
+      </p>
       
       {/* DeepSite Reference iframe */}
       {showDeepSiteReference && (
-        <div className="mb-6">
-          <Card className="border dark:border-neutral-800">
-            <CardHeader className="py-4 bg-black text-white">
-              <div className="flex items-center space-x-2">
-                <div className="rounded-full bg-white p-1 mr-1">
-                  <img 
-                    src="https://huggingface.co/datasets/huggingface/brand-assets/resolve/main/hf-logo.svg" 
-                    alt="HuggingFace Logo" 
-                    className="h-4 w-4"
-                  />
-                </div>
-                <CardTitle className="text-sm font-medium">DeepSite Reference Implementation</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0 overflow-hidden">
-              <iframe 
-                src="https://huggingface-projects-deepsite.hf.space/" 
-                width="100%" 
-                height="700px" 
-                style={{ border: "none" }}
-                allow="clipboard-write; fullscreen"
-                title="DeepSite Reference Implementation"
-                sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+        <div className="mb-6 border rounded-md overflow-hidden">
+          <div className="bg-black text-white py-2 px-4 flex items-center">
+            <div className="rounded-full bg-white p-1 mr-2">
+              <img 
+                src="https://huggingface.co/datasets/huggingface/brand-assets/resolve/main/hf-logo.svg" 
+                alt="HuggingFace Logo" 
+                className="h-4 w-4"
               />
-            </CardContent>
-          </Card>
+            </div>
+            <div className="text-sm font-medium">DeepSite Reference Implementation</div>
+          </div>
+          <iframe 
+            src="https://huggingface-projects-deepsite.hf.space/" 
+            width="100%" 
+            height="700px" 
+            style={{ border: "none" }}
+            allow="clipboard-write; fullscreen"
+            title="DeepSite Reference Implementation"
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+          />
         </div>
       )}
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Input Section */}
-        <Card className="border dark:border-neutral-800">
-          <CardHeader className="pb-2">
-            <CardTitle>App Requirements</CardTitle>
-            <CardDescription>
-              Describe the application you want to build and configure its settings.
+        <div className="border rounded-md overflow-hidden">
+          <div className="p-4 border-b">
+            <div className="font-medium text-lg">App Requirements</div>
+            <div className="text-sm text-muted-foreground mt-1">
+              Describe the application you want to build and configure its settings. 
               Powered by DeepSeek AI model with OpenAI GPT-4o fallback.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </div>
+          </div>
+          <div className="p-4 space-y-5">
+            {/* App Description */}
             <div className="space-y-2">
-              <Label htmlFor="prompt">App Description</Label>
+              <div className="font-medium">App Description</div>
               <Textarea
-                id="prompt"
                 placeholder="develop an app"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                className="h-24 focus:border-blue-500"
+                className="min-h-[100px] resize-none"
               />
               <p className="text-xs text-muted-foreground">
                 Be specific about features, functionality, and design preferences.
@@ -247,11 +239,12 @@ export default function AppGenerator() {
               </p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Technology and App Type */}
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="technology">Technology</Label>
+                <div className="font-medium">Technology</div>
                 <Select value={technology} onValueChange={setTechnology}>
-                  <SelectTrigger id="technology">
+                  <SelectTrigger>
                     <SelectValue placeholder="Select technology" />
                   </SelectTrigger>
                   <SelectContent>
@@ -265,9 +258,9 @@ export default function AppGenerator() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="app-type">App Type</Label>
+                <div className="font-medium">App Type</div>
                 <Select value={appType} onValueChange={setAppType}>
-                  <SelectTrigger id="app-type">
+                  <SelectTrigger>
                     <SelectValue placeholder="Select app type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -281,8 +274,9 @@ export default function AppGenerator() {
               </div>
             </div>
             
+            {/* Features */}
             <div className="space-y-2">
-              <Label>Features</Label>
+              <div className="font-medium">Features</div>
               <div className="grid grid-cols-2 gap-2">
                 {FEATURES.map((feature) => (
                   <div key={feature.id} className="flex items-center space-x-2">
@@ -293,7 +287,7 @@ export default function AppGenerator() {
                     />
                     <label
                       htmlFor={feature.id}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      className="text-sm leading-none cursor-pointer"
                     >
                       {feature.label}
                     </label>
@@ -301,229 +295,178 @@ export default function AppGenerator() {
                 ))}
               </div>
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button 
-              className="w-full" 
-              onClick={generateApp} 
-              disabled={isGenerating || !prompt.trim()}
-            >
-              {isGenerating ? (
-                <>
-                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                  Generating App...
-                </>
-              ) : (
-                <>
-                  <Code className="mr-2 h-4 w-4" />
-                  Generate Application
-                </>
-              )}
-            </Button>
             
-            <Button 
-              variant="outline" 
-              type="button"
-              className="w-full"
-              onClick={() => setShowDeepSiteReference(prev => !prev)}
-            >
-              <Eye className="mr-2 h-4 w-4" />
-              {showDeepSiteReference ? "Hide DeepSite Reference" : "Show DeepSite Reference"}
-            </Button>
-          </CardFooter>
-        </Card>
+            {/* Action Buttons */}
+            <div className="pt-2 space-y-3">
+              <Button 
+                className="w-full" 
+                onClick={generateApp} 
+                disabled={isGenerating || !prompt.trim()}
+              >
+                {isGenerating ? (
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Code className="mr-2 h-4 w-4" />
+                )}
+                {isGenerating ? "Generating App..." : "Generate Application"}
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                type="button"
+                className="w-full"
+                onClick={() => setShowDeepSiteReference(prev => !prev)}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                {showDeepSiteReference ? "Hide DeepSite Reference" : "Show DeepSite Reference"}
+              </Button>
+            </div>
+          </div>
+        </div>
         
         {/* Output Section */}
-        <Card className="border dark:border-neutral-800">
-          <CardHeader className="pb-2">
-            <CardTitle>Generated Code</CardTitle>
-            <CardDescription>
+        <div className="border rounded-md overflow-hidden">
+          <div className="p-4 border-b">
+            <div className="font-medium text-lg">Generated Code</div>
+            <div className="text-sm text-muted-foreground mt-1">
               {generatedFiles.length > 0 
                 ? `Generated ${generatedFiles.length} files for your application` 
                 : "Your generated code will appear here"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            {isGenerating ? (
-              <div className="flex flex-col items-center justify-center p-12 text-center">
-                <div className="space-y-4">
-                  <LoaderCircle className="h-12 w-12 animate-spin mx-auto text-primary" />
-                  <div>
-                    <p className="text-lg font-medium">Generating Your Application</p>
-                    <p className="text-sm text-muted-foreground">
-                      This may take a minute or two depending on the complexity...
-                    </p>
+            </div>
+          </div>
+          
+          {isGenerating ? (
+            <div className="flex flex-col items-center justify-center p-12 text-center">
+              <LoaderCircle className="h-12 w-12 animate-spin mb-4 text-primary" />
+              <div className="text-lg font-medium">Generating Your Application</div>
+              <p className="text-sm text-muted-foreground mt-2">
+                This may take a minute or two depending on the complexity...
+              </p>
+            </div>
+          ) : generatedFiles.length > 0 ? (
+            <Tabs defaultValue="files" className="w-full">
+              <TabsList className="w-full rounded-none border-b px-4">
+                <TabsTrigger value="files">Files</TabsTrigger>
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="files" className="px-4 py-3">
+                <div className="border rounded-md mb-4">
+                  <div className="p-2 bg-muted flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <FileCode2 className="h-4 w-4" />
+                      <span className="text-sm font-medium">File Explorer</span>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={downloadAllFiles}
+                      title="Download all files"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="max-h-60 overflow-y-auto divide-y divide-border">
+                    {generatedFiles.map((file) => (
+                      <button
+                        key={file.name}
+                        className={`w-full text-left px-3 py-2 text-sm flex items-center space-x-2 hover:bg-muted ${
+                          activeFile === file.name ? 'bg-muted' : ''
+                        }`}
+                        onClick={() => setActiveFile(file.name)}
+                      >
+                        <FileCode2 className="h-4 w-4 flex-shrink-0 opacity-70" />
+                        <span className="truncate">{file.name}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
-              </div>
-            ) : generatedFiles.length > 0 ? (
-              <Tabs defaultValue="files" className="w-full">
-                <TabsList className="w-full rounded-none border-b px-6">
-                  <TabsTrigger value="files">Files</TabsTrigger>
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                </TabsList>
-                <TabsContent value="files" className="space-y-4 p-6">
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="rounded-md border">
-                      <div className="bg-muted p-2 flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <FileCode2 className="h-4 w-4" />
-                          <span className="text-sm font-medium">File Explorer</span>
-                        </div>
+                
+                {currentFile && (
+                  <div className="border rounded-md overflow-hidden">
+                    <div className="p-2 bg-muted flex items-center justify-between">
+                      <span className="text-sm truncate font-medium">{currentFile.name}</span>
+                      <div className="flex items-center space-x-1">
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          onClick={downloadAllFiles}
-                          title="Download all files"
+                          onClick={() => copyFileContent(currentFile.content)}
+                          title="Copy code"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => downloadFile(currentFile.name, currentFile.content)}
+                          title="Download file"
                         >
                           <Download className="h-4 w-4" />
                         </Button>
                       </div>
-                      <div className="max-h-60 overflow-y-auto">
-                        {generatedFiles.map((file) => (
-                          <button
-                            key={file.name}
-                            className={`w-full text-left px-3 py-2 text-sm flex items-center space-x-2 ${
-                              activeFile === file.name ? 'bg-accent' : 'hover:bg-accent/50'
-                            }`}
-                            onClick={() => setActiveFile(file.name)}
-                          >
-                            <FileCode2 className="h-4 w-4 flex-shrink-0" />
-                            <span className="truncate">{file.name}</span>
-                          </button>
-                        ))}
-                      </div>
                     </div>
-                    
-                    {currentFile && (
-                      <div className="rounded-md border overflow-hidden">
-                        <div className="bg-muted p-2 flex items-center justify-between">
-                          <span className="text-sm truncate font-medium">{currentFile.name}</span>
-                          <div className="flex items-center space-x-1">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => copyFileContent(currentFile.content)}
-                              title="Copy code"
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => downloadFile(currentFile.name, currentFile.content)}
-                              title="Download file"
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        <pre className="p-4 text-sm overflow-auto max-h-96 bg-black text-white">
-                          <code>{currentFile.content}</code>
-                        </pre>
-                      </div>
+                    <pre className="p-4 text-sm overflow-auto max-h-96 bg-black text-white">
+                      <code>{currentFile.content}</code>
+                    </pre>
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="overview" className="p-4">
+                <div className="text-sm">
+                  <div className="font-medium text-base mb-2">Project Structure</div>
+                  <p className="mb-3">
+                    This {technology} {appType} includes the following files:
+                  </p>
+                  
+                  {/* Tree visualization of project */}
+                  {currentFile && currentFile.name.includes('/') && (
+                    <div className="p-3 bg-black text-white rounded-md mb-4 font-mono text-sm">
+                      {generatedFiles
+                        .filter(file => file.name.startsWith('my-app'))
+                        .map((file, i) => {
+                          // Extract path components for tree visualization
+                          const parts = file.name.split('/');
+                          const indent = Array(parts.length - 1).fill('  ').join('');
+                          const isLast = i === generatedFiles.length - 1;
+                          
+                          return (
+                            <div key={file.name} className="whitespace-pre">
+                              {i === 0 ? '├─ ' : indent + (isLast ? '└─ ' : '├─ ')}
+                              {parts[parts.length - 1]}
+                            </div>
+                          );
+                      })}
+                    </div>
+                  )}
+                  
+                  <div className="font-medium text-base mt-4 mb-2">Technology Stack</div>
+                  <ul className="list-disc pl-5 space-y-1 mb-4">
+                    <li>Primary: {technology}</li>
+                    <li>Application Type: {appType}</li>
+                    {selectedFeatures.length > 0 && (
+                      <li>
+                        Features:
+                        <ul className="list-disc pl-5 mt-1">
+                          {selectedFeatures.map((featureId) => (
+                            <li key={featureId}>
+                              {FEATURES.find((f) => f.id === featureId)?.label}
+                            </li>
+                          ))}
+                        </ul>
+                      </li>
                     )}
-                  </div>
-                </TabsContent>
-                <TabsContent value="overview" className="p-6">
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
-                    <h3>Project Structure Overview</h3>
-                    <p>
-                      This {technology} {appType} includes the following files and components:
-                    </p>
-                    
-                    <Accordion type="single" collapsible className="w-full">
-                      <AccordionItem value="structure">
-                        <AccordionTrigger>
-                          <div className="flex items-center">
-                            <Layers className="h-4 w-4 mr-2" />
-                            <span>Project Structure</span>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <ul className="space-y-1 pl-6 list-disc">
-                            {generatedFiles.map((file) => (
-                              <li key={file.name} className="text-sm">
-                                {file.name}
-                              </li>
-                            ))}
-                          </ul>
-                        </AccordionContent>
-                      </AccordionItem>
-                      
-                      <AccordionItem value="technology">
-                        <AccordionTrigger>
-                          <div className="flex items-center">
-                            <Package className="h-4 w-4 mr-2" />
-                            <span>Technology Stack</span>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <p>
-                            Main technology: <strong>{TECHNOLOGIES.find(t => t.value === technology)?.label}</strong>
-                          </p>
-                          <p>
-                            Application type: <strong>{APP_TYPES.find(t => t.value === appType)?.label}</strong>
-                          </p>
-                          {selectedFeatures.length > 0 && (
-                            <>
-                              <p className="font-semibold mt-2">Features:</p>
-                              <ul className="space-y-1 pl-6 list-disc">
-                                {selectedFeatures.map((featureId) => (
-                                  <li key={featureId}>
-                                    {FEATURES.find(f => f.id === featureId)?.label}
-                                  </li>
-                                ))}
-                              </ul>
-                            </>
-                          )}
-                        </AccordionContent>
-                      </AccordionItem>
-                      
-                      <AccordionItem value="instructions">
-                        <AccordionTrigger>
-                          <div className="flex items-center">
-                            <Server className="h-4 w-4 mr-2" />
-                            <span>Deployment Instructions</span>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <p>
-                            To deploy this application:
-                          </p>
-                          <ol className="space-y-1 pl-6 list-decimal">
-                            <li>Clone the repository or download all generated files</li>
-                            <li>Install dependencies with <code>npm install</code> or <code>yarn</code></li>
-                            <li>Start the development server with <code>npm start</code> or <code>yarn start</code></li>
-                            <li>Build for production with <code>npm run build</code> or <code>yarn build</code></li>
-                          </ol>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            ) : (
-              <div className="py-20 px-4 text-center">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="text-muted-foreground">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M7 8L3 12L7 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M17 8L21 12L17 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M14 4L10 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-medium">No Code Generated Yet</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Fill in the form and click "Generate Application" to create your app
-                    </p>
-                  </div>
+                  </ul>
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
+              <FileCode2 className="h-12 w-12 mb-4 opacity-30" />
+              <p>Enter your app requirements and click "Generate Application"</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
