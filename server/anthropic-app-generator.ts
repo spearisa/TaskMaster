@@ -64,7 +64,23 @@ export async function generateCodeWithClaude(options: CodeGenerationRequest): Pr
       ],
     });
 
-    const result = response.content[0].text;
+    // Extract text content from the response
+    if (!response.content || response.content.length === 0) {
+      throw new Error("No content received from Claude");
+    }
+    
+    // Claude can return different types of content blocks, we need to check which one we got
+    let result = '';
+    for (const block of response.content) {
+      if (block.type === 'text') {
+        result += block.text;
+      }
+    }
+    
+    if (!result) {
+      throw new Error("No text content found in Claude's response");
+    }
+    
     return processGeneratedCode(result);
   } catch (error) {
     console.error('Failed to generate code with Claude:', error);
