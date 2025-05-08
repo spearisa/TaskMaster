@@ -119,6 +119,12 @@ app.use((req, res, next) => {
     // We must use port 5000 to match the workflow configuration
     const availablePorts = [
       5000, // CRITICAL: Replit workflow expects this port specifically
+      5001,
+      5002, 
+      5003,
+      3000,
+      8080,
+      8000
     ];
     
     let serverStarted = false;
@@ -139,7 +145,8 @@ app.use((req, res, next) => {
           server.once('error', (err: any) => {
             clearTimeout(timeout);
             if (err.code === 'EADDRINUSE') {
-              log(`Port ${port} is already in use, trying next port...`);
+              console.log(`Port ${port} is already in use, trying next port...`);
+              server.close(); // Explicitly close the server
               server.removeAllListeners('listening');
               server.removeAllListeners('error');
               resolve(); // Continue to next port

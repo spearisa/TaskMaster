@@ -81,7 +81,7 @@ function Router() {
       {/* AI Models routes */}
       <Route path="/ai-models" component={AIModelsPage} />
       <Route path="/ai-models/:id" component={AIModelDetailPage} />
-      <ProtectedRoute path="/app-generator" component={AppGeneratorPage} />
+      <Route path="/app-generator" component={AppGeneratorPage} />
       
       {/* Admin routes */}
       <Route path="/admin/login" component={AdminLogin} />
