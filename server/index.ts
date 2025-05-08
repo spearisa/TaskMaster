@@ -120,16 +120,29 @@ app.use((req, res, next) => {
       return Array.from({ length: count }, (_, i) => start + i);
     };
     
-    // Create a larger array of ports to try in different ranges
-    // Modified port priority to match Replit workflow configuration
+    // Try various ports since Replit workflow port configuration is not editable
+    // This will attempt to find an available port instead of failing
+    // Start with ports that are less likely to be in use in Replit
     const availablePorts = [
-      5000,                       // First try Replit's preferred port
-      3000,                       // Then try alternative port
-      ...generatePortRange(8080, 5),  // Then try 8080-8084
-      ...generatePortRange(4000, 5),  // Then try 4000-4004
-      ...generatePortRange(8000, 5),  // Then try 8000-8004
-      ...generatePortRange(9000, 5),  // Then try 9000-9004
-      ...generatePortRange(5001, 9)   // Try 5001-5009
+      6789, // Try unusual ports first
+      7890,
+      9876,
+      2345,
+      1234,
+      6543,
+      8765,
+      5678,
+      9878,
+      8876,
+      6567,
+      ...generatePortRange(10000, 10), // Try higher ports
+      ...generatePortRange(3050, 10),  // Try ports above 3000-3049
+      ...generatePortRange(4000, 10),  // Then 4000-4009
+      ...generatePortRange(5001, 9),   // Try 5001-5009
+      ...generatePortRange(6000, 10),  // Then 6000-6009
+      ...generatePortRange(7000, 10),  // Then 7000-7009
+      ...generatePortRange(8010, 10),  // Then 8010-8019
+      ...generatePortRange(9010, 10)   // Then 9010-9019
     ];
     
     let serverStarted = false;
@@ -167,6 +180,7 @@ app.use((req, res, next) => {
             // Let the user know which port we're using - make it very visible
             console.log(`\n\n==================================================`);
             console.log(`🚀 Appmo server running successfully on port: ${port}`);
+            console.log(`🔗 Access via: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.replit.dev`);
             console.log(`==================================================\n\n`);
             
             resolve();

@@ -17,6 +17,7 @@ import {
   getTaskSuggestions, generateTaskReminder, generateDailySchedule, delegateTaskToAI,
   generateChatCompletion, generateImage, generateCode
 } from "./openai-service";
+import { handleCodeGenerationRequest } from "./deepseek-service";
 import OpenAI from "openai";
 import {
   getTopAIApplicationsForTask, getAllAITools, getAIToolsCategories, getAIToolsByCategory,
@@ -1755,6 +1756,9 @@ app.get("/api/profile/share/:userId", async (req, res) => {
       return res.status(500).json({ message: "Failed to generate code", error: error.message });
     }
   });
+  
+  // DeepSeek AI code generation for complete applications
+  app.post("/api/ai/deepseek/generate", handleCodeGenerationRequest);
   
   // AI Delegation for task templates
   app.post("/api/ai/delegate-template", async (req, res) => {
