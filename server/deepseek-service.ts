@@ -466,19 +466,51 @@ export async function handleCodeGenerationRequest(req: Request, res: Response) {
     console.log(`Received code generation request [${provider}]: ${prompt.substring(0, 100)}...`);
     
     try {
-      // First attempt with DeepSeek
+      // First check if we should use OpenAI instead of DeepSeek
+      const hasOpenAiKey = !!process.env.OPENAI_API_KEY;
+      
+      // Check DeepSeek and Hugging Face auth status
+      const hasDeepSeekKey = !!process.env.DEEPSEEK_API_KEY;
+      const hasHuggingFaceToken = !!process.env.HUGGINGFACE_API_TOKEN;
+      const hasHuggingFaceKey = !!process.env.HUGGINGFACE_API_KEY;
+      
+      console.log('API authentication status:', {
+        hasOpenAiKey,
+        hasDeepSeekAPIKey: hasDeepSeekKey, 
+        hasHuggingFaceToken: hasHuggingFaceToken, 
+        hasHuggingFaceKey: hasHuggingFaceKey
+      });
+      
+      // If previous attempts to use DeepSeek failed, just use OpenAI directly
+      if (hasOpenAiKey && provider !== 'deepseek-force') {
+        console.log('Using OpenAI as primary provider due to previous DeepSeek errors');
+        
+        try {
+          // Import OpenAI on demand to avoid circular dependencies
+          const openaiService = await import('./openai-service');
+          
+          // Use OpenAI for code generation
+          const openAiResult = await openaiService.generateApplicationCode({
+            prompt,
+            technology,
+            appType, 
+            features
+          });
+          
+          return res.json({
+            ok: true,
+            files: openAiResult.files || [],
+            generated_text: openAiResult.generated_text || '',
+            provider: 'openai'
+          });
+        } catch (openAiError: any) {
+          console.error('OpenAI fallback error:', openAiError);
+          throw new Error(`OpenAI fallback failed: ${openAiError.message}`);
+        }
+      }
+      
+      // Try using DeepSeek if we got here
       try {
-        // Check for API key - prioritize DEEPSEEK_API_KEY, then check for Hugging Face tokens
-        const hasDeepSeekKey = !!process.env.DEEPSEEK_API_KEY;
-        const hasHuggingFaceToken = !!process.env.HUGGINGFACE_API_TOKEN;
-        const hasHuggingFaceKey = !!process.env.HUGGINGFACE_API_KEY;
-        
-        console.log('API authentication status:', {
-          hasDeepSeekAPIKey: hasDeepSeekKey, 
-          hasHuggingFaceToken: hasHuggingFaceToken, 
-          hasHuggingFaceKey: hasHuggingFaceKey
-        });
-        
         if (!hasDeepSeekKey && !hasHuggingFaceToken && !hasHuggingFaceKey) {
           console.error('ERROR: No API credentials available for DeepSeek or Hugging Face');
           throw new Error('Missing API credentials for code generation');
@@ -515,20 +547,9 @@ export async function handleCodeGenerationRequest(req: Request, res: Response) {
         // Log the specific error for debugging
         console.log('Detailed DeepSeek error message:', deepseekError.message);
         
-        // If we encounter a permissions error or any other DeepSeek error, try OpenAI as fallback
-        if (deepseekError.message.includes('sufficient permissions') || 
-            deepseekError.message.includes('exceeded your monthly included credits') ||
-            deepseekError.message.includes('API key') ||
-            deepseekError.message.includes('authentication') ||
-            deepseekError.message.includes('permission') ||
-            deepseekError.message.includes('unauthorized')) {
+        // If we have an OpenAI key available, use it as fallback
+        if (hasOpenAiKey) {
           console.log('DeepSeek error, trying OpenAI fallback:', deepseekError.message);
-          
-          // Check for OpenAI API key
-          const openAiApiKey = process.env.OPENAI_API_KEY;
-          if (!openAiApiKey) {
-            throw new Error('Neither DeepSeek nor OpenAI API credentials are available');
-          }
 
           // Import OpenAI on demand to avoid circular dependencies
           const openaiService = await import('./openai-service');
