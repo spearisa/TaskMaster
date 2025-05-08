@@ -6,10 +6,10 @@ import fetch from 'node-fetch';
  */
 
 const HUGGINGFACE_API_URL = 'https://huggingface.co/api';
-const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY;
+const HUGGINGFACE_API_TOKEN = process.env.HUGGINGFACE_API_TOKEN;
 
-if (!HUGGINGFACE_API_KEY) {
-  console.warn('HUGGINGFACE_API_KEY environment variable is not set. API requests may be rate limited.');
+if (!HUGGINGFACE_API_TOKEN) {
+  console.warn('HUGGINGFACE_API_TOKEN environment variable is not set. API requests may be rate limited.');
 }
 
 // Define common model pipeline types
@@ -77,26 +77,26 @@ export async function getTrendingModels(
   try {
     // Build query parameters
     let url = `${HUGGINGFACE_API_URL}/models?limit=${limit}&sort=${sort}&direction=${direction}`;
-    
+
     // Add pipeline tag filter if provided
     if (pipelineTag && pipelineTag !== 'all') {
       url += `&filter=${pipelineTag}`;
     }
-    
+
     // Fetch data from Hugging Face API
     const response = await fetch(url, {
-      headers: HUGGINGFACE_API_KEY ? {
-        'Authorization': `Bearer ${HUGGINGFACE_API_KEY}`
+      headers: HUGGINGFACE_API_TOKEN ? {
+        'Authorization': `Bearer ${HUGGINGFACE_API_TOKEN}`
       } : {}
     });
-    
+
     if (!response.ok) {
       throw new Error(`Hugging Face API error: ${response.status}`);
     }
-    
+
     // Parse response
     const data = await response.json() as HuggingFaceModel[];
-    
+
     // Transform to include modelId for easier reference
     return data.map(model => ({
       ...model,
@@ -124,26 +124,26 @@ export async function searchModels(
   try {
     // Build query parameters
     let url = `${HUGGINGFACE_API_URL}/models?search=${encodeURIComponent(query)}&limit=${limit}`;
-    
+
     // Add pipeline tag filter if provided
     if (pipelineTag && pipelineTag !== 'all') {
       url += `&filter=${pipelineTag}`;
     }
-    
+
     // Fetch data from Hugging Face API
     const response = await fetch(url, {
-      headers: HUGGINGFACE_API_KEY ? {
-        'Authorization': `Bearer ${HUGGINGFACE_API_KEY}`
+      headers: HUGGINGFACE_API_TOKEN ? {
+        'Authorization': `Bearer ${HUGGINGFACE_API_TOKEN}`
       } : {}
     });
-    
+
     if (!response.ok) {
       throw new Error(`Hugging Face API error: ${response.status}`);
     }
-    
+
     // Parse response
     const data = await response.json() as HuggingFaceModel[];
-    
+
     // Transform to include modelId for easier reference
     return data.map(model => ({
       ...model,
@@ -165,21 +165,21 @@ export async function getModelDetails(modelId: string): Promise<HuggingFaceModel
   try {
     // Split model ID into author and model name
     const [author, modelName] = modelId.split('/');
-    
+
     // Fetch model details from Hugging Face API
     const response = await fetch(`${HUGGINGFACE_API_URL}/models/${modelId}`, {
-      headers: HUGGINGFACE_API_KEY ? {
-        'Authorization': `Bearer ${HUGGINGFACE_API_KEY}`
+      headers: HUGGINGFACE_API_TOKEN ? {
+        'Authorization': `Bearer ${HUGGINGFACE_API_TOKEN}`
       } : {}
     });
-    
+
     if (!response.ok) {
       throw new Error(`Hugging Face API error: ${response.status}`);
     }
-    
+
     // Parse response
     const data = await response.json();
-    
+
     // Add modelId field for consistency
     return {
       ...data,
@@ -201,15 +201,15 @@ export async function getModelReadme(modelId: string): Promise<{ content: string
   try {
     // Make API request to get README
     const response = await fetch(`${HUGGINGFACE_API_URL}/models/${modelId}/readme`, {
-      headers: HUGGINGFACE_API_KEY ? {
-        'Authorization': `Bearer ${HUGGINGFACE_API_KEY}`
+      headers: HUGGINGFACE_API_TOKEN ? {
+        'Authorization': `Bearer ${HUGGINGFACE_API_TOKEN}`
       } : {}
     });
-    
+
     if (!response.ok) {
       return null; // Not all models have README files
     }
-    
+
     // Parse response
     const data = await response.json() as { content: string };
     return data;
@@ -230,7 +230,7 @@ export async function getTrendingModelsByCategory(
 ): Promise<{ [category: string]: HuggingFaceModel[] }> {
   try {
     const result: { [category: string]: HuggingFaceModel[] } = {};
-    
+
     // Get models for each pipeline type
     for (const type of MODEL_TYPES) {
       const models = await getTrendingModels(limit, type);
@@ -238,7 +238,7 @@ export async function getTrendingModelsByCategory(
         result[type] = models;
       }
     }
-    
+
     return result;
   } catch (error) {
     console.error('Error fetching trending models by category:', error);
