@@ -4,7 +4,22 @@ import { User as SelectUser, insertUserSchema } from "@shared/schema";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-import { auth, signInWithGoogle } from "@/lib/firebase";
+// Import as optional to prevent critical errors if Firebase is missing
+let auth: any = null;
+let signInWithGoogle: () => Promise<any> = async () => { 
+  console.error("Firebase not initialized"); 
+  throw new Error("Firebase not initialized");
+};
+
+// Safely try to import Firebase
+try {
+  const firebaseModule = await import("@/lib/firebase");
+  auth = firebaseModule.auth;
+  signInWithGoogle = firebaseModule.signInWithGoogle;
+} catch (error) {
+  console.warn("Firebase import failed:", error);
+}
+
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 
 // Local storage key for persisting user data
@@ -312,20 +327,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return () => {}; // Return empty cleanup function
     }
     
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        console.log("Firebase user signed in:", firebaseUser.email);
-        try {
-          // Attempt to authenticate with our server using Firebase credentials
-          await googleAuthMutation.mutateAsync(firebaseUser);
-        } catch (error) {
-          console.error("Error authenticating with server:", error);
+    try {
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        if (firebaseUser) {
+          console.log("Firebase user signed in:", firebaseUser.email);
+          try {
+            // Attempt to authenticate with our server using Firebase credentials
+            await googleAuthMutation.mutateAsync(firebaseUser);
+          } catch (error) {
+            console.error("Error authenticating with server:", error);
+          }
         }
-      }
-    });
-    
-    // Clean up subscription
-    return () => unsubscribe();
+      });
+      
+      // Clean up subscription
+      return () => {
+        try {
+          unsubscribe();
+        } catch (err) {
+          console.error("Error unsubscribing from auth state:", err);
+        }
+      };
+    } catch (error) {
+      console.error("Error setting up auth state listener:", error);
+      return () => {}; // Return empty cleanup function
+    }
   }, [googleAuthMutation]);
 
   return (

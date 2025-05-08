@@ -1,6 +1,11 @@
 import { initializeApp, FirebaseApp } from "firebase/app";
 import { getAuth, signInWithRedirect, GoogleAuthProvider, signOut, Auth } from "firebase/auth";
 
+// Create null defaults in case of initialization failure
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let googleProvider: GoogleAuthProvider | null = null;
+
 // Check if Firebase environment variables are set
 const hasValidFirebaseConfig = 
   !!import.meta.env.VITE_FIREBASE_API_KEY && 
@@ -10,12 +15,14 @@ const hasValidFirebaseConfig =
 // Log configuration status (remove in production)
 console.log("Firebase config status:", hasValidFirebaseConfig ? "Complete" : "Missing");
 
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-let googleProvider: GoogleAuthProvider | null = null;
-
-// Only initialize Firebase if we have valid configuration
-if (hasValidFirebaseConfig) {
+// Function to safely initialize Firebase
+function initializeFirebase() {
+  // Only initialize Firebase if we have valid configuration
+  if (!hasValidFirebaseConfig) {
+    console.warn("Firebase not initialized: Missing required environment variables");
+    return false;
+  }
+  
   try {
     // Firebase configuration from environment variables
     const firebaseConfig = {
@@ -26,21 +33,34 @@ if (hasValidFirebaseConfig) {
       appId: import.meta.env.VITE_FIREBASE_APP_ID,
     };
 
-    // Initialize Firebase
-    app = initializeApp(firebaseConfig);
-    
-    // Initialize Firebase Authentication
-    auth = getAuth(app);
-    
-    // Google Auth Provider
-    googleProvider = new GoogleAuthProvider();
-    
-    console.log("Firebase initialized successfully");
+    // Check if app is already initialized to avoid duplicate apps
+    if (!app) {
+      // Initialize Firebase
+      app = initializeApp(firebaseConfig);
+      
+      // Initialize Firebase Authentication
+      auth = getAuth(app);
+      
+      // Google Auth Provider
+      googleProvider = new GoogleAuthProvider();
+      
+      console.log("Firebase initialized successfully");
+      return true;
+    } else {
+      console.log("Firebase already initialized");
+      return true;
+    }
   } catch (error) {
     console.error("Firebase initialization error:", error);
+    return false;
   }
-} else {
-  console.warn("Firebase not initialized: Missing required environment variables");
+}
+
+// Try to initialize Firebase on module load
+try {
+  initializeFirebase();
+} catch (error) {
+  console.error("Firebase initialization failed:", error);
 }
 
 // Function to sign in with Google - with error handling

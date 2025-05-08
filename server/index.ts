@@ -115,34 +115,10 @@ app.use((req, res, next) => {
 
   // Start server with port fallback for Replit compatibility
   const startServer = async () => {
-    // Generate a broader range of ports to try
-    const generatePortRange = (start: number, count: number) => {
-      return Array.from({ length: count }, (_, i) => start + i);
-    };
-    
-    // Try various ports since Replit workflow port configuration is not editable
-    // This will attempt to find an available port instead of failing
-    // Start with ports that are less likely to be in use in Replit
+    // Replit workflow expects port 5000 - DO NOT MODIFY THIS PORT
+    // We must use port 5000 to match the workflow configuration
     const availablePorts = [
-      6789, // Try unusual ports first
-      7890,
-      9876,
-      2345,
-      1234,
-      6543,
-      8765,
-      5678,
-      9878,
-      8876,
-      6567,
-      ...generatePortRange(10000, 10), // Try higher ports
-      ...generatePortRange(3050, 10),  // Try ports above 3000-3049
-      ...generatePortRange(4000, 10),  // Then 4000-4009
-      ...generatePortRange(5001, 9),   // Try 5001-5009
-      ...generatePortRange(6000, 10),  // Then 6000-6009
-      ...generatePortRange(7000, 10),  // Then 7000-7009
-      ...generatePortRange(8010, 10),  // Then 8010-8019
-      ...generatePortRange(9010, 10)   // Then 9010-9019
+      5000, // CRITICAL: Replit workflow expects this port specifically
     ];
     
     let serverStarted = false;
@@ -158,7 +134,7 @@ app.use((req, res, next) => {
             server.removeAllListeners('listening');
             server.removeAllListeners('error');
             resolve(); // Continue to next port
-          }, 3000); // Extended timeout
+          }, 15000); // Extended timeout for Replit
           
           server.once('error', (err: any) => {
             clearTimeout(timeout);

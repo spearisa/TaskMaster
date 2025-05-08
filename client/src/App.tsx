@@ -8,6 +8,7 @@ import { LanguageRegionSelector } from "@/components/language-region-selector";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AdminProtectedRoute } from "@/lib/admin-protected-route";
+import { Component, ErrorInfo, ReactNode } from "react";
 import HomePage from "@/pages/home";
 import NewTaskPage from "@/pages/new-task";
 import CalendarPage from "@/pages/calendar";
@@ -93,13 +94,57 @@ function Router() {
   );
 }
 
+// Error boundary to catch and display errors gracefully
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean, error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("React Error Boundary caught an error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
+          <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
+          <p className="mb-4">We're sorry, but there was an error loading the application.</p>
+          <p className="text-sm text-gray-500 mb-6">{this.state.error?.message}</p>
+          <button
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            onClick={() => {
+              // Clear any cached data that might be causing issues
+              localStorage.removeItem("taskManager_user");
+              
+              // Reload the page to reset the application state
+              window.location.reload();
+            }}
+          >
+            Reload Application
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
