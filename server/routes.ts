@@ -1686,7 +1686,22 @@ app.get("/api/profile/share/:userId", async (req, res) => {
     }
   });
   
-  // AI Tools API Endpoints
+  // DeepSeek Code Generation endpoint
+app.post('/api/ai/deepseek/generate', async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    const result = await handleCodeGenerationRequest(prompt);
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// AI Tools API Endpoints
   
   // Chat completion API
   app.post("/api/ai/chat", async (req, res) => {
