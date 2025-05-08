@@ -84,7 +84,7 @@ export default function AppGenerator() {
     );
   };
   
-  // Generate app code using Claude
+  // Generate app code using DeepSeek
   const generateApp = async () => {
     if (!prompt.trim()) {
       toast({
@@ -101,17 +101,17 @@ export default function AppGenerator() {
     setActiveFile(null);
     
     try {
-      console.log("Sending request to Claude API with prompt:", prompt.substring(0, 100) + "...");
+      console.log("Sending request to DeepSeek API with prompt:", prompt.substring(0, 100) + "...");
       
       try {
-        // Use Claude endpoint with explicit model and token settings
-        const response = await apiRequest('POST', '/api/ai/claude/generate', {
+        // Use DeepSeek endpoint (via Hugging Face) with explicit model settings
+        const response = await apiRequest('POST', '/api/ai/deepseek/generate', {
           prompt,
           technology,
           appType,
           features: selectedFeatures,
-          modelId: 'claude-3-7-sonnet-20250219',
-          maxTokens: 100000
+          modelId: 'deepseek-ai/deepseek-coder-33b-instruct',
+          maxLength: 4096
         }, {
           timeout: 180000 // 3 minute timeout
         });
@@ -119,7 +119,7 @@ export default function AppGenerator() {
         // Response received successfully
         
         // Log the response status
-        console.log("Claude API response status:", response.status);
+        console.log("DeepSeek API response status:", response.status);
         
         if (!response.ok) {
           let errorMessage = 'Failed to generate app';
@@ -144,7 +144,7 @@ export default function AppGenerator() {
         
         // Parse the JSON response
         const data = await response.json();
-        console.log("Received response from Claude API with text length:", 
+        console.log("Received response from DeepSeek API with text length:", 
                    data.generated_text ? data.generated_text.length : 0);
         console.log("Files extracted:", data.files ? data.files.length : 0);
         
@@ -159,11 +159,11 @@ export default function AppGenerator() {
           
           toast({
             title: "App Generated Successfully",
-            description: `Generated ${data.files.length} files for your ${technology} application with Claude.`,
+            description: `Generated ${data.files.length} files for your ${technology} application with DeepSeek.`,
           });
         } else {
           // No files found in the response
-          console.warn("No files found in the Claude API response");
+          console.warn("No files found in the DeepSeek API response");
           toast({
             title: "Generation Partially Successful",
             description: "Content was generated but no code files were extracted. Try adjusting your prompt.",
@@ -249,7 +249,7 @@ export default function AppGenerator() {
       <div className="flex flex-col space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">AI App Generator</h1>
         <p className="text-muted-foreground">
-          Generate complete application code using Claude AI. Describe your app and let Claude build it for you.
+          Generate complete application code using DeepSeek AI. Describe your app and let DeepSeek build it for you.
         </p>
       </div>
       
@@ -260,7 +260,7 @@ export default function AppGenerator() {
             <CardTitle>App Requirements</CardTitle>
             <CardDescription>
               Describe the application you want to build and configure its settings. 
-              Powered by Anthropic's Claude AI model.
+              Powered by DeepSeek AI model.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
