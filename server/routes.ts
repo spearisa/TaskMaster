@@ -18,6 +18,7 @@ import {
   generateChatCompletion, generateImage, generateCode
 } from "./openai-service";
 import { handleCodeGenerationRequest } from "./deepseek-service";
+import { handleClaudeCodeGenerationRequest } from "./anthropic-app-generator";
 import OpenAI from "openai";
 import { generateApplicationCode } from "./openai-service";
 import {
@@ -1760,6 +1761,9 @@ app.get("/api/profile/share/:userId", async (req, res) => {
   
   // DeepSeek AI code generation for complete applications
   app.post("/api/ai/deepseek/generate", handleCodeGenerationRequest);
+  
+  // Claude AI code generation for complete applications
+  app.post("/api/ai/claude/generate", handleClaudeCodeGenerationRequest);
   
   // OpenAI App Generator endpoint (alternative to DeepSeek)
   app.post("/api/ai/openai/generate", async (req, res) => {

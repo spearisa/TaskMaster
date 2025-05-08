@@ -101,8 +101,8 @@ export default function AppGenerator() {
     setActiveFile(null);
     
     try {
-      // Return to using DeepSeek endpoint now that we have API key
-      const response = await apiRequest('POST', '/api/ai/deepseek/generate', {
+      // Use Claude endpoint as requested
+      const response = await apiRequest('POST', '/api/ai/claude/generate', {
         prompt,
         technology,
         appType,
@@ -124,7 +124,7 @@ export default function AppGenerator() {
       
       toast({
         title: "App Generated Successfully",
-        description: `Generated ${data.files?.length || 0} files for your ${technology} application.`,
+        description: `Generated ${data.files?.length || 0} files for your ${technology} application with Claude.`,
       });
     } catch (error: any) {
       toast({
@@ -173,7 +173,7 @@ export default function AppGenerator() {
       <div className="flex flex-col space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">AI App Generator</h1>
         <p className="text-muted-foreground">
-          Generate complete application code using AI. Describe your app and let our AI build it for you.
+          Generate complete application code using Claude AI. Describe your app and let Claude build it for you.
         </p>
       </div>
       
@@ -183,7 +183,8 @@ export default function AppGenerator() {
           <CardHeader>
             <CardTitle>App Requirements</CardTitle>
             <CardDescription>
-              Describe the application you want to build and configure its settings
+              Describe the application you want to build and configure its settings. 
+              Powered by Anthropic's Claude AI model.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
