@@ -35,12 +35,14 @@ interface CodeGenerationResponse {
  */
 export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): Promise<CodeGenerationResponse> {
   try {
-    // Use HUGGINGFACE_API_KEY if available, otherwise try HUGGINGFACE_API_TOKEN
-    const apiKey = process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACE_API_TOKEN;
+    // Prioritize dedicated DeepSeek API key if available
+    const apiKey = process.env.DEEPSEEK_API_KEY || process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACE_API_TOKEN;
     
     if (!apiKey) {
-      throw new Error('Neither HUGGINGFACE_API_KEY nor HUGGINGFACE_API_TOKEN is set');
+      throw new Error('No DeepSeek API key is available. Please set DEEPSEEK_API_KEY environment variable.');
     }
+    
+    console.log(`Using API key for DeepSeek: ${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 4)} (length: ${apiKey.length})`)
     
     const modelId = options.modelId || DEEPSEEK_MODELS.DEEPSEEK_CODER_33B;
     console.log(`Generating code with DeepSeek using model: ${modelId}`);
