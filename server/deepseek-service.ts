@@ -97,27 +97,64 @@ export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): 
     });
     
     // Make the API request
-    const response = await axios.post(
-      apiUrl,
-      requestBody,
-      {
-        headers: { 
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 180000 // 3 minute timeout
+    // Log more details about the request
+    console.log(`Full API URL being called: ${apiUrl}`);
+    console.log(`Request payload size: ${JSON.stringify(requestBody).length} characters`);
+    
+    try {
+      const response = await axios.post(
+        apiUrl,
+        requestBody,
+        {
+          headers: { 
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 180000, // 3 minute timeout
+          validateStatus: function (status) {
+            // Consider all status codes as successful to handle them manually below
+            return true;
+          }
+        }
+      );
+      
+      // Log complete response info
+      console.log(`DeepSeek API response status: ${response.status}`);
+      console.log(`DeepSeek API response headers: ${JSON.stringify(response.headers)}`);
+      
+      // Check response status
+      if (response.status >= 400) {
+        console.error(`Error from DeepSeek API: Status ${response.status}`);
+        console.error('Response data:', response.data);
+        
+        let errorMessage = `API Error: Status ${response.status}`;
+        if (response.data && typeof response.data === 'object' && response.data.error) {
+          errorMessage += ` - ${response.data.error}`;
+        }
+        
+        throw new Error(errorMessage);
       }
-    );
-    
-    if (!response.data) {
-      throw new Error('Empty response from DeepSeek API');
+      
+      if (!response.data) {
+        throw new Error('Empty response from DeepSeek API');
+      }
+      
+      console.log('Received response from DeepSeek API:', 
+        typeof response.data === 'string' 
+          ? `${response.data.substring(0, 100)}...` 
+          : `Response type: ${typeof response.data}`
+      );
+      
+      return response;
+    } catch (requestError) {
+      console.error('Axios request error details:', {
+        message: requestError.message,
+        code: requestError.code,
+        name: requestError.name,
+        stack: requestError.stack
+      });
+      throw requestError;
     }
-    
-    console.log('Received response from DeepSeek API:', 
-      typeof response.data === 'string' 
-        ? `${response.data.substring(0, 100)}...` 
-        : `Response type: ${typeof response.data}`
-    );
     
     // Process the response to extract code files
     const result = processGeneratedCode(response.data);
@@ -435,17 +472,27 @@ export async function handleCodeGenerationRequest(req: Request, res: Response) {
         const hasHuggingFaceToken = !!process.env.HUGGINGFACE_API_TOKEN;
         const hasHuggingFaceKey = !!process.env.HUGGINGFACE_API_KEY;
         
+        console.log('API authentication status:', {
+          hasDeepSeekAPIKey: hasDeepSeekKey, 
+          hasHuggingFaceToken: hasHuggingFaceToken, 
+          hasHuggingFaceKey: hasHuggingFaceKey
+        });
+        
         if (!hasDeepSeekKey && !hasHuggingFaceToken && !hasHuggingFaceKey) {
+          console.error('ERROR: No API credentials available for DeepSeek or Hugging Face');
           throw new Error('Missing API credentials for code generation');
         }
         
         // Log which API credentials we're using
         if (hasDeepSeekKey) {
           console.log('Using DEEPSEEK_API_KEY for authentication');
+          console.log(`Key length: ${process.env.DEEPSEEK_API_KEY?.length}, prefix: ${process.env.DEEPSEEK_API_KEY?.substring(0, 4)}...`);
         } else if (hasHuggingFaceToken) {
           console.log('Using HUGGINGFACE_API_TOKEN for authentication');
+          console.log(`Token length: ${process.env.HUGGINGFACE_API_TOKEN?.length}, prefix: ${process.env.HUGGINGFACE_API_TOKEN?.substring(0, 4)}...`);
         } else {
           console.log('Using HUGGINGFACE_API_KEY for authentication');
+          console.log(`Key length: ${process.env.HUGGINGFACE_API_KEY?.length}, prefix: ${process.env.HUGGINGFACE_API_KEY?.substring(0, 4)}...`);
         }
 
         const result = await generateCodeWithDeepSeek({
