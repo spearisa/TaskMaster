@@ -483,3 +483,120 @@ export async function generateCode(prompt: string, language: string) {
     throw new Error("Failed to generate code");
   }
 }
+
+/**
+ * Generate complete application code structure using OpenAI
+ * This replaces the DeepSeek implementation with OpenAI's GPT-4o
+ * 
+ * @param options Object containing prompt and parameters for app generation
+ * @returns Promise with the generated code files
+ */
+export async function generateApplicationCode(options: {
+  prompt: string;
+  technology?: string;
+  appType?: string;
+  features?: string[];
+  maxLength?: number;
+}) {
+  try {
+    const { 
+      prompt, 
+      technology = 'React', 
+      appType = 'web application',
+      features = [],
+      maxLength = 4000 
+    } = options;
+
+    // Format any requested features as a string
+    const featuresText = features.length > 0 
+      ? `The application should include the following features: ${features.join(', ')}.` 
+      : '';
+      
+    // Create an enhanced prompt with specific instructions
+    const enhancedPrompt = `
+    You are an expert developer skilled in creating ${technology} applications. I need you to generate code for a ${appType}.
+    
+    ${prompt}
+    
+    ${featuresText}
+    
+    Please organize the response as follows:
+    1. First, provide a brief overview of the architecture and components.
+    2. Then, generate each file with the content wrapped in markdown code blocks.
+    3. For each file, specify the filename at the top of the code block.
+    4. Include all necessary dependencies and configuration files.
+    
+    Focus on making the code production-ready, well-structured, and following best practices.
+    `;
+
+    // Call OpenAI with the enhanced prompt
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        { role: "user", content: enhancedPrompt }
+      ],
+      max_tokens: Math.min(maxLength, 4000), // Ensure we don't exceed OpenAI limits
+      temperature: 0.7
+    });
+
+    const generatedText = response.choices[0].message.content;
+    
+    if (!generatedText) {
+      throw new Error('No generated text received from the model');
+    }
+
+    // Parse the generated text into separate files using regex
+    const filePattern = /```(?:(\w+))?\s*(?:([a-zA-Z0-9_\-./]+)\s*)?([^`]+)```/g;
+    const files: { name: string; content: string; language: string }[] = [];
+    
+    let match;
+    while ((match = filePattern.exec(generatedText)) !== null) {
+      const language = match[1] || 'text';
+      const fileName = match[2] || `file${files.length + 1}.${getExtensionFromLanguage(language)}`;
+      const content = match[3].trim();
+      
+      files.push({
+        name: fileName,
+        content,
+        language
+      });
+    }
+
+    return {
+      generated_text: generatedText,
+      files: files.length > 0 ? files : undefined
+    };
+  } catch (error) {
+    console.error('Failed to generate application code with OpenAI:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get appropriate file extension based on language
+ */
+function getExtensionFromLanguage(language: string): string {
+  const extensions: {[key: string]: string} = {
+    javascript: 'js',
+    typescript: 'ts',
+    jsx: 'jsx',
+    tsx: 'tsx',
+    html: 'html',
+    css: 'css',
+    scss: 'scss',
+    python: 'py',
+    java: 'java',
+    php: 'php',
+    ruby: 'rb',
+    go: 'go',
+    rust: 'rs',
+    swift: 'swift',
+    kotlin: 'kt',
+    json: 'json',
+    yaml: 'yaml',
+    markdown: 'md',
+    text: 'txt'
+  };
+  
+  return extensions[language.toLowerCase()] || 'txt';
+}

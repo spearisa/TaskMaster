@@ -19,6 +19,7 @@ import {
 } from "./openai-service";
 import { handleCodeGenerationRequest } from "./deepseek-service";
 import OpenAI from "openai";
+import { generateApplicationCode } from "./openai-service";
 import {
   getTopAIApplicationsForTask, getAllAITools, getAIToolsCategories, getAIToolsByCategory,
   getAIRecommendations
@@ -1759,6 +1760,35 @@ app.get("/api/profile/share/:userId", async (req, res) => {
   
   // DeepSeek AI code generation for complete applications
   app.post("/api/ai/deepseek/generate", handleCodeGenerationRequest);
+  
+  // OpenAI App Generator endpoint (alternative to DeepSeek)
+  app.post("/api/ai/openai/generate", async (req, res) => {
+    try {
+      const { prompt, technology, appType, features, maxLength } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ error: 'Prompt is required' });
+      }
+      
+      console.log(`[OpenAI] Generating application code for "${prompt.substring(0, 50)}..."`);
+      
+      const result = await generateApplicationCode({
+        prompt,
+        technology,
+        appType,
+        features,
+        maxLength
+      });
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error('OpenAI code generation request failed:', error);
+      res.status(500).json({ 
+        error: 'Failed to generate code',
+        message: error.message 
+      });
+    }
+  });
   
   // AI Delegation for task templates
   app.post("/api/ai/delegate-template", async (req, res) => {

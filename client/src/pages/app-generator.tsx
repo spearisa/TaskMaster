@@ -101,7 +101,8 @@ export default function AppGenerator() {
     setActiveFile(null);
     
     try {
-      const response = await apiRequest('POST', '/api/ai/deepseek/generate', {
+      // Use OpenAI endpoint instead of DeepSeek due to permissions issue
+      const response = await apiRequest('POST', '/api/ai/openai/generate', {
         prompt,
         technology,
         appType,
