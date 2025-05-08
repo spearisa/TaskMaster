@@ -19,6 +19,7 @@ import {
 } from "./openai-service";
 import { handleCodeGenerationRequest } from "./deepseek-service";
 import { handleClaudeCodeGenerationRequest } from "./anthropic-app-generator";
+import { handleCodeGenerationRequest } from "./deepseek-service";
 import OpenAI from "openai";
 import { generateApplicationCode } from "./openai-service";
 import {
@@ -1763,6 +1764,16 @@ app.get("/api/profile/share/:userId", async (req, res) => {
   app.post("/api/ai/deepseek/generate", handleCodeGenerationRequest);
   
   // Claude AI code generation for complete applications
+  app.post("/api/ai/deepseek/generate", async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      const result = await handleCodeGenerationRequest(prompt);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/ai/claude/generate", async (req, res) => {
     try {
       // Set a longer timeout for this specific request (3 minutes)
