@@ -379,6 +379,30 @@ export default function AppGenerator() {
         </p>
       </div>
       
+      {/* DeepSite Reference iframe */}
+      {showDeepSiteReference && (
+        <div className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>DeepSite Reference Implementation</CardTitle>
+              <CardDescription>
+                This is the original DeepSite implementation from Hugging Face for reference.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 overflow-hidden">
+              <iframe 
+                src="https://huggingface.co/spaces/appmo/deepsite" 
+                width="100%" 
+                height="700px" 
+                style={{ border: "none", borderRadius: "0 0 8px 8px" }}
+                allow="clipboard-write"
+                title="DeepSite Reference Implementation"
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+      
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Input Section */}
         <Card>
