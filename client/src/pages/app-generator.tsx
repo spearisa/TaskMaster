@@ -103,69 +103,109 @@ export default function AppGenerator() {
     try {
       console.log("Sending request to Claude API with prompt:", prompt.substring(0, 100) + "...");
       
-      // Use Claude endpoint with explicit model and token settings
-      const response = await apiRequest('POST', '/api/ai/claude/generate', {
-        prompt,
-        technology,
-        appType,
-        features: selectedFeatures,
-        modelId: 'claude-3-7-sonnet-20250219',
-        maxTokens: 100000
-      });
-      
-      // Log the response status
-      console.log("Claude API response status:", response.status);
-      
-      if (!response.ok) {
-        const error = await response.json();
-        console.error("API error details:", error);
-        throw new Error(error.message || 'Failed to generate app');
-      }
-      
-      // Parse the JSON response
-      const data = await response.json();
-      console.log("Received response from Claude API with text length:", 
-                 data.generated_text ? data.generated_text.length : 0);
-      console.log("Files extracted:", data.files ? data.files.length : 0);
-      
-      // Store the complete text response
-      setGeneratedText(data.generated_text || "");
-      
-      // Process the files if available
-      if (data.files && data.files.length > 0) {
-        console.log("Setting generated files:", data.files.length);
-        setGeneratedFiles(data.files);
-        setActiveFile(data.files[0].name);
-        
-        toast({
-          title: "App Generated Successfully",
-          description: `Generated ${data.files.length} files for your ${technology} application with Claude.`,
-        });
-      } else {
-        // No files found in the response
-        console.warn("No files found in the Claude API response");
-        toast({
-          title: "Generation Partially Successful",
-          description: "Content was generated but no code files were extracted. Try adjusting your prompt.",
-          variant: "destructive"
+      try {
+        // Use Claude endpoint with explicit model and token settings
+        const response = await apiRequest('POST', '/api/ai/claude/generate', {
+          prompt,
+          technology,
+          appType,
+          features: selectedFeatures,
+          modelId: 'claude-3-7-sonnet-20250219',
+          maxTokens: 100000
+        }, {
+          timeout: 180000 // 3 minute timeout
         });
         
-        // Create a single file with the raw response if needed
-        if (data.generated_text) {
-          const fallbackFile = {
-            name: 'complete_response.txt',
-            content: data.generated_text,
-            language: 'text'
-          };
-          setGeneratedFiles([fallbackFile]);
-          setActiveFile(fallbackFile.name);
+        // Response received successfully
+        
+        // Log the response status
+        console.log("Claude API response status:", response.status);
+        
+        if (!response.ok) {
+          let errorMessage = 'Failed to generate app';
+          
+          try {
+            const error = await response.json();
+            console.error("API error details:", error);
+            errorMessage = error.message || errorMessage;
+          } catch (parseError) {
+            console.error("Could not parse error response:", parseError);
+            
+            // Check for specific status codes
+            if (response.status === 502) {
+              errorMessage = "Server timeout error (502). The model is taking too long to generate code. Try a simpler app description or fewer features.";
+            } else if (response.status === 503) {
+              errorMessage = "Service temporarily unavailable (503). Please try again in a moment.";
+            }
+          }
+          
+          throw new Error(errorMessage);
+        }
+        
+        // Parse the JSON response
+        const data = await response.json();
+        console.log("Received response from Claude API with text length:", 
+                   data.generated_text ? data.generated_text.length : 0);
+        console.log("Files extracted:", data.files ? data.files.length : 0);
+        
+        // Store the complete text response
+        setGeneratedText(data.generated_text || "");
+        
+        // Process the files if available
+        if (data.files && data.files.length > 0) {
+          console.log("Setting generated files:", data.files.length);
+          setGeneratedFiles(data.files);
+          setActiveFile(data.files[0].name);
+          
+          toast({
+            title: "App Generated Successfully",
+            description: `Generated ${data.files.length} files for your ${technology} application with Claude.`,
+          });
+        } else {
+          // No files found in the response
+          console.warn("No files found in the Claude API response");
+          toast({
+            title: "Generation Partially Successful",
+            description: "Content was generated but no code files were extracted. Try adjusting your prompt.",
+            variant: "destructive"
+          });
+          
+          // Create a single file with the raw response if needed
+          if (data.generated_text) {
+            const fallbackFile = {
+              name: 'complete_response.txt',
+              content: data.generated_text,
+              language: 'text'
+            };
+            setGeneratedFiles([fallbackFile]);
+            setActiveFile(fallbackFile.name);
+          }
+        }
+      } catch (fetchError: any) {
+        if (fetchError.name === 'TimeoutError' || fetchError.name === 'AbortError') {
+          throw new Error('Request timed out after 3 minutes. Try a simpler app description or fewer features.');
+        } else {
+          throw fetchError;
         }
       }
     } catch (error: any) {
       console.error("App generation error:", error);
+      
+      // Provide more helpful error messages for specific errors
+      let errorMessage = error.message || "There was a problem generating your application.";
+      let errorTitle = "Generation Failed";
+      
+      // Check for network-related errors
+      if (!navigator.onLine) {
+        errorMessage = "You appear to be offline. Please check your internet connection.";
+      } else if (errorMessage.includes('502') || errorMessage.includes('timeout')) {
+        errorTitle = "Generation Timeout";
+        errorMessage = "The request timed out. The AI model is taking too long to respond. Try a simpler app description or fewer features.";
+      }
+      
       toast({
-        title: "Generation Failed",
-        description: error.message || "There was a problem generating your application.",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

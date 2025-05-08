@@ -12,6 +12,8 @@ interface ApiRequestOptions {
   credentials?: RequestCredentials;
   cache?: RequestCache;
   headers?: Record<string, string>;
+  signal?: AbortSignal;
+  timeout?: number;
 }
 
 export async function apiRequest(
@@ -28,27 +30,55 @@ export async function apiRequest(
     ...(options?.headers || {})
   };
   
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: options?.credentials || "include",
-    cache: options?.cache || "default"
-  });
-
-  console.log(`[API] Response from ${url}:`, { status: res.status, statusText: res.statusText });
+  // Create timeout controller if timeout is specified but no signal is provided
+  let timeoutController: AbortController | undefined;
+  let timeoutId: number | undefined;
   
-  // Skip throwing errors if redirectToAuthOnUnauthorized is false and we get a 401
-  if (!(options?.redirectToAuthOnUnauthorized === false && res.status === 401)) {
-    try {
-      await throwIfResNotOk(res);
-    } catch (error) {
-      console.error(`[API] Error in request to ${url}:`, error);
-      throw error;
-    }
+  if (options?.timeout && !options?.signal) {
+    timeoutController = new AbortController();
+    timeoutId = window.setTimeout(() => timeoutController?.abort(), options.timeout);
   }
   
-  return res;
+  try {
+    const res = await fetch(url, {
+      method,
+      headers,
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: options?.credentials || "include",
+      cache: options?.cache || "default",
+      signal: options?.signal || timeoutController?.signal
+    });
+
+    console.log(`[API] Response from ${url}:`, { status: res.status, statusText: res.statusText });
+    
+    // Skip throwing errors if redirectToAuthOnUnauthorized is false and we get a 401
+    if (!(options?.redirectToAuthOnUnauthorized === false && res.status === 401)) {
+      try {
+        await throwIfResNotOk(res);
+      } catch (error) {
+        console.error(`[API] Error in request to ${url}:`, error);
+        throw error;
+      }
+    }
+    
+    return res;
+  } catch (error) {
+    console.error(`[API] Fetch error in request to ${url}:`, error);
+    
+    // Enhance error message for timeout errors
+    if (error instanceof Error && error.name === 'AbortError') {
+      const timeoutError = new Error(`Request to ${url} timed out after ${options?.timeout || 'unknown'} ms`);
+      timeoutError.name = 'TimeoutError';
+      throw timeoutError;
+    }
+    
+    throw error;
+  } finally {
+    // Clean up timeout if it was created
+    if (timeoutId !== undefined) {
+      window.clearTimeout(timeoutId);
+    }
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
