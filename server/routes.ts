@@ -19,7 +19,6 @@ import {
 } from "./openai-service";
 import { handleCodeGenerationRequest } from "./deepseek-service";
 import { handleClaudeCodeGenerationRequest } from "./anthropic-app-generator";
-import { handleCodeGenerationRequest } from "./deepseek-service";
 import OpenAI from "openai";
 import { generateApplicationCode } from "./openai-service";
 import {
@@ -1775,19 +1774,8 @@ app.post('/api/ai/deepseek/generate', async (req, res) => {
     }
   });
   
-  // DeepSeek AI code generation for complete applications
+  // DeepSeek AI code generation for complete applications - production endpoint
   app.post("/api/ai/deepseek/generate", handleCodeGenerationRequest);
-  
-  // Claude AI code generation for complete applications
-  app.post("/api/ai/deepseek/generate", async (req, res) => {
-    try {
-      const { prompt } = req.body;
-      const result = await handleCodeGenerationRequest(prompt);
-      res.json(result);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
 
   app.post("/api/ai/claude/generate", async (req, res) => {
     try {
