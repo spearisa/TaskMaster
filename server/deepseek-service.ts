@@ -145,22 +145,23 @@ export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): 
           : `Response type: ${typeof response.data}`
       );
       
-      return response;
-    } catch (requestError) {
+      // Process the response to extract code files
+      const result = processGeneratedCode(response.data);
+      console.log(`Processed ${result.files?.length || 0} files from DeepSeek response`);
+      
+      return result;
+    } catch (requestError: unknown) {
       console.error('Axios request error details:', {
-        message: requestError.message,
-        code: requestError.code,
-        name: requestError.name,
-        stack: requestError.stack
+        message: requestError instanceof Error ? requestError.message : 'Unknown error',
+        code: requestError instanceof Error && 'code' in requestError ? (requestError as any).code : 'unknown',
+        name: requestError instanceof Error ? requestError.name : 'Unknown',
+        stack: requestError instanceof Error ? requestError.stack : 'No stack trace'
       });
       throw requestError;
     }
     
-    // Process the response to extract code files
-    const result = processGeneratedCode(response.data);
-    console.log(`Processed ${result.files?.length || 0} files from DeepSeek response`);
-    
-    return result;
+    // This code is unreachable due to our earlier changes
+    // It's been moved inside the try block
     
   } catch (error: any) {
     console.error('Error generating code with DeepSeek:', error);
