@@ -2,6 +2,7 @@
 import axios from 'axios';
 import { Request, Response } from 'express';
 
+// The Hugging Face Inference API endpoint for DeepSeek Coder
 const DEEPSEEK_API_URL = 'https://api-inference.huggingface.co/models/deepseek-ai/deepseek-coder-33b-instruct';
 
 export const DEEPSEEK_MODELS = {
@@ -69,6 +70,12 @@ export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): 
     const apiUrl = `https://api-inference.huggingface.co/models/${modelId}`;
     console.log(`Making request to Hugging Face API: ${apiUrl}`);
     
+    // Log the headers we're using (without the actual API key)
+    console.log('Making request with headers:', {
+      'Authorization': 'Bearer [REDACTED]',
+      'Content-Type': 'application/json'
+    });
+    
     // Make the API request
     const response = await axios.post(
       apiUrl,
@@ -106,10 +113,22 @@ export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): 
     
     if (error.response) {
       // The request was made and the server responded with a status code
-      errorMessage = `DeepSeek API error (${error.response.status}): ${JSON.stringify(error.response.data || {})}`;
-      console.error('Error response data:', error.response.data);
+      const responseData = error.response.data || {};
+      errorMessage = `DeepSeek API error (${error.response.status}): ${JSON.stringify(responseData)}`;
+      
+      // Log detailed error information
+      console.error('Error response data:', responseData);
       console.error('Error response status:', error.response.status);
       console.error('Error response headers:', error.response.headers);
+      
+      // Check specifically for permission/authentication errors
+      if (error.response.status === 401 || error.response.status === 403) {
+        if (typeof responseData === 'string' && responseData.includes('sufficient permissions')) {
+          errorMessage = 'Permission error: The API key does not have sufficient permissions for the DeepSeek model';
+        } else if (typeof responseData === 'object' && responseData.error && responseData.error.includes('authorization')) {
+          errorMessage = 'Authorization error: ' + responseData.error;
+        }
+      }
     } else if (error.request) {
       // The request was made but no response was received
       errorMessage = `DeepSeek API request failed: No response received (timeout after ${error.request._currentRequest?.timeout || 'unknown'} ms)`;
@@ -117,6 +136,12 @@ export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): 
     } else {
       // Something else happened in setting up the request
       errorMessage = `DeepSeek error: ${error.message}`;
+      
+      // Check specifically for authentication failures in the error message
+      if (error.message.includes('authentication') || error.message.includes('API key') || 
+          error.message.includes('authorization') || error.message.includes('permissions')) {
+        errorMessage = 'Authentication error: ' + error.message;
+      }
     }
     
     throw new Error(`Failed to generate code with DeepSeek: ${errorMessage}`);
@@ -407,10 +432,16 @@ export async function handleCodeGenerationRequest(req: Request, res: Response) {
           provider: 'deepseek'
         });
       } catch (deepseekError: any) {
+        // Log the specific error for debugging
+        console.log('Detailed DeepSeek error message:', deepseekError.message);
+        
         // If we encounter a permissions error or any other DeepSeek error, try OpenAI as fallback
         if (deepseekError.message.includes('sufficient permissions') || 
             deepseekError.message.includes('exceeded your monthly included credits') ||
-            deepseekError.message.includes('API key')) {
+            deepseekError.message.includes('API key') ||
+            deepseekError.message.includes('authentication') ||
+            deepseekError.message.includes('permission') ||
+            deepseekError.message.includes('unauthorized')) {
           console.log('DeepSeek error, trying OpenAI fallback:', deepseekError.message);
           
           // Check for OpenAI API key
