@@ -6,9 +6,11 @@ import Anthropic from '@anthropic-ai/sdk';
  * Integrates with Anthropic Claude API for advanced code generation
  */
 
-// Initialize the Anthropic client
+// Initialize the Anthropic client with extended timeout
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
+  maxRetries: 3,
+  timeout: 180000, // 3 minute timeout for code generation requests
 });
 
 // Available Claude models

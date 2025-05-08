@@ -1763,7 +1763,31 @@ app.get("/api/profile/share/:userId", async (req, res) => {
   app.post("/api/ai/deepseek/generate", handleCodeGenerationRequest);
   
   // Claude AI code generation for complete applications
-  app.post("/api/ai/claude/generate", handleClaudeCodeGenerationRequest);
+  app.post("/api/ai/claude/generate", async (req, res) => {
+    try {
+      // Set a longer timeout for this specific request (3 minutes)
+      req.setTimeout(180000);
+      
+      console.log("[Claude App Generator] Starting code generation request...");
+      console.log("[Claude App Generator] Request body:", {
+        prompt: req.body.prompt ? `${req.body.prompt.substring(0, 50)}...` : 'missing',
+        technology: req.body.technology || 'not specified',
+        appType: req.body.appType || 'not specified',
+        features: req.body.features || []
+      });
+      
+      await handleClaudeCodeGenerationRequest(req, res);
+      
+      console.log("[Claude App Generator] Request completed successfully");
+    } catch (error) {
+      console.error("[Claude App Generator] Request failed with error:", error);
+      res.status(500).json({
+        error: 'Failed to generate code with Claude',
+        message: error.message || 'An unknown error occurred',
+        details: error.stack
+      });
+    }
+  });
   
   // OpenAI App Generator endpoint (alternative to DeepSeek)
   app.post("/api/ai/openai/generate", async (req, res) => {
