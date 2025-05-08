@@ -127,16 +127,24 @@ function processGeneratedCode(generatedText: string): CodeGenerationResponse {
     throw new Error('No generated text received from the model');
   }
 
-  // Parse the generated text into separate files using regex
-  // This regex matches markdown code blocks with optional language and filename
-  const filePattern = /```(?:(\w+))?\s*(?:([a-zA-Z0-9_\-./]+)\s*)?([^`]+)```/g;
+  console.log("Processing generated text:", generatedText.substring(0, 200) + "...");
+
+  // More flexible regex pattern that can handle various code block formats
+  // This should work with both ```language filename.ext and ```language\nfilename.ext formats
+  const filePattern = /```([\w]+)(?:\s+([a-zA-Z0-9_\-./]+)|\n+([a-zA-Z0-9_\-./]+))?\n([\s\S]*?)```/g;
   const files: { name: string; content: string; language: string }[] = [];
   
   let match;
+  let matchCount = 0;
+  
   while ((match = filePattern.exec(generatedText)) !== null) {
+    matchCount++;
     const language = match[1] || 'text';
-    const fileName = match[2] || `file${files.length + 1}.${getExtensionFromLanguage(language)}`;
-    const content = match[3].trim();
+    // Filename could be in group 2 or 3 depending on format
+    const fileName = match[2] || match[3] || `file${files.length + 1}.${getExtensionFromLanguage(language)}`;
+    const content = match[4].trim();
+    
+    console.log(`Match ${matchCount}: Language=${language}, Filename=${fileName}, Content length=${content.length}`);
     
     files.push({
       name: fileName,
@@ -144,10 +152,46 @@ function processGeneratedCode(generatedText: string): CodeGenerationResponse {
       language
     });
   }
+  
+  // If no files were extracted with the main pattern, try a fallback pattern
+  if (files.length === 0) {
+    console.log("No files found with primary pattern, trying fallback...");
+    // Simpler fallback pattern
+    const fallbackPattern = /```([\w]+)\n([\s\S]*?)```/g;
+    let fallbackMatch;
+    let fallbackCount = 0;
+    
+    while ((fallbackMatch = fallbackPattern.exec(generatedText)) !== null) {
+      fallbackCount++;
+      const language = fallbackMatch[1] || 'text';
+      const content = fallbackMatch[2].trim();
+      const fileName = `file${fallbackCount}.${getExtensionFromLanguage(language)}`;
+      
+      console.log(`Fallback match ${fallbackCount}: Language=${language}, Generated filename=${fileName}`);
+      
+      files.push({
+        name: fileName,
+        content,
+        language
+      });
+    }
+  }
+
+  console.log(`Total files extracted: ${files.length}`);
+  
+  // If we still have no files, create a single text file with all content
+  if (files.length === 0) {
+    console.log("No code blocks found, creating a single text file with all content");
+    files.push({
+      name: 'response.txt',
+      content: generatedText,
+      language: 'text'
+    });
+  }
 
   return {
     generated_text: generatedText,
-    files: files.length > 0 ? files : undefined
+    files: files
   };
 }
 

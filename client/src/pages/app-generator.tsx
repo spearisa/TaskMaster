@@ -84,7 +84,7 @@ export default function AppGenerator() {
     );
   };
   
-  // Generate app code
+  // Generate app code using Claude
   const generateApp = async () => {
     if (!prompt.trim()) {
       toast({
@@ -101,32 +101,68 @@ export default function AppGenerator() {
     setActiveFile(null);
     
     try {
-      // Use Claude endpoint as requested
+      console.log("Sending request to Claude API with prompt:", prompt.substring(0, 100) + "...");
+      
+      // Use Claude endpoint with explicit model and token settings
       const response = await apiRequest('POST', '/api/ai/claude/generate', {
         prompt,
         technology,
         appType,
-        features: selectedFeatures
+        features: selectedFeatures,
+        modelId: 'claude-3-7-sonnet-20250219',
+        maxTokens: 100000
       });
+      
+      // Log the response status
+      console.log("Claude API response status:", response.status);
       
       if (!response.ok) {
         const error = await response.json();
+        console.error("API error details:", error);
         throw new Error(error.message || 'Failed to generate app');
       }
       
+      // Parse the JSON response
       const data = await response.json();
-      setGeneratedText(data.generated_text);
+      console.log("Received response from Claude API with text length:", 
+                 data.generated_text ? data.generated_text.length : 0);
+      console.log("Files extracted:", data.files ? data.files.length : 0);
       
+      // Store the complete text response
+      setGeneratedText(data.generated_text || "");
+      
+      // Process the files if available
       if (data.files && data.files.length > 0) {
+        console.log("Setting generated files:", data.files.length);
         setGeneratedFiles(data.files);
         setActiveFile(data.files[0].name);
+        
+        toast({
+          title: "App Generated Successfully",
+          description: `Generated ${data.files.length} files for your ${technology} application with Claude.`,
+        });
+      } else {
+        // No files found in the response
+        console.warn("No files found in the Claude API response");
+        toast({
+          title: "Generation Partially Successful",
+          description: "Content was generated but no code files were extracted. Try adjusting your prompt.",
+          variant: "warning"
+        });
+        
+        // Create a single file with the raw response if needed
+        if (data.generated_text) {
+          const fallbackFile = {
+            name: 'complete_response.txt',
+            content: data.generated_text,
+            language: 'text'
+          };
+          setGeneratedFiles([fallbackFile]);
+          setActiveFile(fallbackFile.name);
+        }
       }
-      
-      toast({
-        title: "App Generated Successfully",
-        description: `Generated ${data.files?.length || 0} files for your ${technology} application with Claude.`,
-      });
     } catch (error: any) {
+      console.error("App generation error:", error);
       toast({
         title: "Generation Failed",
         description: error.message || "There was a problem generating your application.",
