@@ -6,10 +6,11 @@ import fetch from 'node-fetch';
  */
 
 const HUGGINGFACE_API_URL = 'https://huggingface.co/api';
-const HUGGINGFACE_API_TOKEN = process.env.HUGGINGFACE_API_TOKEN;
+// Use HUGGINGFACE_API_KEY if available, otherwise try HUGGINGFACE_API_TOKEN
+const HUGGINGFACE_API_TOKEN = process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACE_API_TOKEN;
 
 if (!HUGGINGFACE_API_TOKEN) {
-  console.warn('HUGGINGFACE_API_TOKEN environment variable is not set. API requests may be rate limited.');
+  console.warn('Neither HUGGINGFACE_API_KEY nor HUGGINGFACE_API_TOKEN environment variable is set. API requests may be rate limited.');
 }
 
 // Define common model pipeline types

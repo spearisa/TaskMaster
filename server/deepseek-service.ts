@@ -34,8 +34,11 @@ interface CodeGenerationResponse {
  */
 export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): Promise<CodeGenerationResponse> {
   try {
-    if (!process.env.HUGGINGFACE_API_TOKEN) {
-      throw new Error('HUGGINGFACE_API_TOKEN is not set');
+    // Use HUGGINGFACE_API_KEY if available, otherwise try HUGGINGFACE_API_TOKEN
+    const apiKey = process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACE_API_TOKEN;
+    
+    if (!apiKey) {
+      throw new Error('Neither HUGGINGFACE_API_KEY nor HUGGINGFACE_API_TOKEN is set');
     }
     
     // Create enhanced prompt with additional context
@@ -65,7 +68,7 @@ export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): 
       requestBody,
       {
         headers: { 
-          'Authorization': `Bearer ${process.env.HUGGINGFACE_API_TOKEN}`,
+          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
         },
         timeout: 180000 // 3 minute timeout
@@ -221,6 +224,14 @@ function getExtensionFromLanguage(language: string): string {
  */
 export async function handleCodeGenerationRequest(req: Request, res: Response) {
   try {
+    // Ensure req.body exists
+    if (!req.body) {
+      console.error('DeepSeek error: Request body is undefined');
+      return res.status(400).json({ error: 'Request body is missing' });
+    }
+    
+    console.log('DeepSeek received request body:', req.body);
+    
     const { 
       prompt, 
       technology, 
