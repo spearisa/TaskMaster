@@ -391,12 +391,13 @@ export default function AppGenerator() {
             </CardHeader>
             <CardContent className="p-0 overflow-hidden">
               <iframe 
-                src="https://huggingface.co/spaces/appmo/deepsite" 
+                src="https://deepsite-mz0uqihsua-uc.a.run.app" 
                 width="100%" 
                 height="700px" 
                 style={{ border: "none", borderRadius: "0 0 8px 8px" }}
-                allow="clipboard-write"
+                allow="clipboard-write; fullscreen"
                 title="DeepSite Reference Implementation"
+                sandbox="allow-same-origin allow-scripts allow-forms"
               />
             </CardContent>
           </Card>
@@ -410,7 +411,7 @@ export default function AppGenerator() {
             <CardTitle>App Requirements</CardTitle>
             <CardDescription>
               Describe the application you want to build and configure its settings. 
-              Powered by DeepSeek AI model.
+              Powered by DeepSeek AI model with OpenAI GPT-4o fallback.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -425,6 +426,7 @@ export default function AppGenerator() {
               />
               <p className="text-xs text-muted-foreground">
                 Be specific about features, functionality, and design preferences.
+                Will use OpenAI GPT-4o as fallback if DeepSeek is unavailable.
               </p>
             </div>
             

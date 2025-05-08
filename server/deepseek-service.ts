@@ -344,6 +344,7 @@ function getExtensionFromLanguage(language: string): string {
 /**
  * API endpoint handler for code generation requests
  * Improved to match DeepSite's implementation more closely
+ * With fallback to OpenAI if DeepSeek access is limited
  */
 export async function handleCodeGenerationRequest(req: Request, res: Response) {
   try {
@@ -375,62 +376,94 @@ export async function handleCodeGenerationRequest(req: Request, res: Response) {
       });
     }
 
-    // Check for API key
-    const apiKey = process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACE_API_TOKEN;
-    if (!apiKey) {
-      console.error('Missing Hugging Face API credentials');
-      return res.status(500).json({
-        ok: false,
-        message: 'Server is not properly configured with API credentials'
-      });
-    }
-
-    console.log(`Received code generation request [${provider}]: ${prompt.substring(0, 100)}...`);
-    
     // Set headers for JSON response
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Cache-Control', 'no-cache');
     
+    console.log(`Received code generation request [${provider}]: ${prompt.substring(0, 100)}...`);
+    
     try {
-      const result = await generateCodeWithDeepSeek({
-        prompt,
-        technology,
-        appType,
-        features,
-        modelId: modelId || DEEPSEEK_MODELS.DEEPSEEK_CODER_33B,
-        maxLength: maxLength || 4096
-      });
-      
-      return res.json({
-        ok: true,
-        files: result.files || [],
-        generated_text: result.generated_text
-      });
-    } catch (innerError: any) {
-      // Handle specific API errors
-      if (innerError.message.includes('exceeded your monthly included credits')) {
-        return res.status(429).json({
-          ok: false,
-          message: 'API rate limit exceeded. Please try again later.'
+      // First attempt with DeepSeek
+      try {
+        // Check for DeepSeek API key
+        const huggingFaceApiKey = process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACE_API_TOKEN;
+        if (!huggingFaceApiKey) {
+          throw new Error('Missing Hugging Face API credentials');
+        }
+
+        const result = await generateCodeWithDeepSeek({
+          prompt,
+          technology,
+          appType,
+          features,
+          modelId: modelId || DEEPSEEK_MODELS.DEEPSEEK_CODER_33B,
+          maxLength: maxLength || 4096
         });
+        
+        return res.json({
+          ok: true,
+          files: result.files || [],
+          generated_text: result.generated_text,
+          provider: 'deepseek'
+        });
+      } catch (deepseekError: any) {
+        // If we encounter a permissions error or any other DeepSeek error, try OpenAI as fallback
+        if (deepseekError.message.includes('sufficient permissions') || 
+            deepseekError.message.includes('exceeded your monthly included credits') ||
+            deepseekError.message.includes('API key')) {
+          console.log('DeepSeek error, trying OpenAI fallback:', deepseekError.message);
+          
+          // Check for OpenAI API key
+          const openAiApiKey = process.env.OPENAI_API_KEY;
+          if (!openAiApiKey) {
+            throw new Error('Neither DeepSeek nor OpenAI API credentials are available');
+          }
+
+          // Import OpenAI on demand to avoid circular dependencies
+          const openaiService = await import('./openai-service');
+          
+          // Use OpenAI for code generation
+          const openAiResult = await openaiService.generateApplicationCode({
+            prompt,
+            technology,
+            appType, 
+            features
+          });
+          
+          return res.json({
+            ok: true,
+            files: openAiResult.files || [],
+            generated_text: openAiResult.generated_text || '',
+            provider: 'openai'
+          });
+        }
+        
+        // If it's not a permissions error, re-throw
+        throw deepseekError;
+      }
+    } catch (error: any) {
+      console.error('Code generation error:', error);
+      
+      // Determine appropriate status code based on error type
+      let statusCode = 500;
+      if (error.response) {
+        statusCode = error.response.status || 500;
+      } else if (error.message.includes('timeout')) {
+        statusCode = 504; // Gateway Timeout
       }
       
-      throw innerError; // Re-throw to be caught by the outer catch block
+      return res.status(statusCode).json({ 
+        ok: false,
+        message: `Failed to generate code: ${error.message}`,
+        error: error.message
+      });
     }
   } catch (error: any) {
-    console.error('DeepSeek code generation error:', error);
+    console.error('Code generation request handler error:', error);
     
-    // Determine appropriate status code based on error type
-    let statusCode = 500;
-    if (error.response) {
-      statusCode = error.response.status || 500;
-    } else if (error.message.includes('timeout')) {
-      statusCode = 504; // Gateway Timeout
-    }
-    
-    return res.status(statusCode).json({ 
+    return res.status(500).json({ 
       ok: false,
-      message: `Failed to generate code: ${error.message}`,
+      message: `Code generation request failed: ${error.message}`,
       error: error.message
     });
   }
