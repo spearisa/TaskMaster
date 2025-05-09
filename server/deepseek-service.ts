@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Request, Response } from 'express';
 
 // The Hugging Face Inference API endpoint for DeepSeek Coder
-const DEEPSEEK_API_URL = 'https://api-inference.huggingface.co/models/deepseek-ai/deepseek-coder-33b-instruct';
+const DEEPSEEK_API_URL = 'https://api-inference.huggingface.co/models/deepseek-ai/DeepSeek-V3-0324';
 
 export const DEEPSEEK_MODELS = {
   DEEPSEEK_CODER_33B: 'deepseek-ai/deepseek-coder-33b-instruct'
