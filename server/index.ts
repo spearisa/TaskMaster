@@ -85,7 +85,13 @@ app.use((req, res, next) => {
         running: false, 
         error: 'Connection failed', 
         message: 'The DeepSite container is not running or not accessible',
-        dockerCommand: 'docker run -it -p 7860:7860 --platform=linux/amd64 registry.hf.space/enzostvs-deepsite:latest'
+        dockerCommand: `docker run -it -p 7860:7860 --platform=linux/amd64 \\
+  -e OAUTH_CLIENT_ID="YOUR_VALUE_HERE" \\
+  -e OAUTH_CLIENT_SECRET="YOUR_VALUE_HERE" \\
+  -e DEFAULT_HF_TOKEN="YOUR_VALUE_HERE" \\
+  -e APP_PORT="5173" \\
+  -e REDIRECT_URI="https://enzostvs-deepsite.hf.space/auth/login" \\
+  registry.hf.space/enzostvs-deepsite:latest`
       });
     }
   });
@@ -141,19 +147,20 @@ app.use((req, res, next) => {
 
   // Start server with port fallback for Replit compatibility
   const startServer = async () => {
-    // Skip ports that are commonly occupied
+    // Try port 5000 first for Replit workflow compatibility, then use alternative ports
     const availablePorts = [
-      4999, // Try this first to avoid common port conflicts
-      5001,
-      8080,
-      8888, 
-      9000,
-      4001,
-      4040,
-      8080,
-      8000,
-      8888,
-      9000
+      5000, // Replit workflow expects this port
+      3001, 
+      3002,
+      3003,
+      4321,
+      6789,
+      7777,
+      9876,
+      9999,
+      8765,
+      10001,
+      12345
     ];
     
     let serverStarted = false;
@@ -169,7 +176,7 @@ app.use((req, res, next) => {
             server.removeAllListeners('listening');
             server.removeAllListeners('error');
             resolve(); // Continue to next port
-          }, 15000); // Extended timeout for Replit
+          }, 30000); // Extended timeout for Replit
           
           server.once('error', (err: any) => {
             clearTimeout(timeout);
@@ -194,7 +201,13 @@ app.use((req, res, next) => {
             console.log(`🚀 Appmo server running successfully on port: ${port}`);
             console.log(`🔗 Access via: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.replit.dev`);
             console.log(`🐳 DeepSite Docker: To use the original DeepSite implementation:`);
-            console.log(`   docker run -it -p 7860:7860 --platform=linux/amd64 registry.hf.space/enzostvs-deepsite:latest`);
+            console.log(`   docker run -it -p 7860:7860 --platform=linux/amd64 \\`);
+            console.log(`     -e OAUTH_CLIENT_ID="YOUR_VALUE_HERE" \\`);
+            console.log(`     -e OAUTH_CLIENT_SECRET="YOUR_VALUE_HERE" \\`);
+            console.log(`     -e DEFAULT_HF_TOKEN="YOUR_VALUE_HERE" \\`);
+            console.log(`     -e APP_PORT="5173" \\`);
+            console.log(`     -e REDIRECT_URI="https://enzostvs-deepsite.hf.space/auth/login" \\`);
+            console.log(`     registry.hf.space/enzostvs-deepsite:latest`);
             console.log(`==================================================\n\n`);
             
             resolve();

@@ -1,6 +1,6 @@
 // Script to start the development server on a fixed port
 import { spawn } from 'child_process';
-const PORT = 8080;
+const PORT = 3001; // Use the first port from our array in server/index.ts
 
 console.log(`\n\n==================================================`);
 console.log(`🚀 Starting Appmo server on port: ${PORT}`);

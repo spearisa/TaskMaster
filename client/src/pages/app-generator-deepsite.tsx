@@ -65,9 +65,17 @@ export default function DeepSiteAppGenerator() {
     running: boolean;
     url?: string;
     message?: string;
+    dockerCommand?: string;
   }>({
     running: false,
-    message: 'DeepSite Docker not available'
+    message: 'DeepSite Docker not available',
+    dockerCommand: `docker run -it -p 7860:7860 --platform=linux/amd64 \\
+  -e OAUTH_CLIENT_ID="YOUR_VALUE_HERE" \\
+  -e OAUTH_CLIENT_SECRET="YOUR_VALUE_HERE" \\
+  -e DEFAULT_HF_TOKEN="YOUR_VALUE_HERE" \\
+  -e APP_PORT="5173" \\
+  -e REDIRECT_URI="https://enzostvs-deepsite.hf.space/auth/login" \\
+  registry.hf.space/enzostvs-deepsite:latest`
   });
 
   // State for UI interactions
@@ -95,7 +103,8 @@ export default function DeepSiteAppGenerator() {
           setDockerStatus({
             running: true,
             url: 'http://localhost:7860',
-            message: 'DeepSite Docker running locally'
+            message: 'DeepSite Docker running locally',
+            dockerCommand: dockerStatus.dockerCommand
           });
           
           toast({
@@ -109,13 +118,22 @@ export default function DeepSiteAppGenerator() {
             const data = await response.json();
             setDockerStatus({
               running: data.running || false,
-              message: data.message || 'DeepSite Docker not available'
+              message: data.message || 'DeepSite Docker not available',
+              url: data.url,
+              dockerCommand: data.dockerCommand
             });
           } catch (serverError) {
             console.error("Failed to check Docker status from server:", serverError);
             setDockerStatus({
               running: false,
-              message: 'Error checking DeepSite status'
+              message: 'Error checking DeepSite status',
+              dockerCommand: `docker run -it -p 7860:7860 --platform=linux/amd64 \\
+  -e OAUTH_CLIENT_ID="YOUR_VALUE_HERE" \\
+  -e OAUTH_CLIENT_SECRET="YOUR_VALUE_HERE" \\
+  -e DEFAULT_HF_TOKEN="YOUR_VALUE_HERE" \\
+  -e APP_PORT="5173" \\
+  -e REDIRECT_URI="https://enzostvs-deepsite.hf.space/auth/login" \\
+  registry.hf.space/enzostvs-deepsite:latest`
             });
           }
         }
@@ -164,7 +182,14 @@ export default function DeepSiteAppGenerator() {
 
   // Function to copy Docker command
   const copyDockerCommand = () => {
-    const dockerCmd = "docker run -it -p 7860:7860 --platform=linux/amd64 registry.hf.space/enzostvs-deepsite:latest";
+    const dockerCmd = dockerStatus.dockerCommand || `docker run -it -p 7860:7860 --platform=linux/amd64 \\
+  -e OAUTH_CLIENT_ID="YOUR_VALUE_HERE" \\
+  -e OAUTH_CLIENT_SECRET="YOUR_VALUE_HERE" \\
+  -e DEFAULT_HF_TOKEN="YOUR_VALUE_HERE" \\
+  -e APP_PORT="5173" \\
+  -e REDIRECT_URI="https://enzostvs-deepsite.hf.space/auth/login" \\
+  registry.hf.space/enzostvs-deepsite:latest`;
+    
     navigator.clipboard.writeText(dockerCmd).then(() => {
       toast({
         title: "Docker Command Copied",
@@ -184,18 +209,27 @@ export default function DeepSiteAppGenerator() {
       const enhancedPrompt = `Create a simple web application with HTML, CSS, and JavaScript based on this request: "${query}". 
       Please make it responsive and visually appealing. Provide complete HTML file with CSS and JavaScript embedded.`;
       
-      const response = await apiRequest('POST', '/api/ai/deepseek/generate', {
-        prompt: enhancedPrompt,
-        technology: 'html',
-        appType: 'website',
-        features: ['responsive']
-      });
+      console.log('Sending code generation request to DeepSeek...');
       
-      if (!response.ok) {
-        throw new Error('Failed to generate code');
+      let data;
+      try {
+        const response = await apiRequest('POST', '/api/ai/deepseek/generate', {
+          prompt: enhancedPrompt,
+          technology: 'html',
+          appType: 'website',
+          features: ['responsive']
+        });
+        
+        if (!response.ok) {
+          console.error('API error:', response.status, response.statusText);
+          throw new Error(`Failed to generate code: ${response.status} ${response.statusText}`);
+        }
+        
+        data = await response.json();
+      } catch (apiError) {
+        console.error('API request error:', apiError);
+        throw apiError; // Re-throw to be caught by the outer try-catch
       }
-      
-      const data = await response.json();
       
       if (data.files && data.files.length > 0) {
         // Clear existing files
@@ -238,13 +272,17 @@ export default function DeepSiteAppGenerator() {
       } else {
         throw new Error('No valid response from AI service');
       }
-      
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error generating code:', error);
+      
+      let errorMessage = 'There was an error generating the code. Please try again.';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
       
       toast({
         title: 'Code Generation Failed',
-        description: 'There was an error generating the code. Please try again.',
+        description: errorMessage,
         variant: 'destructive',
       });
       
@@ -399,11 +437,17 @@ export default function DeepSiteAppGenerator() {
         </div>
         
         <div className="flex items-center space-x-3">
+          <div className="flex items-center mr-2">
+            <div className={`w-2 h-2 rounded-full mr-2 ${dockerStatus.running ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <span className="text-xs text-gray-400">{dockerStatus.running ? 'Docker Running' : 'Docker Not Running'}</span>
+          </div>
+          
           <button 
             className="bg-[#3d3d3d] hover:bg-[#4d4d4d] text-white rounded-md px-3 py-1 text-sm flex items-center"
-            onClick={() => window.location.reload()}
+            onClick={copyDockerCommand}
           >
-            <span>Load Space</span>
+            <Code className="h-3.5 w-3.5 mr-1" />
+            <span>Copy Docker Command</span>
           </button>
           
           <button 
