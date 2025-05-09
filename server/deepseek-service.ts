@@ -431,6 +431,9 @@ function getExtensionFromLanguage(language: string): string {
  */
 export async function handleCodeGenerationRequest(req: Request, res: Response) {
   try {
+    // Skip authentication check for DeepSite app generator to match the original UI
+    // This allows users to generate apps without logging in
+
     // Ensure req.body exists
     if (!req.body) {
       console.error('DeepSeek error: Request body is undefined');

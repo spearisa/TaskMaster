@@ -1,58 +1,45 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Copy, Download, Code, 
   LoaderCircle, FileCode2, Eye,
   RefreshCw, Image, Plus, Settings,
-  ExternalLink, Sparkles
+  ExternalLink, Sparkles, MessageSquare
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
 
-// Technology options
-const TECHNOLOGIES = [
-  { value: 'react', label: 'React' },
-  { value: 'vue', label: 'Vue.js' },
-  { value: 'angular', label: 'Angular' },
-  { value: 'svelte', label: 'Svelte' },
-  { value: 'nextjs', label: 'Next.js' },
-  { value: 'nodejs', label: 'Node.js' },
-  { value: 'express', label: 'Express' },
-  { value: 'fastapi', label: 'FastAPI' },
-  { value: 'flask', label: 'Flask' },
-  { value: 'django', label: 'Django' },
-];
+// File type interface
+interface CodeFile {
+  id: string;
+  name: string;
+  content: string;
+  language: string;
+  active?: boolean;
+}
 
-// App types
-const APP_TYPES = [
-  { value: 'web', label: 'Web Application' },
-  { value: 'api', label: 'API / Backend' },
-  { value: 'mobile', label: 'Mobile App' },
-  { value: 'desktop', label: 'Desktop App' },
-  { value: 'fullstack', label: 'Full Stack App' },
-];
-
-// Feature options
-const FEATURES = [
-  { id: 'auth', label: 'Authentication' },
-  { id: 'database', label: 'Database Integration' },
-  { id: 'api', label: 'REST API' },
-  { id: 'responsive', label: 'Responsive Design' },
-  { id: 'payments', label: 'Payment Processing' },
-  { id: 'search', label: 'Search Functionality' },
-  { id: 'notifications', label: 'Notifications' },
-  { id: 'analytics', label: 'Analytics' },
+// Demo files for initial state
+const DEMO_FILES: CodeFile[] = [
+  {
+    id: '1',
+    name: 'index.html',
+    language: 'html',
+    content: `<!DOCTYPE html>\n<html>\n<head>\n  <meta name="viewport" content="width=device-width, initial-scale=1">\n  <title>My app</title>\n  <meta charset="utf-8">\n</head>\n<body>\n  <div id="app"></div>\n</body>\n</html>`,
+    active: true
+  },
+  {
+    id: '2',
+    name: 'style.css',
+    language: 'css',
+    content: `body {\n  font-family: Arial, sans-serif;\n  margin: 0;\n  padding: 0;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  min-height: 100vh;\n  background-color: #f0f0f0;\n}\n\n#app {\n  text-align: center;\n}`
+  },
+  {
+    id: '3',
+    name: 'script.js',
+    language: 'javascript',
+    content: `document.addEventListener('DOMContentLoaded', () => {\n  const app = document.getElementById('app');\n  app.innerHTML = '<h1>I\\'m ready to work, Ask me anything.</h1>';\n});`
+  }
 ];
 
 // File type interface

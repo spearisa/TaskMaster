@@ -42,7 +42,7 @@ import MarketplaceBidsPage from "@/pages/marketplace-bids";
 // Hugging Face AI Models Pages
 import AIModelsPage from "@/pages/ai-models";
 import AIModelDetailPage from "@/pages/ai-model-detail";
-import AppGeneratorPage from "@/pages/app-generator";
+import DeepSiteAppGenerator from "@/pages/app-generator-deepsite";
 // Import i18n instance
 import '@/lib/i18n';
 
@@ -81,7 +81,7 @@ function Router() {
       {/* AI Models routes */}
       <Route path="/ai-models" component={AIModelsPage} />
       <Route path="/ai-models/:id" component={AIModelDetailPage} />
-      <Route path="/app-generator" component={AppGeneratorPage} />
+      <Route path="/app-generator" component={DeepSiteAppGenerator} />
       
       {/* Admin routes */}
       <Route path="/admin/login" component={AdminLogin} />

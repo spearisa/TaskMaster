@@ -141,13 +141,13 @@ app.use((req, res, next) => {
 
   // Start server with port fallback for Replit compatibility
   const startServer = async () => {
-    // Skip port 5000 as it's consistently in use
+    // Skip ports that are commonly occupied
     const availablePorts = [
-      3000, // Try this first since 5000 is occupied
-      3001,
-      3002,
-      3003,
-      4000,
+      4999, // Try this first to avoid common port conflicts
+      5001,
+      8080,
+      8888, 
+      9000,
       4001,
       4040,
       8080,
