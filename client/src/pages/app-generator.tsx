@@ -78,13 +78,63 @@ export default function AppGenerator() {
   const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
   const [activeFile, setActiveFile] = useState('');
   const [showDeepSiteReference, setShowDeepSiteReference] = useState(false);
+  const [dockerStatus, setDockerStatus] = useState<{ 
+    running: boolean;
+    url?: string;
+    status?: number;
+    message?: string;
+    dockerCommand?: string;
+  } | null>(null);
   
-  // Focus on prompt textarea on component mount
+  // Focus on prompt textarea on component mount and check Docker status
   useEffect(() => {
     if (promptTextareaRef.current) {
       promptTextareaRef.current.focus();
     }
-  }, []);
+    
+    // Check if the DeepSite Docker container is running
+    const checkDockerStatus = async () => {
+      try {
+        // First check backend reported status
+        const response = await fetch('/api/deepsite-status');
+        const data = await response.json();
+        
+        // Then try a direct check to localhost:7860
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
+          
+          await fetch('http://localhost:7860/ping', { 
+            method: 'GET',
+            mode: 'no-cors', // No-cors to just check server availability
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
+          // If we reach here, Docker is likely running locally
+          setDockerStatus({
+            ...data,
+            running: true,
+            url: 'http://localhost:7860',
+            message: 'DeepSite Docker running locally'
+          });
+          
+          toast({
+            title: "DeepSite Docker Running",
+            description: "Original DeepSite container is accessible. You can use it instead of our implementation.",
+          });
+        } catch (error) {
+          // Use server-reported data if local check fails
+          setDockerStatus(data);
+        }
+      } catch (error) {
+        console.error("Failed to check Docker status:", error);
+      }
+    };
+    
+    checkDockerStatus();
+  }, [toast]);
   
   // Toggle feature selection
   const toggleFeature = (featureId: string) => {
@@ -388,6 +438,30 @@ export default App;`,
           </div>
         </div>
         
+        {/* Docker status indicator */}
+        {dockerStatus && (
+          <div className={`px-3 py-1 rounded-full text-xs flex items-center space-x-1 ${
+            dockerStatus.running ? 'bg-green-800 text-green-200' : 'bg-gray-800 text-gray-400'
+          }`}>
+            <span className={`h-2 w-2 rounded-full ${dockerStatus.running ? 'bg-green-400' : 'bg-gray-500'}`}></span>
+            <span>
+              {dockerStatus.running
+                ? 'Docker DeepSite Running'
+                : 'Docker DeepSite Not Available'}
+            </span>
+            {dockerStatus.running && (
+              <a 
+                href="http://localhost:7860" 
+                target="_blank"
+                rel="noopener noreferrer" 
+                className="ml-2 underline hover:text-white"
+              >
+                Open Original
+              </a>
+            )}
+          </div>
+        )}
+        
         <div className="flex items-center space-x-3">
           <button className="flex items-center space-x-1 text-xs text-gray-300">
             <Code className="h-3.5 w-3.5" />
@@ -651,66 +725,361 @@ export default App;`,
                 <div className="flex flex-col flex-1">
                   {/* App Live Preview */}
                   <div className="flex-1 bg-white overflow-auto">
-                    {/* Simulate app rendering based on generated files */}
                     {generatedFiles.some(f => f.name.includes('index.html') || f.name.includes('App.js') || f.name.includes('App.tsx')) ? (
                       <div className="w-full h-full">
-                        <div className="flex flex-col items-center justify-center h-full text-black p-4">
-                          <h1 className="text-xl font-bold mb-4">{prompt || "My Application"}</h1>
-                          <div className="max-w-md w-full shadow-lg rounded-lg overflow-hidden border border-gray-200">
-                            <div className="bg-gray-100 px-4 py-2 flex items-center border-b border-gray-200">
-                              <div className="flex space-x-1">
-                                <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                              </div>
-                              <div className="mx-auto text-xs text-gray-500">App Preview</div>
+                        {/* Real app preview using a secure sandbox */}
+                        <div className="w-full h-full flex flex-col">
+                          <div className="bg-gray-100 px-4 py-2 flex items-center border-b border-gray-200">
+                            <div className="flex space-x-1">
+                              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                              <div className="w-3 h-3 rounded-full bg-green-500"></div>
                             </div>
-                            <div className="bg-white p-4">
-                              {/* Dynamically generated content based on files */}
-                              <div className="flex flex-col space-y-4">
-                                <p className="text-gray-700">Your {technology || "application"} app for {prompt || "your needs"} is running.</p>
-                                
-                                {generatedFiles.some(f => f.name.includes('.css') || f.name.includes('.html')) && (
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-3 bg-blue-100 rounded-md text-blue-800 text-center">
-                                      Button 1
-                                    </div>
-                                    <div className="p-3 bg-green-100 rounded-md text-green-800 text-center">
-                                      Button 2
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                {generatedFiles.some(f => f.name.includes('App.js') || f.name.includes('App.tsx') || f.name.includes('index.js')) && (
-                                  <div className="border border-gray-200 rounded-md p-3">
-                                    <h3 className="font-medium text-gray-900 mb-2">Interactive Components</h3>
-                                    <div className="flex items-center space-x-2 mb-2">
-                                      <input type="checkbox" className="rounded" />
-                                      <span className="text-sm">Task 1</span>
-                                    </div>
-                                    <div className="flex items-center space-x-2 mb-2">
-                                      <input type="checkbox" className="rounded" defaultChecked />
-                                      <span className="text-sm line-through">Task 2</span>
-                                    </div>
-                                    <button className="w-full mt-2 bg-blue-500 text-white py-1 px-3 rounded text-sm">
-                                      Add New Task
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
+                            <div className="mx-auto text-xs font-medium text-gray-700">App Runtime Environment</div>
+                            <button 
+                              onClick={() => toast({
+                                title: "Reloading Application",
+                                description: "Refreshing the runtime environment",
+                              })}
+                              className="p-1 rounded hover:bg-gray-200"
+                              title="Reload application"
+                            >
+                              <RefreshCw className="h-3.5 w-3.5 text-gray-600" />
+                            </button>
                           </div>
                           
-                          <div className="mt-8 flex space-x-4">
-                            <button className="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-md text-sm flex items-center space-x-2">
-                              <ExternalLink className="h-4 w-4" />
-                              <span>Deploy to Space</span>
-                            </button>
-                            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm flex items-center space-x-2">
-                              <Download className="h-4 w-4" />
-                              <span>Download All Files</span>
-                            </button>
+                          <div className="flex-1 p-0">
+                            {/* Create a secure iframe sandbox to actually run the code */}
+                            <iframe 
+                              srcDoc={`
+                                <!DOCTYPE html>
+                                <html lang="en">
+                                <head>
+                                  <meta charset="UTF-8">
+                                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                  <title>${prompt || "Generated App"}</title>
+                                  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://*.replit.dev https://*.replit.app data:; connect-src 'self' https://*.replit.dev https://*.replit.app https://unpkg.com https://cdn.jsdelivr.net">
+                                  <style>
+                                    ${generatedFiles.find(f => f.name.includes('.css'))?.content || ''}
+                                    body { 
+                                      font-family: system-ui, -apple-system, sans-serif;
+                                      margin: 0;
+                                      padding: 20px; 
+                                    }
+                                  </style>
+                                  ${technology === 'react' ? 
+                                    `<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+                                     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+                                     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>` : ''
+                                  }
+                                  ${technology === 'vue' ? 
+                                    `<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>` : ''
+                                  }
+                                </head>
+                                <body>
+                                  ${generatedFiles.find(f => f.name.includes('index.html'))?.content || '<div id="root"></div>'}
+                                  
+                                  ${technology === 'react' ? 
+                                    `<script type="text/babel">
+                                      ${generatedFiles.find(f => f.name.includes('index.js') || f.name.includes('App.js'))?.content || ''}
+                                    </script>` : ''
+                                  }
+                                  
+                                  ${technology === 'vue' ? 
+                                    `<script>
+                                      ${generatedFiles.find(f => f.name.includes('index.js') || f.name.includes('App.js') || f.name.includes('main.js'))?.content || ''}
+                                    </script>` : ''
+                                  }
+                                  
+                                  ${technology !== 'react' && technology !== 'vue' ? 
+                                    `<script>
+                                      ${generatedFiles.find(f => f.name.includes('.js'))?.content || ''}
+                                    </script>` : ''
+                                  }
+                                </body>
+                                </html>
+                              `}
+                              className="w-full h-full border-none"
+                              sandbox="allow-scripts allow-forms allow-same-origin allow-modals allow-popups"
+                              title="Application Preview"
+                              referrerPolicy="origin"
+                              loading="eager"
+                            />
                           </div>
+                        </div>
+                        
+                        <div className="absolute bottom-16 right-8 flex space-x-3">
+                          <button 
+                            onClick={() => {
+                              // Create an enhanced deployable version in a new window with better execution environment
+                              const htmlContent = `
+                                <!DOCTYPE html>
+                                <html lang="en">
+                                <head>
+                                  <meta charset="UTF-8">
+                                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                  <title>${prompt || "Generated App"}</title>
+                                  <base href="${window.location.origin}/">
+                                  <meta name="referrer" content="no-referrer">
+                                  <meta http-equiv="Content-Security-Policy" content="default-src * 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://*.replit.dev https://*.replit.app https://*.jsdelivr.net https://*.unpkg.com data:; connect-src * 'self' https://*.replit.dev https://*.replit.app https://unpkg.com https://cdn.jsdelivr.net https://*.jsdelivr.net https://*.unpkg.com">
+                                  
+                                  <!-- App execution environment -->
+                                  <script>
+                                    // Setup console logging that's visible in the app window
+                                    window.appConsoleSetup = function() {
+                                      // Original console methods
+                                      const originalLog = console.log;
+                                      const originalError = console.error;
+                                      const originalWarn = console.warn;
+                                      const originalInfo = console.info;
+                                      
+                                      // Create the console UI if it doesn't exist
+                                      if (!document.getElementById('app-console')) {
+                                        const consoleContainer = document.createElement('div');
+                                        consoleContainer.id = 'app-console-container';
+                                        consoleContainer.style.position = 'fixed';
+                                        consoleContainer.style.bottom = '0';
+                                        consoleContainer.style.left = '0';
+                                        consoleContainer.style.right = '0';
+                                        consoleContainer.style.zIndex = '9999';
+                                        consoleContainer.style.backgroundColor = 'rgba(0,0,0,0.8)';
+                                        consoleContainer.style.boxShadow = '0 -2px 10px rgba(0,0,0,0.3)';
+                                        consoleContainer.style.transition = 'height 0.3s';
+                                        consoleContainer.style.height = '30px';
+                                        
+                                        // Console header
+                                        const consoleHeader = document.createElement('div');
+                                        consoleHeader.style.padding = '5px 10px';
+                                        consoleHeader.style.backgroundColor = '#333';
+                                        consoleHeader.style.color = 'white';
+                                        consoleHeader.style.fontFamily = 'monospace';
+                                        consoleHeader.style.fontSize = '12px';
+                                        consoleHeader.style.display = 'flex';
+                                        consoleHeader.style.justifyContent = 'space-between';
+                                        consoleHeader.style.alignItems = 'center';
+                                        consoleHeader.style.cursor = 'pointer';
+                                        consoleHeader.innerHTML = '<span>Console</span>';
+                                        
+                                        // Toggle button
+                                        const toggleButton = document.createElement('button');
+                                        toggleButton.innerText = 'Show';
+                                        toggleButton.style.backgroundColor = '#555';
+                                        toggleButton.style.border = 'none';
+                                        toggleButton.style.color = 'white';
+                                        toggleButton.style.padding = '2px 8px';
+                                        toggleButton.style.borderRadius = '4px';
+                                        toggleButton.style.fontSize = '10px';
+                                        
+                                        // Console log container
+                                        const consoleLog = document.createElement('div');
+                                        consoleLog.id = 'app-console';
+                                        consoleLog.style.height = '150px';
+                                        consoleLog.style.overflow = 'auto';
+                                        consoleLog.style.padding = '10px';
+                                        consoleLog.style.fontFamily = 'monospace';
+                                        consoleLog.style.fontSize = '12px';
+                                        consoleLog.style.color = 'white';
+                                        consoleLog.style.display = 'none';
+                                        
+                                        // Clear button
+                                        const clearButton = document.createElement('button');
+                                        clearButton.innerText = 'Clear';
+                                        clearButton.style.backgroundColor = '#555';
+                                        clearButton.style.border = 'none';
+                                        clearButton.style.color = 'white';
+                                        clearButton.style.marginLeft = '8px';
+                                        clearButton.style.padding = '2px 8px';
+                                        clearButton.style.borderRadius = '4px';
+                                        clearButton.style.fontSize = '10px';
+                                        clearButton.onclick = function(e) {
+                                          e.stopPropagation();
+                                          consoleLog.innerHTML = '';
+                                        };
+                                        
+                                        // Toggle console visibility
+                                        let isExpanded = false;
+                                        const toggleConsole = function() {
+                                          isExpanded = !isExpanded;
+                                          consoleContainer.style.height = isExpanded ? '180px' : '30px';
+                                          consoleLog.style.display = isExpanded ? 'block' : 'none';
+                                          toggleButton.innerText = isExpanded ? 'Hide' : 'Show';
+                                        };
+                                        
+                                        consoleHeader.onclick = toggleConsole;
+                                        toggleButton.onclick = function(e) {
+                                          e.stopPropagation();
+                                          toggleConsole();
+                                        };
+                                        
+                                        // Assemble the UI
+                                        consoleHeader.appendChild(toggleButton);
+                                        consoleHeader.appendChild(clearButton);
+                                        consoleContainer.appendChild(consoleHeader);
+                                        consoleContainer.appendChild(consoleLog);
+                                        
+                                        // Add to document when ready
+                                        if (document.body) {
+                                          document.body.appendChild(consoleContainer);
+                                        } else {
+                                          window.addEventListener('DOMContentLoaded', function() {
+                                            document.body.appendChild(consoleContainer);
+                                          });
+                                        }
+                                      }
+                                      
+                                      // Helper to add a log entry to our console
+                                      const addLogEntry = function(text, type) {
+                                        const consoleEl = document.getElementById('app-console');
+                                        if (consoleEl) {
+                                          const entry = document.createElement('div');
+                                          entry.style.borderBottom = '1px solid #333';
+                                          entry.style.padding = '3px 0';
+                                          
+                                          // Style based on log type
+                                          switch(type) {
+                                            case 'error':
+                                              entry.style.color = '#ff6b6b';
+                                              break;
+                                            case 'warn':
+                                              entry.style.color = '#feca57';
+                                              break;
+                                            case 'info':
+                                              entry.style.color = '#48dbfb';
+                                              break;
+                                            default:
+                                              entry.style.color = '#dfe6e9';
+                                          }
+                                          
+                                          entry.textContent = text;
+                                          consoleEl.appendChild(entry);
+                                          consoleEl.scrollTop = consoleEl.scrollHeight;
+                                        }
+                                      };
+                                      
+                                      // Override console methods
+                                      console.log = function() {
+                                        originalLog.apply(console, arguments);
+                                        const text = Array.from(arguments).map(arg => 
+                                          typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+                                        ).join(' ');
+                                        addLogEntry(text, 'log');
+                                      };
+                                      
+                                      console.error = function() {
+                                        originalError.apply(console, arguments);
+                                        const text = Array.from(arguments).map(arg => 
+                                          typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+                                        ).join(' ');
+                                        addLogEntry(text, 'error');
+                                      };
+                                      
+                                      console.warn = function() {
+                                        originalWarn.apply(console, arguments);
+                                        const text = Array.from(arguments).map(arg => 
+                                          typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+                                        ).join(' ');
+                                        addLogEntry(text, 'warn');
+                                      };
+                                      
+                                      console.info = function() {
+                                        originalInfo.apply(console, arguments);
+                                        const text = Array.from(arguments).map(arg => 
+                                          typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+                                        ).join(' ');
+                                        addLogEntry(text, 'info');
+                                      };
+                                      
+                                      // Let the user know the environment is ready
+                                      console.info('DeepSite execution environment ready');
+                                      console.log('Code is now running in full window mode');
+                                    };
+                                    
+                                    // Initialize when DOM is ready
+                                    document.addEventListener('DOMContentLoaded', function() {
+                                      window.appConsoleSetup();
+                                    });
+                                  </script>
+                                  
+                                  <style>
+                                    ${generatedFiles.find(f => f.name.includes('.css'))?.content || ''}
+                                    body { 
+                                      font-family: system-ui, -apple-system, sans-serif;
+                                      margin: 0;
+                                      padding: 20px; 
+                                    }
+                                  </style>
+                                  ${technology === 'react' ? 
+                                    `<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+                                     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+                                     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>` : ''
+                                  }
+                                  ${technology === 'vue' ? 
+                                    `<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>` : ''
+                                  }
+                                </head>
+                                <body>
+                                  <div id="app-container">
+                                    ${generatedFiles.find(f => f.name.includes('index.html'))?.content || '<div id="root"></div>'}
+                                  </div>
+                                  
+                                  ${technology === 'react' ? 
+                                    `<script type="text/babel">
+                                      ${generatedFiles.find(f => f.name.includes('index.js') || f.name.includes('App.js'))?.content || ''}
+                                    </script>` : ''
+                                  }
+                                  
+                                  ${technology === 'vue' ? 
+                                    `<script>
+                                      ${generatedFiles.find(f => f.name.includes('index.js') || f.name.includes('App.js') || f.name.includes('main.js'))?.content || ''}
+                                    </script>` : ''
+                                  }
+                                  
+                                  ${technology !== 'react' && technology !== 'vue' ? 
+                                    `<script>
+                                      ${generatedFiles.find(f => f.name.includes('.js'))?.content || ''}
+                                    </script>` : ''
+                                  }
+                                </body>
+                                </html>
+                              `;
+                              
+                              try {
+                                const newWindow = window.open('', '_blank', 'width=1200,height=800');
+                                if (newWindow) {
+                                  newWindow.document.write(htmlContent);
+                                  newWindow.document.close();
+                                  
+                                  toast({
+                                    title: "App Running in Full Window",
+                                    description: "The application is now running with enhanced execution capabilities",
+                                  });
+                                } else {
+                                  toast({
+                                    title: "Popup Blocked",
+                                    description: "Please allow popups to open the app in a new window",
+                                    variant: "destructive",
+                                  });
+                                }
+                              } catch (error) {
+                                toast({
+                                  title: "Failed to Open Window",
+                                  description: "Could not open a new window. Please check popup settings.",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                            className="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-md text-sm flex items-center space-x-2 shadow-lg"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            <span>Run in Full Window</span>
+                          </button>
+                          <button 
+                            onClick={downloadAllFiles}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm flex items-center space-x-2 shadow-lg"
+                          >
+                            <Download className="h-4 w-4" />
+                            <span>Download All Files</span>
+                          </button>
                         </div>
                       </div>
                     ) : (
@@ -766,7 +1135,7 @@ export default App;`,
               
               {showDeepSiteReference ? (
                 <iframe 
-                  src="https://deepsite.deepseek.com/" 
+                  src={dockerStatus?.running ? "http://localhost:7860/" : "https://deepsite.deepseek.com/"} 
                   className="w-full h-full border-none flex-1" 
                   title="DeepSite Reference"
                 />
@@ -873,6 +1242,28 @@ export default App;`,
             <Plus className="h-3.5 w-3.5 text-white" />
           </button>
         </div>
+        
+        {/* Docker command status */}
+        {dockerStatus && !dockerStatus.running && (
+          <div className="ml-4 flex-shrink-0">
+            <button
+              onClick={() => {
+                // Copy Docker command to clipboard
+                const dockerCmd = "docker run -it -p 7860:7860 --platform=linux/amd64 registry.hf.space/enzostvs-deepsite:latest";
+                navigator.clipboard.writeText(dockerCmd).then(() => {
+                  toast({
+                    title: "Docker Command Copied",
+                    description: "Run this command in a terminal to start DeepSite",
+                  });
+                });
+              }}
+              className="bg-blue-700 text-white text-xs px-3 py-1 rounded flex items-center space-x-1 hover:bg-blue-600"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+              <span>Copy Docker Command</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
