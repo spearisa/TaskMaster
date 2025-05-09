@@ -102,17 +102,35 @@ export function SideNavigation() {
             {user ? (
               // Authenticated user navigation
               <>
-                {/* Tasks Section */}
+                {/* App Generator - Featured as main navigation item */}
                 <div className="flex gap-2 mb-1 px-4 pt-2">
-                  <FileText size={18} className="text-gray-500" />
-                  <span className="font-semibold text-gray-600">Tasks</span>
+                  <Sparkles size={18} className="text-gray-500" />
+                  <span className="font-semibold text-gray-600">App Generator</span>
                 </div>
-                {/* My Tasks - Featured as main navigation item */}
                 <Link href="/">
                   <div 
                     className={cn(
                       "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
                       isActive('/') 
+                        ? "border-l-primary text-primary font-bold" 
+                        : "border-l-transparent text-gray-700 hover:border-l-gray-200"
+                    )}
+                  >
+                    <span className="font-medium">DeepSite Generator</span>
+                  </div>
+                </Link>
+                
+                {/* Tasks Section */}
+                <div className="flex gap-2 mb-1 px-4 pt-2">
+                  <FileText size={18} className="text-gray-500" />
+                  <span className="font-semibold text-gray-600">Tasks</span>
+                </div>
+                {/* My Tasks */}
+                <Link href="/tasks">
+                  <div 
+                    className={cn(
+                      "flex items-center gap-2 px-7 py-2 transition-colors cursor-pointer border-l-4",
+                      isActive('/tasks') 
                         ? "border-l-primary text-primary font-bold" 
                         : "border-l-transparent text-gray-700 hover:border-l-gray-200"
                     )}

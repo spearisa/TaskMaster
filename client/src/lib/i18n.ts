@@ -71,6 +71,7 @@ const resources = {
       },
       navigation: {
         tasks: 'My Tasks',
+        appGenerator: 'App Generator',
         assignedTasks: 'Assigned Tasks',
         publicTasks: 'Public Tasks',
         calendar: 'Calendar',
@@ -331,6 +332,7 @@ const resources = {
       },
       navigation: {
         tasks: 'Mis Tareas',
+        appGenerator: 'Generador de Apps',
         assignedTasks: 'Tareas Asignadas',
         publicTasks: 'Tareas Públicas',
         calendar: 'Calendario',
@@ -591,6 +593,7 @@ const resources = {
       },
       navigation: {
         tasks: 'Mes Tâches',
+        appGenerator: 'Générateur d\'Apps',
         assignedTasks: 'Tâches Assignées',
         publicTasks: 'Tâches Publiques',
         calendar: 'Calendrier',

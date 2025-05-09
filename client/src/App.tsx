@@ -49,8 +49,11 @@ import '@/lib/i18n';
 function Router() {
   return (
     <Switch>
+      {/* Make DeepSite App Generator the homepage */}
+      <Route path="/" component={DeepSiteAppGenerator} />
+      
       {/* Normal routes */}
-      <ProtectedRoute path="/" component={HomePage} />
+      <ProtectedRoute path="/tasks" component={HomePage} />
       <ProtectedRoute path="/new-task" component={NewTaskPage} />
       <ProtectedRoute path="/calendar" component={CalendarPage} />
       <ProtectedRoute path="/ai-assistant" component={AIAssistantPage} />
@@ -82,6 +85,7 @@ function Router() {
       <Route path="/ai-models" component={AIModelsPage} />
       <Route path="/ai-models/:id" component={AIModelDetailPage} />
       <Route path="/app-generator" component={DeepSiteAppGenerator} />
+      <Route path="/app-generator-deepsite" component={DeepSiteAppGenerator} />
       
       {/* Admin routes */}
       <Route path="/admin/login" component={AdminLogin} />

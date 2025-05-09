@@ -8,7 +8,8 @@ import {
   Globe,
   BookOpen,
   ShieldAlert,
-  Store
+  Store,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
@@ -42,19 +43,19 @@ export function BottomNavigation() {
     if (user) {
       return [
         // Authenticated user navigation
-        { path: '/', labelKey: 'navigation.tasks', icon: Home },
+        { path: '/', labelKey: 'navigation.appGenerator', icon: Sparkles },
+        { path: '/tasks', labelKey: 'navigation.tasks', icon: Home },
         { path: '/calendar', labelKey: 'navigation.calendar', icon: Calendar },
         { path: '/marketplace', labelKey: 'navigation.marketplace', icon: Store },
         { path: '/messenger', labelKey: 'messages.messages', icon: MessageSquare },
-        { path: '/public-tasks', labelKey: 'navigation.publicTasks', icon: Globe },
       ];
     } else {
       return [
         // Non-authenticated user navigation - limited options
+        { path: '/', labelKey: 'navigation.appGenerator', icon: Sparkles },
         { path: '/public-tasks', labelKey: 'navigation.publicTasks', icon: Globe },
         { path: '/marketplace', labelKey: 'navigation.marketplace', icon: Store },
         { path: '/auth', labelKey: 'auth.signIn', icon: User },
-        { path: '/admin/login', labelKey: 'admin.login', icon: ShieldAlert },
       ];
     }
   };

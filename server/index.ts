@@ -147,20 +147,21 @@ app.use((req, res, next) => {
 
   // Start server with port fallback for Replit compatibility
   const startServer = async () => {
-    // Try port 5000 first for Replit workflow compatibility, then use alternative ports
+    // Try alternative ports first, since port 5000 is having conflicts
     const availablePorts = [
-      5000, // Replit workflow expects this port
       3001, 
       3002,
       3003,
       4321,
       6789,
       7777,
+      8080,
+      8765,
       9876,
       9999,
-      8765,
       10001,
-      12345
+      12345,
+      5000 // Try this as a last resort
     ];
     
     let serverStarted = false;
