@@ -143,6 +143,62 @@ app.use((req, res, next) => {
     });
   });
 
+  // Add server info endpoint to help debug port and API issues
+  app.get('/api/server-info', (_req: Request, res: Response) => {
+    const serverInfo = {
+      nodeVersion: process.version,
+      platform: process.platform,
+      arch: process.arch,
+      uptime: process.uptime(),
+      memoryUsage: process.memoryUsage(),
+      port: process.env.PORT || 'not set',
+      env: {
+        NODE_ENV: process.env.NODE_ENV || 'not set',
+        REPL_SLUG: process.env.REPL_SLUG || 'not set',
+        REPL_OWNER: process.env.REPL_OWNER || 'not set'
+      },
+      apis: {
+        deepseekApiKey: process.env.DEEPSEEK_API_KEY ? `present (${process.env.DEEPSEEK_API_KEY.length} chars)` : 'not set',
+        huggingfaceApiKey: process.env.HUGGINGFACE_API_KEY ? `present (${process.env.HUGGINGFACE_API_KEY.length} chars)` : 'not set',
+        huggingfaceApiToken: process.env.HUGGINGFACE_API_TOKEN ? `present (${process.env.HUGGINGFACE_API_TOKEN.length} chars)` : 'not set',
+        openaiApiKey: process.env.OPENAI_API_KEY ? `present (${process.env.OPENAI_API_KEY.length} chars)` : 'not set'
+      }
+    };
+    res.json(serverInfo);
+  });
+
+  // Add endpoint to check DeepSite integration status
+  app.get('/api/deepsite-status', async (_req: Request, res: Response) => {
+    try {
+      // Check if DeepSeek API key is available
+      const hasDeepSeekKey = !!process.env.DEEPSEEK_API_KEY;
+      
+      // Check if Hugging Face tokens are available
+      const hasHuggingfaceToken = !!process.env.HUGGINGFACE_API_TOKEN;
+      const hasHuggingfaceKey = !!process.env.HUGGINGFACE_API_KEY;
+      
+      // Check if we can fall back to OpenAI
+      const hasOpenAiKey = !!process.env.OPENAI_API_KEY;
+      
+      res.json({
+        status: 'available',
+        providers: {
+          deepseek: hasDeepSeekKey,
+          huggingface: hasHuggingfaceToken || hasHuggingfaceKey,
+          openai: hasOpenAiKey
+        },
+        port: process.env.PORT || 'unknown',
+        message: 'DeepSite integration ready to use'
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        status: 'error',
+        message: error.message || 'Unknown error checking DeepSite status',
+        error: error.toString()
+      });
+    }
+  });
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -162,21 +218,32 @@ app.use((req, res, next) => {
 
   // Start server with port fallback for Replit compatibility
   const startServer = async () => {
-    // Try other ports first since 5000 seems to be in use
+    // Try a wide range of ports - updated to prioritize ports that work better on Replit
     const availablePorts = [
-      3001,
+      // Change order to prioritize ports that are more likely to be available
+      8080,  // Common alternative HTTP port
+      3000,  // Common Node.js port
+      3001,  // Another common Node.js port 
+      5000,  // Replit workflow expects this port
+      5001,  // Alternative to 5000
+      8000,  // Another common HTTP alternative
+      4000,  // Another common development port
+      4001,  // Alternative to 4000
+      // Fall back to other ports if needed
+      7000,  // Original port (likely to be in use based on logs)
+      7777,
+      6789,
+      9090,
+      4444,
       3002,
       3003,
-      4321,
-      6789,
-      7777,
-      8080,
-      8765,
+      8888,
       9876,
       9999,
+      4321,
       10001,
       12345,
-      5000 // Replit workflow expects this port but it's usually in use
+      8765
     ];
     
     let serverStarted = false;

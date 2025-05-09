@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { Request, Response } from 'express';
 
@@ -97,11 +96,14 @@ export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): 
     });
     
     // Make the API request
-    // Log more details about the request
     console.log(`Full API URL being called: ${apiUrl}`);
     console.log(`Request payload size: ${JSON.stringify(requestBody).length} characters`);
     
+    let responseData: any;
+    
     try {
+      console.log(`Making API request to: ${apiUrl} with ${apiKey ? 'valid' : 'missing'} API key`);
+      
       const response = await axios.post(
         apiUrl,
         requestBody,
@@ -118,51 +120,37 @@ export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): 
         }
       );
       
-      // Log complete response info
-      console.log(`DeepSeek API response status: ${response.status}`);
-      console.log(`DeepSeek API response headers: ${JSON.stringify(response.headers)}`);
+      console.log(`API response received with status: ${response.status}`);
       
-      // Check response status
+      // Check for error status
       if (response.status >= 400) {
-        console.error(`Error from DeepSeek API: Status ${response.status}`);
-        console.error('Response data:', response.data);
-        
-        let errorMessage = `API Error: Status ${response.status}`;
-        if (response.data && typeof response.data === 'object' && response.data.error) {
-          errorMessage += ` - ${response.data.error}`;
-        }
-        
-        throw new Error(errorMessage);
+        console.error(`API error: ${response.status}`, response.data);
+        throw new Error(`API Error: Status ${response.status} - ${JSON.stringify(response.data)}`);
       }
       
       if (!response.data) {
-        throw new Error('Empty response from DeepSeek API');
+        throw new Error('Empty response from API');
       }
       
+      responseData = response.data;
+      
+      // Log response data for debugging
       console.log('Received response from DeepSeek API:', 
-        typeof response.data === 'string' 
-          ? `${response.data.substring(0, 100)}...` 
-          : `Response type: ${typeof response.data}`
+        typeof responseData === 'string' 
+          ? `${responseData.substring(0, 100)}...` 
+          : `Response type: ${typeof responseData}`
       );
       
       // Process the response to extract code files
-      const result = processGeneratedCode(response.data);
+      const result = processGeneratedCode(responseData);
       console.log(`Processed ${result.files?.length || 0} files from DeepSeek response`);
       
       return result;
-    } catch (requestError: unknown) {
-      console.error('Axios request error details:', {
-        message: requestError instanceof Error ? requestError.message : 'Unknown error',
-        code: requestError instanceof Error && 'code' in requestError ? (requestError as any).code : 'unknown',
-        name: requestError instanceof Error ? requestError.name : 'Unknown',
-        stack: requestError instanceof Error ? requestError.stack : 'No stack trace'
-      });
-      throw requestError;
+      
+    } catch (error: any) {
+      console.error('API request error:', error.message);
+      throw error;
     }
-    
-    // This code is unreachable due to our earlier changes
-    // It's been moved inside the try block
-    
   } catch (error: any) {
     console.error('Error generating code with DeepSeek:', error);
     
@@ -452,7 +440,7 @@ export async function handleCodeGenerationRequest(req: Request, res: Response) {
       features,
       modelId,
       maxLength,
-      provider = 'deepseek' // Default provider
+      provider = 'deepseek' // Default provider ('deepseek', 'openai', 'auto')
     } = req.body;
     
     if (!prompt) {
@@ -484,15 +472,18 @@ export async function handleCodeGenerationRequest(req: Request, res: Response) {
         hasHuggingFaceKey: hasHuggingFaceKey
       });
       
-      // If previous attempts to use DeepSeek failed, just use OpenAI directly
-      if (hasOpenAiKey && provider !== 'deepseek-force') {
-        console.log('Using OpenAI as primary provider due to previous DeepSeek errors');
+      // If OpenAI is specified as provider or auto mode is on and DeepSeek keys are missing
+      if ((provider === 'openai' || 
+           (provider === 'auto' && (!hasDeepSeekKey && !hasHuggingFaceToken && !hasHuggingFaceKey))) 
+           && hasOpenAiKey) {
+        console.log(`Using OpenAI as provider (reason: ${provider === 'openai' ? 'explicitly requested' : 'auto mode and DeepSeek unavailable'})`);
         
         try {
-          // Import OpenAI on demand to avoid circular dependencies
+          // Import OpenAI dynamically to avoid circular dependencies
           const openaiService = await import('./openai-service');
           
           // Use OpenAI for code generation
+          console.log('Redirecting request to OpenAI code generation service...');
           const openAiResult = await openaiService.generateApplicationCode({
             prompt,
             technology,
@@ -508,7 +499,10 @@ export async function handleCodeGenerationRequest(req: Request, res: Response) {
           });
         } catch (openAiError: any) {
           console.error('OpenAI fallback error:', openAiError);
-          throw new Error(`OpenAI fallback failed: ${openAiError.message}`);
+          return res.status(500).json({
+            ok: false,
+            message: `OpenAI fallback failed: ${openAiError.message}`
+          });
         }
       }
       
@@ -522,13 +516,13 @@ export async function handleCodeGenerationRequest(req: Request, res: Response) {
         // Log which API credentials we're using
         if (hasDeepSeekKey) {
           console.log('Using DEEPSEEK_API_KEY for authentication');
-          console.log(`Key length: ${process.env.DEEPSEEK_API_KEY?.length}, prefix: ${process.env.DEEPSEEK_API_KEY?.substring(0, 4)}...`);
+          console.log(`Key length: ${process.env.DEEPSEEK_API_KEY?.length || 0}, prefix: ${process.env.DEEPSEEK_API_KEY?.substring(0, 4) || 'none'}`);
         } else if (hasHuggingFaceToken) {
           console.log('Using HUGGINGFACE_API_TOKEN for authentication');
-          console.log(`Token length: ${process.env.HUGGINGFACE_API_TOKEN?.length}, prefix: ${process.env.HUGGINGFACE_API_TOKEN?.substring(0, 4)}...`);
+          console.log(`Token length: ${process.env.HUGGINGFACE_API_TOKEN?.length || 0}, prefix: ${process.env.HUGGINGFACE_API_TOKEN?.substring(0, 4) || 'none'}`);
         } else {
           console.log('Using HUGGINGFACE_API_KEY for authentication');
-          console.log(`Key length: ${process.env.HUGGINGFACE_API_KEY?.length}, prefix: ${process.env.HUGGINGFACE_API_KEY?.substring(0, 4)}...`);
+          console.log(`Key length: ${process.env.HUGGINGFACE_API_KEY?.length || 0}, prefix: ${process.env.HUGGINGFACE_API_KEY?.substring(0, 4) || 'none'}`);
         }
 
         const result = await generateCodeWithDeepSeek({

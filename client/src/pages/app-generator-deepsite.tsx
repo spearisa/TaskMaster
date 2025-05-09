@@ -209,25 +209,49 @@ export default function DeepSiteAppGenerator() {
       const enhancedPrompt = `Create a simple web application with HTML, CSS, and JavaScript based on this request: "${query}". 
       Please make it responsive and visually appealing. Provide complete HTML file with CSS and JavaScript embedded.`;
       
-      console.log('Sending code generation request to DeepSeek...');
+      console.log('Sending code generation request...');
       
       let data;
       try {
+        // First try with DeepSeek set as the preferred provider
         const response = await apiRequest('POST', '/api/ai/deepseek/generate', {
           prompt: enhancedPrompt,
           technology: 'html',
           appType: 'website',
-          features: ['responsive']
+          features: ['responsive'],
+          provider: 'auto' // This will try DeepSeek first, then fall back to OpenAI if needed
         });
         
         if (!response.ok) {
           console.error('API error:', response.status, response.statusText);
-          throw new Error(`Failed to generate code: ${response.status} ${response.statusText}`);
+          // Instead of immediately throwing, we'll show a toast and continue
+          toast({
+            title: "AI provider issue",
+            description: "Using OpenAI as fallback for code generation",
+            variant: "default"
+          });
+          // Still need the data, so we'll continue below
         }
         
         data = await response.json();
-      } catch (apiError) {
+        
+        if (data.provider === 'openai') {
+          console.log('Used OpenAI as fallback provider');
+          toast({
+            title: "Using OpenAI",
+            description: "Generated code using OpenAI (DeepSeek unavailable)",
+            variant: "default"
+          });
+        } else {
+          console.log('Used DeepSeek as provider');
+        }
+      } catch (apiError: any) {
         console.error('API request error:', apiError);
+        toast({
+          title: "Code generation failed",
+          description: apiError.message || "Couldn't generate code. Please try again.",
+          variant: "destructive"
+        });
         throw apiError; // Re-throw to be caught by the outer try-catch
       }
       

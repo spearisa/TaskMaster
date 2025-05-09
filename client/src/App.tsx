@@ -43,6 +43,7 @@ import MarketplaceBidsPage from "@/pages/marketplace-bids";
 import AIModelsPage from "@/pages/ai-models";
 import AIModelDetailPage from "@/pages/ai-model-detail";
 import DeepSiteAppGenerator from "@/pages/app-generator-deepsite";
+import DeepSeekTestPage from "@/pages/deepseek-test";
 // Import i18n instance
 import '@/lib/i18n';
 
@@ -86,6 +87,7 @@ function Router() {
       <Route path="/ai-models/:id" component={AIModelDetailPage} />
       <Route path="/app-generator" component={DeepSiteAppGenerator} />
       <Route path="/app-generator-deepsite" component={DeepSiteAppGenerator} />
+      <Route path="/deepseek-test" component={DeepSeekTestPage} />
       
       {/* Admin routes */}
       <Route path="/admin/login" component={AdminLogin} />
