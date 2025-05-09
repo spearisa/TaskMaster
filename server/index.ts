@@ -95,6 +95,21 @@ app.use((req, res, next) => {
       });
     }
   });
+  
+  // Server info endpoint for debugging
+  app.get('/api/server-info', (_req: Request, res: Response) => {
+    try {
+      res.json({
+        status: 'running',
+        port: parseInt(process.env.PORT || '3001'),
+        env: process.env.NODE_ENV,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error getting server info:", error);
+      res.status(500).json({ error: "Failed to get server info" });
+    }
+  });
 
   const server = await registerRoutes(app);
 
@@ -147,9 +162,9 @@ app.use((req, res, next) => {
 
   // Start server with port fallback for Replit compatibility
   const startServer = async () => {
-    // Try alternative ports first, since port 5000 is having conflicts
+    // Try other ports first since 5000 seems to be in use
     const availablePorts = [
-      3001, 
+      3001,
       3002,
       3003,
       4321,
@@ -161,7 +176,7 @@ app.use((req, res, next) => {
       9999,
       10001,
       12345,
-      5000 // Try this as a last resort
+      5000 // Replit workflow expects this port but it's usually in use
     ];
     
     let serverStarted = false;
@@ -215,6 +230,7 @@ app.use((req, res, next) => {
           });
           
           // Try to listen on this port
+          process.env.PORT = port.toString();
           server.listen(port, "0.0.0.0");
         });
         
