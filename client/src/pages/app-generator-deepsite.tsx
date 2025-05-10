@@ -224,26 +224,44 @@ export default function DeepSiteAppGenerator() {
         
         if (!response.ok) {
           console.error('API error:', response.status, response.statusText);
-          // Instead of immediately throwing, we'll show a toast and continue
-          toast({
-            title: "AI provider issue",
-            description: "Using OpenAI as fallback for code generation",
-            variant: "default"
-          });
-          // Still need the data, so we'll continue below
-        }
-        
-        data = await response.json();
-        
-        if (data.provider === 'openai') {
-          console.log('Used OpenAI as fallback provider');
-          toast({
-            title: "Using OpenAI",
-            description: "Generated code using OpenAI (DeepSeek unavailable)",
-            variant: "default"
-          });
+          
+          // Show appropriate error based on status code
+          if (response.status === 401) {
+            toast({
+              title: "Authentication Error",
+              description: "Invalid DeepSeek API key. Please check your API credentials.",
+              variant: "destructive"
+            });
+          } else if (response.status === 403) {
+            toast({
+              title: "Authorization Error",
+              description: "Your API key doesn't have permission to use this model.",
+              variant: "destructive"
+            });
+          } else if (response.status === 429) {
+            toast({
+              title: "Rate Limit Exceeded",
+              description: "Too many requests to the AI service. Please try again later.",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "AI Service Error",
+              description: `DeepSeek API error (${response.status}): ${response.statusText}`,
+              variant: "destructive"
+            });
+          }
+          
+          // Attempt to parse response data even if not OK, it might contain error details
+          try {
+            data = await response.json();
+          } catch (parseError) {
+            throw new Error(`Failed to generate code: ${response.status} ${response.statusText}`);
+          }
         } else {
-          console.log('Used DeepSeek as provider');
+          // Only parse response if it was successful
+          data = await response.json();
+          console.log('Used DeepSeek/HuggingFace as provider');
         }
       } catch (apiError: any) {
         console.error('API request error:', apiError);

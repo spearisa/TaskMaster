@@ -42,17 +42,24 @@ export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): 
     if (process.env.DEEPSEEK_API_KEY) {
       apiKey = process.env.DEEPSEEK_API_KEY;
       useDeepSeekAPI = true;
-      console.log('Using DEEPSEEK_API_KEY for authentication');
+      
+      // Validate DeepSeek key format
+      if (!apiKey.startsWith('sk-')) {
+        console.warn(`⚠️ Warning: DeepSeek API key has invalid format. Expected key starting with "sk-", got key starting with "${apiKey.substring(0, 3)}..."`);
+        console.warn('This may cause authentication errors with the DeepSeek API.');
+      }
+      
+      console.log(`Using DEEPSEEK_API_KEY for authentication: ${apiKey.substring(0, 3)}...${apiKey.substring(apiKey.length - 3)} (length: ${apiKey.length})`);
     } 
     // Then try Hugging Face API Token
     else if (process.env.HUGGINGFACE_API_TOKEN) {
       apiKey = process.env.HUGGINGFACE_API_TOKEN;
-      console.log('Using HUGGINGFACE_API_TOKEN for authentication');
+      console.log(`Using HUGGINGFACE_API_TOKEN for authentication (length: ${apiKey.length})`);
     }
     // Finally try Hugging Face API Key
     else if (process.env.HUGGINGFACE_API_KEY) {
       apiKey = process.env.HUGGINGFACE_API_KEY;
-      console.log('Using HUGGINGFACE_API_KEY for authentication');
+      console.log(`Using HUGGINGFACE_API_KEY for authentication (length: ${apiKey.length})`);
     }
     
     if (!apiKey) {
@@ -104,14 +111,28 @@ export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): 
     try {
       console.log(`Making API request to: ${apiUrl} with ${apiKey ? 'valid' : 'missing'} API key`);
       
+      // Prepare headers with appropriate authentication
+      const headers = { 
+        'Authorization': `Bearer ${apiKey}`, // DeepSeek expects 'Bearer sk-...'
+        'Content-Type': 'application/json'
+      };
+      
+      // Log the API request details (without exposing full key)
+      console.log('Making API request with the following details:');
+      console.log('- URL:', apiUrl);
+      console.log('- Model:', modelId);
+      console.log('- Headers:', {
+        'Authorization': headers.Authorization.replace(apiKey, '[REDACTED]'),
+        'Content-Type': headers['Content-Type']
+      });
+      console.log('- Payload size:', JSON.stringify(requestBody).length, 'characters');
+      
+      // Make the API request
       const response = await axios.post(
         apiUrl,
         requestBody,
         {
-          headers: { 
-            'Authorization': `Bearer ${apiKey}`, // DeepSeek expects 'Bearer sk-...'
-            'Content-Type': 'application/json'
-          },
+          headers,
           timeout: 180000, // 3 minute timeout
           validateStatus: function (status) {
             // Consider all status codes as successful to handle them manually below
@@ -122,14 +143,25 @@ export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): 
       
       console.log(`API response received with status: ${response.status}`);
       
-      // Check for error status
+      // Handle different error status codes with specific messages
       if (response.status >= 400) {
-        console.error(`API error: ${response.status}`, response.data);
-        throw new Error(`API Error: Status ${response.status} - ${JSON.stringify(response.data)}`);
+        if (response.status === 401) {
+          console.error('Authentication error (401):', response.data);
+          throw new Error(`Authentication failed with DeepSeek API. Please check your API key (should start with 'sk-'). Details: ${JSON.stringify(response.data)}`);
+        } else if (response.status === 403) {
+          console.error('Authorization error (403):', response.data);
+          throw new Error(`DeepSeek API access forbidden. Your API key may not have access to this model. Details: ${JSON.stringify(response.data)}`);
+        } else if (response.status === 429) {
+          console.error('Rate limit error (429):', response.data);
+          throw new Error(`DeepSeek API rate limit exceeded. Please try again later. Details: ${JSON.stringify(response.data)}`);
+        } else {
+          console.error(`API error: ${response.status}`, response.data);
+          throw new Error(`DeepSeek API Error: Status ${response.status} - ${JSON.stringify(response.data)}`);
+        }
       }
       
       if (!response.data) {
-        throw new Error('Empty response from API');
+        throw new Error('Empty response from DeepSeek API');
       }
       
       responseData = response.data;

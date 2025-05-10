@@ -54,12 +54,34 @@ async function main() {
   
   // Test DeepSeek API Key
   const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
+  
+  // Verify key format first
+  if (deepseekApiKey) {
+    if (!deepseekApiKey.startsWith('sk-')) {
+      console.log('\n⚠️ WARNING: DeepSeek API key has incorrect format!');
+      console.log('DeepSeek API keys should start with "sk-"');
+      console.log(`Your key starts with: ${deepseekApiKey.substring(0, 4)}...`);
+      console.log('This will likely cause authentication errors.');
+    }
+  }
+  
   await testApiKey(
     'DeepSeek', 
     deepseekApiKey, 
     'https://api.deepseek.com/v1/models', // This endpoint may need to be updated based on their API docs
     { authPrefix: 'Bearer' } // Use Bearer prefix as required by DeepSeek API
   );
+  
+  // Try alternative endpoints if available
+  if (deepseekApiKey) {
+    console.log('\nTrying alternative DeepSeek endpoints to verify API key...');
+    await testApiKey(
+      'DeepSeek (Completions)', 
+      deepseekApiKey, 
+      'https://api.deepseek.com/v1/chat/completions',
+      { authPrefix: 'Bearer' }
+    );
+  }
   
   // Test Hugging Face API Key/Token
   const hfApiKey = process.env.HUGGINGFACE_API_KEY;
