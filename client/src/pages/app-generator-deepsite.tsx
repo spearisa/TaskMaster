@@ -213,13 +213,13 @@ export default function DeepSiteAppGenerator() {
       
       let data;
       try {
-        // First try with DeepSeek set as the preferred provider
+        // Only use DeepSeek/HuggingFace as provider per user request
         const response = await apiRequest('POST', '/api/ai/deepseek/generate', {
           prompt: enhancedPrompt,
           technology: 'html',
           appType: 'website',
           features: ['responsive'],
-          provider: 'auto' // This will try DeepSeek first, then fall back to OpenAI if needed
+          provider: 'deepseek' // Only use DeepSeek without OpenAI fallback
         });
         
         if (!response.ok) {

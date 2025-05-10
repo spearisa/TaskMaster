@@ -109,7 +109,7 @@ export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): 
         requestBody,
         {
           headers: { 
-            'Authorization': `Bearer ${apiKey}`,
+            'Authorization': `Bearer ${apiKey}`, // DeepSeek expects 'Bearer sk-...'
             'Content-Type': 'application/json'
           },
           timeout: 180000, // 3 minute timeout
@@ -472,39 +472,8 @@ export async function handleCodeGenerationRequest(req: Request, res: Response) {
         hasHuggingFaceKey: hasHuggingFaceKey
       });
       
-      // If OpenAI is specified as provider or auto mode is on and DeepSeek keys are missing
-      if ((provider === 'openai' || 
-           (provider === 'auto' && (!hasDeepSeekKey && !hasHuggingFaceToken && !hasHuggingFaceKey))) 
-           && hasOpenAiKey) {
-        console.log(`Using OpenAI as provider (reason: ${provider === 'openai' ? 'explicitly requested' : 'auto mode and DeepSeek unavailable'})`);
-        
-        try {
-          // Import OpenAI dynamically to avoid circular dependencies
-          const openaiService = await import('./openai-service');
-          
-          // Use OpenAI for code generation
-          console.log('Redirecting request to OpenAI code generation service...');
-          const openAiResult = await openaiService.generateApplicationCode({
-            prompt,
-            technology,
-            appType, 
-            features
-          });
-          
-          return res.json({
-            ok: true,
-            files: openAiResult.files || [],
-            generated_text: openAiResult.generated_text || '',
-            provider: 'openai'
-          });
-        } catch (openAiError: any) {
-          console.error('OpenAI fallback error:', openAiError);
-          return res.status(500).json({
-            ok: false,
-            message: `OpenAI fallback failed: ${openAiError.message}`
-          });
-        }
-      }
+      // We only use DeepSeek and HuggingFace APIs per user request
+      console.log('Using only DeepSeek/HuggingFace APIs as requested');
       
       // Try using DeepSeek if we got here
       try {
@@ -544,28 +513,8 @@ export async function handleCodeGenerationRequest(req: Request, res: Response) {
         // Log the specific error for debugging
         console.log('Detailed DeepSeek error message:', deepseekError.message);
         
-        // If we have an OpenAI key available, use it as fallback
-        if (hasOpenAiKey) {
-          console.log('DeepSeek error, trying OpenAI fallback:', deepseekError.message);
-
-          // Import OpenAI on demand to avoid circular dependencies
-          const openaiService = await import('./openai-service');
-          
-          // Use OpenAI for code generation
-          const openAiResult = await openaiService.generateApplicationCode({
-            prompt,
-            technology,
-            appType, 
-            features
-          });
-          
-          return res.json({
-            ok: true,
-            files: openAiResult.files || [],
-            generated_text: openAiResult.generated_text || '',
-            provider: 'openai'
-          });
-        }
+        // No fallback to OpenAI as requested
+        console.log('DeepSeek error occurred, but not using OpenAI fallback per user request:', deepseekError.message);
         
         // If it's not a permissions error, re-throw
         throw deepseekError;
