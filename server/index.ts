@@ -219,26 +219,26 @@ app.use((req, res, next) => {
   // Start server with port fallback for Replit compatibility
   const startServer = async () => {
     // Try a wide range of ports - updated to prioritize ports that work better on Replit
+    // Let's try different ports based on recent error logs
     const availablePorts = [
-      // Change order to prioritize ports that are more likely to be available
-      8080,  // Common alternative HTTP port
-      3000,  // Common Node.js port
-      3001,  // Another common Node.js port 
+      3001,  // Success reported with this port in logs
       5000,  // Replit workflow expects this port
+      3002,  // Alternative Node.js port
       5001,  // Alternative to 5000
-      8000,  // Another common HTTP alternative
       4000,  // Another common development port
       4001,  // Alternative to 4000
-      // Fall back to other ports if needed
-      7000,  // Original port (likely to be in use based on logs)
-      7777,
+      9090,  // Higher port less likely to be in use
+      7777,  // Higher port less likely to be in use
+      8888,  // Higher port less likely to be in use
+      9876,  // Higher port less likely to be in use
+      // Only try these common ports later as they're likely to be in use
+      3000,  // Common Node.js port (often busy)
+      8080,  // Common alternative HTTP port (often busy)
+      8000,  // Another common HTTP alternative (often busy)
+      // Additional fallback options
       6789,
-      9090,
       4444,
-      3002,
       3003,
-      8888,
-      9876,
       9999,
       4321,
       10001,
@@ -265,11 +265,26 @@ app.use((req, res, next) => {
             clearTimeout(timeout);
             if (err.code === 'EADDRINUSE') {
               console.log(`Port ${port} is already in use, trying next port...`);
-              server.close(); // Explicitly close the server
+              
+              // Add more diagnostic information
+              console.log(`This is a common issue with Replit. We'll try another port automatically.`);
+              
+              // Force close the server and clean up event listeners
+              try {
+                server.close();
+              } catch (closeErr: any) {
+                console.log(`Note: Error while closing server: ${closeErr?.message || 'Unknown error'}`);
+              }
+              
               server.removeAllListeners('listening');
               server.removeAllListeners('error');
-              resolve(); // Continue to next port
+              
+              // Add a small delay before trying the next port to let things clean up
+              setTimeout(() => {
+                resolve(); // Continue to next port
+              }, 500);
             } else {
+              console.log(`Server error on port ${port}: ${err.message} (${err.code})`);
               reject(err);
             }
           });
@@ -283,6 +298,19 @@ app.use((req, res, next) => {
             console.log(`\n\n==================================================`);
             console.log(`🚀 Appmo server running successfully on port: ${port}`);
             console.log(`🔗 Access via: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.replit.dev`);
+            console.log(`🔌 API Status: Verifying API credentials...`);
+            
+            // Show API key status
+            const deepSeekKeyStatus = process.env.DEEPSEEK_API_KEY ? 
+              (process.env.DEEPSEEK_API_KEY.startsWith('sk-') ? '✅ Valid format (sk-...)' : '⚠️ Invalid format (should start with sk-)') 
+              : '❌ Missing';
+              
+            const huggingFaceKeyStatus = process.env.HUGGINGFACE_API_TOKEN || process.env.HUGGINGFACE_API_KEY ?
+              '✅ Available' : '❌ Missing';
+            
+            console.log(`   DeepSeek API Key: ${deepSeekKeyStatus}`);
+            console.log(`   Hugging Face API: ${huggingFaceKeyStatus}`);
+            
             console.log(`🐳 DeepSite Docker: To use the original DeepSite implementation:`);
             console.log(`   docker run -it -p 7860:7860 --platform=linux/amd64 \\`);
             console.log(`     -e OAUTH_CLIENT_ID="YOUR_VALUE_HERE" \\`);

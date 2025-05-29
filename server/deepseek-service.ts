@@ -1,11 +1,13 @@
 import axios from 'axios';
 import { Request, Response } from 'express';
 
-// The Hugging Face Inference API endpoint for DeepSeek Coder
-const DEEPSEEK_API_URL = 'https://api-inference.huggingface.co/models/deepseek-ai/DeepSeek-V3-0324';
+// DeepSeek API endpoint (now using direct DeepSeek API instead of through Hugging Face)
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
 export const DEEPSEEK_MODELS = {
-  DEEPSEEK_CODER_33B: 'deepseek-ai/deepseek-coder-33b-instruct'
+  DEEPSEEK_CODER_33B: 'deepseek-coder-33b-instruct',
+  DEEPSEEK_V3: 'deepseek-chat',
+  DEEPSEEK_V3_PLUS: 'deepseek-v3-plus'
 };
 
 interface CodeGenerationRequest {
@@ -81,20 +83,24 @@ export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): 
     
     console.log(`Enhanced prompt created (${enhancedPrompt.length} chars), requesting code generation...`);
     
-    // Setup request parameters
+    // Setup request parameters for DeepSeek API format
     const requestBody = { 
-      inputs: enhancedPrompt,
-      parameters: {
-        max_new_tokens: options.maxLength || 4096,
-        temperature: 0.7,
-        top_p: 0.95,
-        do_sample: true
-      }
+      model: modelId,
+      messages: [
+        {
+          role: "user",
+          content: enhancedPrompt
+        }
+      ],
+      temperature: 0.7,
+      top_p: 0.95,
+      max_tokens: options.maxLength || 4096,
+      stream: false
     };
     
-    // Determine the API URL dynamically based on the model ID
-    const apiUrl = `https://api-inference.huggingface.co/models/${modelId}`;
-    console.log(`Making request to Hugging Face API: ${apiUrl}`);
+    // No need to construct the URL dynamically - we're using the DeepSeek API directly
+    const apiUrl = DEEPSEEK_API_URL;
+    console.log(`Making request to DeepSeek API: ${apiUrl}`);
     
     // Log the headers we're using (without the actual API key)
     console.log('Making request with headers:', {
@@ -168,13 +174,23 @@ export async function generateCodeWithDeepSeek(options: CodeGenerationRequest): 
       
       // Log response data for debugging
       console.log('Received response from DeepSeek API:', 
-        typeof responseData === 'string' 
-          ? `${responseData.substring(0, 100)}...` 
+        typeof responseData === 'object' 
+          ? `Response ID: ${responseData.id || 'none'}, model: ${responseData.model || 'none'}` 
           : `Response type: ${typeof responseData}`
       );
       
+      // Check if the response has the expected format
+      if (!responseData.choices || !responseData.choices[0] || !responseData.choices[0].message) {
+        console.error('Unexpected response format from DeepSeek API:', responseData);
+        throw new Error('Unexpected response format from DeepSeek API');
+      }
+      
+      // Extract the message content from the DeepSeek chat response
+      const generatedText = responseData.choices[0].message.content;
+      console.log(`Extracted content from DeepSeek chat response (${generatedText.length} chars)`);
+      
       // Process the response to extract code files
-      const result = processGeneratedCode(responseData);
+      const result = processGeneratedCode(generatedText);
       console.log(`Processed ${result.files?.length || 0} files from DeepSeek response`);
       
       return result;
@@ -548,33 +564,122 @@ export async function handleCodeGenerationRequest(req: Request, res: Response) {
         // No fallback to OpenAI as requested
         console.log('DeepSeek error occurred, but not using OpenAI fallback per user request:', deepseekError.message);
         
-        // If it's not a permissions error, re-throw
+        // Check if this is an authentication error related to the API key format
+        if (deepseekError.message.includes('Auth') || 
+            deepseekError.message.includes('auth') || 
+            deepseekError.message.includes('401') ||
+            deepseekError.message.includes('credentials')) {
+            
+          return res.status(401).json({
+            ok: false,
+            errorType: 'invalid_api_key',
+            message: 'DeepSeek API key authentication failed. The API key format appears to be incorrect.',
+            details: {
+              expectedFormat: 'Bearer sk-...',
+              apiKeyInfo: {
+                deepseekKeyLength: process.env.DEEPSEEK_API_KEY?.length || 0,
+                deepseekKeyPrefix: process.env.DEEPSEEK_API_KEY?.substring(0, 3) || 'none',
+                correctFormat: process.env.DEEPSEEK_API_KEY?.startsWith('sk-') || false
+              },
+              originalError: deepseekError.message
+            }
+          });
+        }
+        
+        // If it's not a handled error type, re-throw
         throw deepseekError;
       }
     } catch (error: any) {
       console.error('Code generation error:', error);
       
-      // Determine appropriate status code based on error type
+      // Determine appropriate status code and error type
       let statusCode = 500;
+      let errorType = 'unknown';
+      let userMessage = `Failed to generate code: ${error.message}`;
+      
       if (error.response) {
         statusCode = error.response.status || 500;
+        
+        // Map status codes to error types
+        if (statusCode === 401 || statusCode === 403) {
+          errorType = 'authentication';
+          userMessage = 'DeepSeek API authentication failed. Please check your API key.';
+        } else if (statusCode === 429) {
+          errorType = 'rate_limit';
+          userMessage = 'DeepSeek API rate limit exceeded. Please try again later.';
+        }
       } else if (error.message.includes('timeout')) {
         statusCode = 504; // Gateway Timeout
+        errorType = 'timeout';
+        userMessage = 'DeepSeek API request timed out. The service may be experiencing high demand.';
+      } else if (error.message.includes('API key') || error.message.includes('credentials') || error.message.includes('Authentication')) {
+        statusCode = 401;
+        errorType = 'invalid_api_key';
+        userMessage = 'Invalid DeepSeek API key. The key should start with "sk-".';
       }
+      
+      // Log key information without exposing the full key
+      const keyInfo = {
+        deepseekKeyPresent: !!process.env.DEEPSEEK_API_KEY,
+        deepseekKeyLength: process.env.DEEPSEEK_API_KEY?.length || 0,
+        deepseekKeyFormat: process.env.DEEPSEEK_API_KEY?.startsWith('sk-') ? 'valid' : 'invalid',
+        huggingfaceTokenPresent: !!process.env.HUGGINGFACE_API_TOKEN,
+        huggingfaceKeyPresent: !!process.env.HUGGINGFACE_API_KEY
+      };
+      
+      console.log('API Key Information:', keyInfo);
       
       return res.status(statusCode).json({ 
         ok: false,
-        message: `Failed to generate code: ${error.message}`,
-        error: error.message
+        errorType,
+        message: userMessage,
+        error: error.message,
+        keyInfo
       });
     }
   } catch (error: any) {
     console.error('Code generation request handler error:', error);
     
-    return res.status(500).json({ 
+    // Format the error response
+    let errorMessage = `Code generation request failed: ${error.message}`;
+    let errorType = 'unknown';
+    let statusCode = 500;
+    
+    // Categorize common errors
+    if (error.message.includes('API key') || 
+        error.message.includes('auth') || 
+        error.message.includes('credentials') ||
+        error.message.includes('401')) {
+      errorType = 'invalid_api_key';
+      errorMessage = 'Invalid DeepSeek API key. Please check your API credentials.';
+      statusCode = 401;
+    }
+    
+    // Add API key information to help troubleshoot
+    const keyInfo = {
+      deepseekKeyPresent: !!process.env.DEEPSEEK_API_KEY,
+      deepseekKeyLength: process.env.DEEPSEEK_API_KEY?.length || 0,
+      deepseekKeyFormat: process.env.DEEPSEEK_API_KEY?.startsWith('sk-') ? 'valid' : 'invalid',
+      huggingfaceTokenPresent: !!process.env.HUGGINGFACE_API_TOKEN,
+      huggingfaceKeyPresent: !!process.env.HUGGINGFACE_API_KEY
+    };
+    
+    // Log the diagnostic information
+    console.log('DeepSeek Service Error Diagnostics:', {
+      errorType,
+      keyInfo,
+      originalError: error.message
+    });
+    
+    return res.status(statusCode).json({ 
       ok: false,
-      message: `Code generation request failed: ${error.message}`,
-      error: error.message
+      errorType,
+      message: errorMessage,
+      error: error.message,
+      apiStatus: {
+        deepseekAvailable: keyInfo.deepseekKeyPresent && keyInfo.deepseekKeyFormat === 'valid',
+        huggingfaceAvailable: keyInfo.huggingfaceTokenPresent || keyInfo.huggingfaceKeyPresent
+      }
     });
   }
 }
