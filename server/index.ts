@@ -218,8 +218,16 @@ app.use((req, res, next) => {
 
   // Start server with port fallback for Replit compatibility
   const startServer = async () => {
-    // Try a wide range of ports - updated to prioritize ports that work better on Replit
-    // Let's try different ports based on recent error logs
+    // For Cloud Run deployments, use the PORT environment variable or default to 8080
+    if (process.env.NODE_ENV === "production") {
+      const port = process.env.PORT || '8080';
+      process.env.PORT = port;
+      server.listen(parseInt(port), "0.0.0.0");
+      log(`Server started on production port ${port}`);
+      return;
+    }
+    
+    // For development, try different ports
     const availablePorts = [
       3001,  // Success reported with this port in logs
       5000,  // Replit workflow expects this port
